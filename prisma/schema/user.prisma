@@ -1,0 +1,23 @@
+model User {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  firstname String
+  lastname  String
+  password  String
+  email     String @unique
+
+  status    UserStatus
+  TempToken TempToken[]
+
+  roles   Role[]   @relation(fields: [roleIds], references: [id])
+  roleIds String[] @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deletedAt DateTime?
+}
+
+enum UserStatus {
+  active
+  inactive
+}

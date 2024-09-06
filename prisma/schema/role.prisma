@@ -1,0 +1,18 @@
+model Role {
+  id     String   @id @default(auto()) @map("_id") @db.ObjectId
+  role   String?  @unique
+  active Boolean? @default(true)
+
+  permissions Permission[]
+
+  users   User[]   @relation(fields: [userIds], references: [id])
+  userIds String[] @db.ObjectId
+}
+
+model Permission {
+  id   String @id @default(auto()) @map("_id") @db.ObjectId
+  name String @unique
+
+  Role   Role?   @relation(fields: [roleId], references: [id])
+  roleId String? @db.ObjectId
+}
