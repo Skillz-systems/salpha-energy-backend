@@ -7,7 +7,7 @@ settings:
 dependencies:
   '@nestjs/common':
     specifier: ^10.0.0
-    version: 10.4.1(reflect-metadata@0.2.2)(rxjs@7.8.1)
+    version: 10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1)
   '@nestjs/config':
     specifier: ^3.2.3
     version: 3.2.3(@nestjs/common@10.4.1)(rxjs@7.8.1)
@@ -16,16 +16,25 @@ dependencies:
     version: 10.4.1(@nestjs/common@10.4.1)(@nestjs/platform-express@10.4.1)(reflect-metadata@0.2.2)(rxjs@7.8.1)
   '@nestjs/mapped-types':
     specifier: '*'
-    version: 2.0.5(@nestjs/common@10.4.1)(reflect-metadata@0.2.2)
+    version: 2.0.5(@nestjs/common@10.4.1)(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)
   '@nestjs/platform-express':
     specifier: ^10.0.0
     version: 10.4.1(@nestjs/common@10.4.1)(@nestjs/core@10.4.1)
   '@nestjs/swagger':
     specifier: ^7.4.0
-    version: 7.4.0(@nestjs/common@10.4.1)(@nestjs/core@10.4.1)(reflect-metadata@0.2.2)
+    version: 7.4.0(@nestjs/common@10.4.1)(@nestjs/core@10.4.1)(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)
   '@prisma/client':
     specifier: ^5.19.1
     version: 5.19.1(prisma@5.19.1)
+  argon2:
+    specifier: ^0.41.1
+    version: 0.41.1
+  class-transformer:
+    specifier: ^0.5.1
+    version: 0.5.1
+  class-validator:
+    specifier: ^0.14.1
+    version: 0.14.1
   prisma:
     specifier: ^5.19.1
     version: 5.19.1
@@ -906,7 +915,7 @@ packages:
       - webpack-cli
     dev: true
 
-  /@nestjs/common@10.4.1(reflect-metadata@0.2.2)(rxjs@7.8.1):
+  /@nestjs/common@10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1):
     resolution: {integrity: sha512-4CkrDx0s4XuWqFjX8WvOFV7Y6RGJd0P2OBblkhZS7nwoctoSuW5pyEa8SWak6YHNGrHRpFb6ymm5Ai4LncwRVA==}
     peerDependencies:
       class-transformer: '*'
@@ -919,6 +928,8 @@ packages:
       class-validator:
         optional: true
     dependencies:
+      class-transformer: 0.5.1
+      class-validator: 0.14.1
       iterare: 1.2.1
       reflect-metadata: 0.2.2
       rxjs: 7.8.1
@@ -931,7 +942,7 @@ packages:
       '@nestjs/common': ^8.0.0 || ^9.0.0 || ^10.0.0
       rxjs: ^7.1.0
     dependencies:
-      '@nestjs/common': 10.4.1(reflect-metadata@0.2.2)(rxjs@7.8.1)
+      '@nestjs/common': 10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1)
       dotenv: 16.4.5
       dotenv-expand: 10.0.0
       lodash: 4.17.21
@@ -956,7 +967,7 @@ packages:
       '@nestjs/websockets':
         optional: true
     dependencies:
-      '@nestjs/common': 10.4.1(reflect-metadata@0.2.2)(rxjs@7.8.1)
+      '@nestjs/common': 10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1)
       '@nestjs/platform-express': 10.4.1(@nestjs/common@10.4.1)(@nestjs/core@10.4.1)
       '@nuxtjs/opencollective': 0.3.2
       fast-safe-stringify: 2.1.1
@@ -969,7 +980,7 @@ packages:
     transitivePeerDependencies:
       - encoding
 
-  /@nestjs/mapped-types@2.0.5(@nestjs/common@10.4.1)(reflect-metadata@0.2.2):
+  /@nestjs/mapped-types@2.0.5(@nestjs/common@10.4.1)(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2):
     resolution: {integrity: sha512-bSJv4pd6EY99NX9CjBIyn4TVDoSit82DUZlL4I3bqNfy5Gt+gXTa86i3I/i0iIV9P4hntcGM5GyO+FhZAhxtyg==}
     peerDependencies:
       '@nestjs/common': ^8.0.0 || ^9.0.0 || ^10.0.0
@@ -982,7 +993,9 @@ packages:
       class-validator:
         optional: true
     dependencies:
-      '@nestjs/common': 10.4.1(reflect-metadata@0.2.2)(rxjs@7.8.1)
+      '@nestjs/common': 10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1)
+      class-transformer: 0.5.1
+      class-validator: 0.14.1
       reflect-metadata: 0.2.2
     dev: false
 
@@ -992,7 +1005,7 @@ packages:
       '@nestjs/common': ^10.0.0
       '@nestjs/core': ^10.0.0
     dependencies:
-      '@nestjs/common': 10.4.1(reflect-metadata@0.2.2)(rxjs@7.8.1)
+      '@nestjs/common': 10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1)
       '@nestjs/core': 10.4.1(@nestjs/common@10.4.1)(@nestjs/platform-express@10.4.1)(reflect-metadata@0.2.2)(rxjs@7.8.1)
       body-parser: 1.20.2
       cors: 2.8.5
@@ -1032,7 +1045,7 @@ packages:
       - chokidar
     dev: true
 
-  /@nestjs/swagger@7.4.0(@nestjs/common@10.4.1)(@nestjs/core@10.4.1)(reflect-metadata@0.2.2):
+  /@nestjs/swagger@7.4.0(@nestjs/common@10.4.1)(@nestjs/core@10.4.1)(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2):
     resolution: {integrity: sha512-dCiwKkRxcR7dZs5jtrGspBAe/nqJd1AYzOBTzw9iCdbq3BGrLpwokelk6lFZPe4twpTsPQqzNKBwKzVbI6AR/g==}
     peerDependencies:
       '@fastify/static': ^6.0.0 || ^7.0.0
@@ -1050,9 +1063,11 @@ packages:
         optional: true
     dependencies:
       '@microsoft/tsdoc': 0.15.0
-      '@nestjs/common': 10.4.1(reflect-metadata@0.2.2)(rxjs@7.8.1)
+      '@nestjs/common': 10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1)
       '@nestjs/core': 10.4.1(@nestjs/common@10.4.1)(@nestjs/platform-express@10.4.1)(reflect-metadata@0.2.2)(rxjs@7.8.1)
-      '@nestjs/mapped-types': 2.0.5(@nestjs/common@10.4.1)(reflect-metadata@0.2.2)
+      '@nestjs/mapped-types': 2.0.5(@nestjs/common@10.4.1)(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)
+      class-transformer: 0.5.1
+      class-validator: 0.14.1
       js-yaml: 4.1.0
       lodash: 4.17.21
       path-to-regexp: 3.2.0
@@ -1073,7 +1088,7 @@ packages:
       '@nestjs/platform-express':
         optional: true
     dependencies:
-      '@nestjs/common': 10.4.1(reflect-metadata@0.2.2)(rxjs@7.8.1)
+      '@nestjs/common': 10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1)
       '@nestjs/core': 10.4.1(@nestjs/common@10.4.1)(@nestjs/platform-express@10.4.1)(reflect-metadata@0.2.2)(rxjs@7.8.1)
       '@nestjs/platform-express': 10.4.1(@nestjs/common@10.4.1)(@nestjs/core@10.4.1)
       tslib: 2.6.3
@@ -1110,6 +1125,11 @@ packages:
       node-fetch: 2.7.0
     transitivePeerDependencies:
       - encoding
+
+  /@phc/format@1.0.0:
+    resolution: {integrity: sha512-m7X9U6BG2+J+R1lSOdCiITLLrxm+cWlNI3HUFA92oLO77ObGNzaKdh8pMLqdZcshtkKuV84olNNXDfMc4FezBQ==}
+    engines: {node: '>=10'}
+    dev: false
 
   /@pkgjs/parseargs@0.11.0:
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
@@ -1361,6 +1381,9 @@ packages:
       '@types/methods': 1.1.4
       '@types/superagent': 8.1.9
     dev: true
+
+  /@types/validator@13.12.1:
+    resolution: {integrity: sha512-w0URwf7BQb0rD/EuiG12KP0bailHKHP5YVviJG9zw3ykAokL0TuxU2TUqMB7EwZ59bDHYdeTIvjI5m0S7qHfOA==}
 
   /@types/yargs-parser@21.0.3:
     resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
@@ -1749,6 +1772,16 @@ packages:
     resolution: {integrity: sha512-58S9QDqG0Xx27YwPSt9fJxivjYl432YCwfDMfZ+71RAqUrZef7LrKQZ3LHLOwCS4FLNBplP533Zx895SeOCHvA==}
     dev: true
 
+  /argon2@0.41.1:
+    resolution: {integrity: sha512-dqCW8kJXke8Ik+McUcMDltrbuAWETPyU6iq+4AhxqKphWi7pChB/Zgd/Tp/o8xRLbg8ksMj46F/vph9wnxpTzQ==}
+    engines: {node: '>=16.17.0'}
+    requiresBuild: true
+    dependencies:
+      '@phc/format': 1.0.0
+      node-addon-api: 8.1.0
+      node-gyp-build: 4.8.2
+    dev: false
+
   /argparse@1.0.10:
     resolution: {integrity: sha512-o5Roy6tNG4SL/FOkCAN6RzjiakZS25RLYFrcMttJqbdd8BWrnA+fGz57iN5Pb06pvBGvl5gQ0B48dJlslXvoTg==}
     dependencies:
@@ -2043,6 +2076,16 @@ packages:
   /cjs-module-lexer@1.4.0:
     resolution: {integrity: sha512-N1NGmowPlGBLsOZLPvm48StN04V4YvQRL0i6b7ctrVY3epjP/ct7hFLOItz6pDIvRjwpfPxi52a2UWV2ziir8g==}
     dev: true
+
+  /class-transformer@0.5.1:
+    resolution: {integrity: sha512-SQa1Ws6hUbfC98vKGxZH3KFY0Y1lm5Zm0SY8XX9zbK7FJCyVEac3ATW0RIpwzW+oOfmHE5PMPufDG9hCfoEOMw==}
+
+  /class-validator@0.14.1:
+    resolution: {integrity: sha512-2VEG9JICxIqTpoK1eMzZqaV+u/EiwEJkMGzTrZf6sU/fwsnOITVgYJ8yojSy6CaXtO9V0Cc6ZQZ8h8m4UBuLwQ==}
+    dependencies:
+      '@types/validator': 13.12.1
+      libphonenumber-js: 1.11.7
+      validator: 13.12.0
 
   /cli-cursor@3.1.0:
     resolution: {integrity: sha512-I/zHAwsKf9FqGoXM4WWRACob9+SNukZTd94DWF57E4toouRulbCxcUh6RKUEOQlYTHJnzkPMySvPNaaSLNfLZw==}
@@ -3777,6 +3820,9 @@ packages:
       type-check: 0.4.0
     dev: true
 
+  /libphonenumber-js@1.11.7:
+    resolution: {integrity: sha512-x2xON4/Qg2bRIS11KIN9yCNYUjhtiEjNyptjX0mX+pyKHecxuJVLIpfX1lq9ZD6CrC/rB+y4GBi18c6CEcUR+A==}
+
   /lines-and-columns@1.2.4:
     resolution: {integrity: sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==}
     dev: true
@@ -3991,6 +4037,11 @@ packages:
     resolution: {integrity: sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ==}
     dev: true
 
+  /node-addon-api@8.1.0:
+    resolution: {integrity: sha512-yBY+qqWSv3dWKGODD6OGE6GnTX7Q2r+4+DfpqxHSHh8x0B4EKP9+wVGLS6U/AM1vxSNNmUEuIV5EGhYwPpfOwQ==}
+    engines: {node: ^18 || ^20 || >= 21}
+    dev: false
+
   /node-emoji@1.11.0:
     resolution: {integrity: sha512-wo2DpQkQp7Sjm2A0cq+sN7EHKO6Sl0ctXeBdFZrL9T9+UywORbufTcTZxom8YqpLQt/FqNMUkOpkZrJVYSKD3A==}
     dependencies:
@@ -4007,6 +4058,11 @@ packages:
         optional: true
     dependencies:
       whatwg-url: 5.0.0
+
+  /node-gyp-build@4.8.2:
+    resolution: {integrity: sha512-IRUxE4BVsHWXkV/SFOut4qTlagw2aM8T5/vnTsmrHJvVoKueJHRc/JaFND7QDDc61kLYUJ6qlZM3sqTSyx2dTw==}
+    hasBin: true
+    dev: false
 
   /node-int64@0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
@@ -5058,6 +5114,10 @@ packages:
       '@types/istanbul-lib-coverage': 2.0.6
       convert-source-map: 2.0.0
     dev: true
+
+  /validator@13.12.0:
+    resolution: {integrity: sha512-c1Q0mCiPlgdTVVVIJIrBuxNicYE+t/7oKeI9MWLj3fh/uq2Pxh/3eeWbVZ4OcGW1TUf53At0njHw5SMdA3tmMg==}
+    engines: {node: '>= 0.10'}
 
   /vary@1.1.2:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
