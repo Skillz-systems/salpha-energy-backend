@@ -15,7 +15,7 @@ model Role {
 
 model Permission {
   id      String      @id @default(auto()) @map("_id") @db.ObjectId
-  action  ActionEnum // This field likely specifies the type of action that the permission grants or restricts
+  action  ActionEnum // This field likely specifies the type of action that the permission grants or restricts.
   subject SubjectEnum // The subject field usually refers to the resource or entity on which the action is performed.
 
   role   Role?   @relation(fields: [roleId], references: [id])
