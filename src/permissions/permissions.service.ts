@@ -13,22 +13,22 @@ export class PermissionsService {
     // Validate if the name is already in use
     try {
       // Check if the permission name already exists
-      const existingPermission = await this.prisma.permission.findUnique({
-        where: { name },
-      });
+      // const existingPermission = await this.prisma.permission.findUnique({
+      //   where: { name },
+      // });
 
-      if (existingPermission) {
-        throw new ConflictException(`Permission with name "${name}" already exists`);
-      }
+      // if (existingPermission) {
+      //   throw new ConflictException(`Permission with name "${name}" already exists`);
+      // }
 
-      // Create a new permission
-      const permission = await this.prisma.permission.create({
-        data: {
-          name,
-        },
-      });
+      // // Create a new permission
+      // const permission = await this.prisma.permission.create({
+      //   data: {
+      //     name,
+      //   },
+      // });
 
-      return permission;
+      // return permission;
 
     } catch (error) {
       // Handle any errors from Prisma
@@ -69,26 +69,26 @@ export class PermissionsService {
     const { name } = updatePermissionDto;
   
     // Check if the name is unique
-    if (name) {
-      const existingPermission = await this.prisma.permission.findUnique({
-        where: { name },
-      });
+    // if (name) {
+    //   const existingPermission = await this.prisma.permission.findUnique({
+    //     where: { name },
+    //   });
   
-      if (existingPermission && existingPermission.id !== id) {
-        throw new ConflictException(`Permission with name "${name}" already exists`);
-      }
-    }
+    //   if (existingPermission && existingPermission.id !== id) {
+    //     throw new ConflictException(`Permission with name "${name}" already exists`);
+    //   }
+    // }
   
-    const permission = await this.prisma.permission.update({
-      where: { id },
-      data: updatePermissionDto,
-    });
+    // const permission = await this.prisma.permission.update({
+    //   where: { id },
+    //   data: updatePermissionDto,
+    // });
   
-    if (!permission) {
-      throw new NotFoundException(`Permission with ID "${id}" not found`);
-    }
+    // if (!permission) {
+    //   throw new NotFoundException(`Permission with ID "${id}" not found`);
+    // }
   
-    return permission;
+    // return permission;
   }
 
   async remove(id: string) {
