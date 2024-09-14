@@ -1,18 +1,29 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
-import { RegisterUserDto } from './dto/register-user.dto';
+import { MESSAGES } from '../constants';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import { MESSAGES } from 'src/constants';
-import { RolesEnum } from '@prisma/client';
-import { hashPassword } from 'src/utils/helpers.util';
+import { hashPassword } from '../utils/helpers.util';
+import { CreateUserDto } from './dto/create-user.dto';
+import { EmailService } from '../mailer/email.service';
+import { generateRandomPassword } from '../utils/generate-pwd';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly Email: EmailService,
+    private readonly config: ConfigService,
+  ) {}
 
-  async register(registerUserDto: RegisterUserDto) {
-    const { username, email, password } = registerUserDto;
+  async addUser(userData: CreateUserDto) {
+    const {
+      email,
+      firstname,
+      lastname,
+      location,
+      phone,
+      role: roleId,
+    } = userData;
 
     const emailExists = await this.prisma.user.findFirst({
       where: {
@@ -21,56 +32,56 @@ export class AuthService {
     });
 
     if (emailExists) {
-      throw new BadRequestException(MESSAGES.EMAIL_IN_USE);
+      throw new BadRequestException(MESSAGES.EMAIL_EXISTS);
     }
 
-    const usernameExists = await this.prisma.user.findFirst({
+    const roleExists = await this.prisma.role.findFirst({
       where: {
-        username,
+        id: roleId,
       },
     });
 
-    if (usernameExists) {
-      throw new BadRequestException(MESSAGES.USERNAME_IN_USE);
+    if (!roleExists) {
+      throw new BadRequestException(MESSAGES.customInvalidMsg('role'));
     }
 
-    const hashedPwd = await hashPassword(password);
+    const newPwd = generateRandomPassword();
 
-    return await this.prisma.user.create({
+    const hashedPwd = await hashPassword(newPwd);
+
+    const newUser = await this.prisma.user.create({
       data: {
-        username,
+        firstname,
+        lastname,
+        location,
+        phone,
         email,
         password: hashedPwd,
-        role: {
-          connectOrCreate: {
-            where: {
-              role: RolesEnum.customer,
-            },
-            create: {
-              role: RolesEnum.customer,
-            },
-          },
-        },
+        roleId,
       },
       include: {
         role: true,
       },
     });
-  }
 
-  findAll() {
-    return `This action returns all auth`;
-  }
+    const platformName = 'A4T Energy';
+    const loginUrl = 'https://google.com';
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
-  }
+    await this.Email.sendMail({
+      to: email,
+      from: this.config.get<string>('EMAIL_USER'),
+      subject: `Welcome to ${platformName} - Let's Get You Started!`,
+      template: './new-user-onboarding',
+      context: {
+        firstname,
+        userEmail: email,
+        loginUrl,
+        platformName,
+        supportEmail: this.config.get<string>('EMAIL_USER'),
+        tempPassword: newPwd,
+      },
+    });
 
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+    return newUser;
   }
 }

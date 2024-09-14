@@ -1,7 +1,6 @@
 import {
   PrismaClient,
   SubjectEnum,
-  RolesEnum,
   ActionEnum,
 } from '@prisma/client';
 
@@ -10,10 +9,10 @@ const prisma = new PrismaClient();
 async function main() {
   // Upsert Roles and Permissions
   const adminRole = await prisma.role.upsert({
-    where: { role: RolesEnum.admin },
+    where: { role: "admin" },
     update: {},
     create: {
-      role: RolesEnum.admin,
+      role: "admin",
       permissions: {
         create: [
           {
@@ -26,10 +25,10 @@ async function main() {
   });
 
   const customerRole = await prisma.role.upsert({
-    where: { role: RolesEnum.customer },
+    where: { role: "customer" },
     update: {},
     create: {
-      role: RolesEnum.customer,
+      role: "customer",
       permissions: {
         create: [
           {

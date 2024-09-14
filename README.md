@@ -8,6 +8,7 @@
 - [Database Seeding](#database-seeding)
 - [API Documentation](#api-documentation)
 - [Contributing](#contributing)
+- [Testing](#testing)
 
 ## Project Features
 
@@ -17,6 +18,7 @@
 
 - **Swagger Documentation**
   - Comprehensive API documentation using Swagger.
+
 - **Automated Testing**
   - Unit tests for services and controllers.
   - e2e tests to cover API endpoints and middleware.
@@ -93,3 +95,17 @@ Create a new feature branch (git checkout -b feature-branch).
 Commit your changes (git commit -m 'Add new feature').
 Push the branch (git push origin feature-branch).
 Open a pull request.
+
+## Testing
+
+Ensure all independently developed units of software work correctly when they are connected to each other by running tests.
+
+for unit tests
+```bash
+    pnpm test
+```
+
+for integration/e2e tests
+```bash
+    pnpm test:e2e
+```
