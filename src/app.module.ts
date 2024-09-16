@@ -14,6 +14,7 @@ import { EmailModule } from './mailer/email.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    // JwtModule.register({}),
     EmailModule,
     PrismaModule,
     AuthModule,
