@@ -1,6 +1,6 @@
 model Role {
   id     String    @id @default(auto()) @map("_id") @db.ObjectId
-  role   RolesEnum @unique
+  role   String @unique
   active Boolean?  @default(true)
 
   permissions Permission[]
@@ -26,11 +26,6 @@ model Permission {
   deleted_at DateTime?
 
   @@map("permissions")
-}
-
-enum RolesEnum {
-  admin
-  customer
 }
 
 enum ActionEnum {
