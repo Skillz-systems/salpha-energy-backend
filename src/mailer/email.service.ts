@@ -1,18 +1,33 @@
 import { Injectable } from '@nestjs/common';
-import { Queue } from 'bullmq';
-import { InjectQueue } from '@nestjs/bullmq';
+import { MailerService } from '@nestjs-modules/mailer';
 import { IMail } from './interfaces/mail.interface';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class EmailService {
-  constructor(@InjectQueue('emailSending') private emailQueue: Queue) {}
+  constructor(
+    private readonly mailService: MailerService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async sendMail(value: IMail) {
     try {
-      // console.log(value);
-      await this.emailQueue.add("addNewUser", value);
+      await this.mailService.sendMail({
+        ...value,
+      });
+
+      return 'Email Sent Successfully';
     } catch (error) {
       console.log(error);
+
+      // to remove the user being created when the mailing fails
+      const newUser = await this.prisma.user.delete({
+        where: {
+          id: value.userId,
+        },
+      });
+
+      throw error;
     }
   }
 }

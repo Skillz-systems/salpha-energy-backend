@@ -6,7 +6,6 @@ import { PrismaService } from './../src/prisma/prisma.service';
 import { EmailService } from './../src/mailer/email.service';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { PrismaClient } from '@prisma/client';
-import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 describe('AuthController (e2e)', () => {
@@ -16,7 +15,7 @@ describe('AuthController (e2e)', () => {
   let mockPrismaService: DeepMockProxy<PrismaClient>;
 
   const mockEmailService = {
-    sendMail: jest.fn(),
+    sendMail: jest.fn().mockResolvedValue(true),
   };
 
   const testData = {
@@ -32,31 +31,10 @@ describe('AuthController (e2e)', () => {
     mockPrismaService = mockDeep<PrismaClient>();
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        AuthModule,
-        BullModule.forRootAsync({
-          imports: [ConfigModule],
-          inject: [ConfigService],
-          useFactory: async (configService: ConfigService) => ({
-            connection: {
-              host: configService.get<string>('REDIS_HOST'),
-              port: configService.get<number>('REDIS_PORT'),
-              password: configService.get<string>('REDIS_PASSWORD'),
-              username: configService.get<string>('REDIS_USERNAME'),
-            },
-            defaultJobOptions: {
-              delay: 999999999999999,
-            },
-          }),
-        }),
-        BullModule.registerQueue({
-          name: 'emailSending',
-        }),
-      ],
-      providers: [
-        { provide: EmailService, useValue: mockEmailService },
-      ],
+      imports: [AuthModule],
     })
+      .overrideProvider(EmailService)
+      .useValue(mockEmailService)
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -70,9 +48,14 @@ describe('AuthController (e2e)', () => {
     await prisma.user.deleteMany({
       where: { email: testData.email },
     });
-
     await prisma.$disconnect();
     await app.close();
+  });
+
+  afterEach(async () => {
+    await prisma.user.deleteMany({
+      where: { email: testData.email },
+    });
   });
 
   describe('Add user', () => {
@@ -84,18 +67,17 @@ describe('AuthController (e2e)', () => {
 
       expect(response.body).toHaveProperty('id');
       expect(response.body).toHaveProperty('firstname', 'John');
+      expect(mockEmailService.sendMail).toHaveBeenCalled();
     }, 10000);
 
     it('/auth/add-user (POST) should return 400 if email already exists', async () => {
+      const { role, ...dataWithoutRole } = testData;
+      
       // First create a user
       await prisma.user.create({
         data: {
-          firstname: 'John',
-          lastname: 'Doe',
-          email: 'john.doe@example.com',
-          phone: '09062736182',
+          ...dataWithoutRole,
           roleId: '66dce4173c5d3bc2fd5f5728',
-          location: 'Abuja',
           password: 'hashedPwd',
         },
       });
@@ -103,12 +85,7 @@ describe('AuthController (e2e)', () => {
       await request(app.getHttpServer())
         .post('/auth/add-user')
         .send({
-          firstname: 'John',
-          lastname: 'Doe',
-          email: 'john.doe@example.com',
-          phone: '09062736182',
-          role: '66dce4173c5d3b2fd5f5728',
-          location: 'Abuja',
+          testData,
         })
         .expect(400);
     });

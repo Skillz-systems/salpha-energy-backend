@@ -68,6 +68,7 @@ export class AuthService {
     const loginUrl = 'https://google.com';
 
     await this.Email.sendMail({
+      userId: newUser.id,
       to: email,
       from: this.config.get<string>('EMAIL_USER'),
       subject: `Welcome to ${platformName} - Let's Get You Started!`,

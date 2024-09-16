@@ -4,14 +4,10 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { join } from 'path';
 import { EmailService } from './email.service';
-import { BullModule } from '@nestjs/bullmq';
-import { EmailProcessor } from './email.processor';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Module({
   imports: [
-    BullModule.registerQueue({
-      name: 'emailSending',
-    }),
     MailerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -34,7 +30,7 @@ import { EmailProcessor } from './email.processor';
       }),
     }),
   ],
-  providers: [EmailService, EmailProcessor],
-  exports: [EmailService, BullModule],
+  providers: [EmailService, PrismaService],
+  exports: [EmailService],
 })
 export class EmailModule {}
