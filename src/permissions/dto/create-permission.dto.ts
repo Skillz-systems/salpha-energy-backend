@@ -1,7 +1,13 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { ActionEnum, SubjectEnum } from '@prisma/client';
+import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 
 export class CreatePermissionDto {
-  @IsString()
-  @IsNotEmpty({ message: 'Permission name is required' })
-  readonly name: string;
+
+  @IsEnum(ActionEnum, { message: 'Invalid action type' })
+  action: ActionEnum;
+
+  @IsEnum(SubjectEnum, { message: 'Invalid subject' })
+  subject: SubjectEnum;
+
+
 }
