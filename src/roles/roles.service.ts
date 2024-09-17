@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { AssignUserToRoleDto } from './dto/assign-user.dto';
 
 @Injectable()
 export class RolesService {
@@ -17,7 +18,7 @@ export class RolesService {
 
     if (existingRole) {
       throw new ConflictException(`Role with name ${role} already exists`);
-    }
+    } 
 
     return this.prisma.role.create({
       data: {
@@ -97,4 +98,31 @@ export class RolesService {
     }
     return role;
   }
+
+  async assignUserToRole(id: string, assignUserToRoleDto: AssignUserToRoleDto) {
+    const { roleId } = assignUserToRoleDto;
+  
+    // Check if the role exists if provided
+    if (roleId) {
+      const roleExists = await this.prisma.role.findUnique({
+        where: { id: roleId },
+      });
+  
+      if (!roleExists) {
+        throw new NotFoundException(`Role with ID ${roleId} not found`);
+      }
+    }
+  
+    // Update the user
+    this.prisma.user.update({
+      where: { id },
+      data: {
+        role: { connect: { id: roleId } }
+      },
+    });
+
+    return {
+      message: "This user has been assigned to a role successfully"
+    }
+  } 
 }
