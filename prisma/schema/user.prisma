@@ -2,12 +2,19 @@ model User {
   id        String  @id @default(auto()) @map("_id") @db.ObjectId
   firstname String?
   lastname  String?
-  username  String
+  username  String?
   password  String
   email     String  @unique
+  phone     String?
+  location  String?
 
-  status    UserStatus  @default(active)
-  TempToken TempToken[]
+  staffId String?
+
+  status UserStatus @default(active)
+
+  isBlocked Boolean @default(false)
+
+  tempToken TempToken[]
 
   role   Role   @relation(fields: [roleId], references: [id])
   roleId String @db.ObjectId
@@ -15,6 +22,8 @@ model User {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+
+  lastLogin DateTime?
 
   @@map("users")
 }

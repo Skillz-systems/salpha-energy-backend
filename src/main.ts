@@ -10,7 +10,6 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api/v1');
 
-
   const allowedOrigins = configService.get<string>('ALLOWED_ORIGINS') || '*';
 
   app.enableCors({
@@ -39,10 +38,10 @@ async function bootstrap() {
   app.useGlobalFilters();
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
   
-  await app.listen(configService.get<number>('PORT') || 3000);
+
   // Enable validation globally
   app.useGlobalPipes(new ValidationPipe());
 
-  await app.listen(3000);
+  await app.listen(configService.get<number>('PORT') || 3000);
 }
 bootstrap();
