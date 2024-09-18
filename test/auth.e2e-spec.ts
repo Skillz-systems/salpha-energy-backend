@@ -2,7 +2,7 @@ import * as request from 'supertest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { PrismaClient, TokenType, User, UserStatus } from '@prisma/client';
-import { HttpStatus, INestApplication, ValidationPipe, BadRequestException } from '@nestjs/common';
+import { HttpStatus, INestApplication, ValidationPipe } from '@nestjs/common';
 import { AuthModule } from './../src/auth/auth.module';
 import { PrismaService } from './../src/prisma/prisma.service';
 import { EmailService } from './../src/mailer/email.service';

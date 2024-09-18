@@ -47,7 +47,7 @@ export class AuthService {
     if (emailExists) {
       throw new BadRequestException(MESSAGES.EMAIL_EXISTS);
     }
-    
+
     const roleExists = await this.prisma.role.findFirst({
       where: {
         id: roleId,
@@ -73,7 +73,11 @@ export class AuthService {
         roleId,
       },
       include: {
-        role: true,
+        role: {
+          include: {
+            permissions: true,
+          },
+        },
       },
     });
 

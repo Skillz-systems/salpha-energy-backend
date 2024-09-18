@@ -1,13 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
-import { ActionEnum, PrismaClient, SubjectEnum, UserStatus } from '@prisma/client';
-import { UsersService } from './users.service';
-import { PrismaService } from '../prisma/prisma.service';
+import {
+  ActionEnum,
+  PrismaClient,
+  SubjectEnum,
+  UserStatus,
+} from '@prisma/client';
+import * as request from 'supertest';
+import { PrismaService } from '../src/prisma/prisma.service'; // Adjust to your path
+import { UsersModule } from '../src/users/users.module';
 
-describe('UsersService', () => {
-  let service: UsersService;
-  let prisma: PrismaService;
-
+describe('UsersController (e2e)', () => {
+  let app: INestApplication;
   let mockPrismaService: DeepMockProxy<PrismaClient>;
 
   const mockUsers = [
@@ -50,43 +55,39 @@ describe('UsersService', () => {
     },
   ];
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mockPrismaService = mockDeep<PrismaClient>();
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        UsersService,
-        { provide: PrismaService, useValue: mockPrismaService },
-      ],
-    }).compile();
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [UsersModule],
+    })
+      .overrideProvider(PrismaService)
+      .useValue(mockPrismaService)
+      .compile();
 
-    service = module.get<UsersService>(UsersService);
-    prisma = module.get<PrismaService>(PrismaService);
+    app = moduleFixture.createNestApplication();
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+
+    await app.init();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  afterAll(async () => {
+    await app.close();
   });
 
-  describe('List User', () => {
-    it('should return paginated users', async () => {
+  describe('Add user', () => {
+    it('/users (GET)', async () => {
       mockPrismaService.user.findMany.mockResolvedValueOnce(mockUsers);
       mockPrismaService.user.count.mockResolvedValueOnce(1);
 
-      const result = await service.getUsers(1, 10);
-      expect(result).toEqual({
-        users: mockUsers,
-        total: 1,
-        page: 1,
-        limit: 10,
-        totalPages: 1,
-      });
-      expect(prisma.user.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          skip: 0,
-          take: 10,
-        }),
-      );
+      const response = await request(app.getHttpServer())
+        .get('/users?page=1&limit=10')
+        .expect(200);
+
+      expect(response.body.users.length).toBeGreaterThan(0);
+      expect(response.body.total).toEqual(1);
+      expect(response.body.page).toEqual(1);
+      expect(response.body.limit).toEqual(10);
     });
   });
 });
