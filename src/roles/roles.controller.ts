@@ -1,7 +1,6 @@
-import { Controller, Post, Body,  } from '@nestjs/common';
+import { Controller, Post, Body } from '@nestjs/common';
 import { RolesService } from './roles.service';
 import { ApiTags } from '@nestjs/swagger';
-
 
 @ApiTags('roles')
 @Controller('roles')

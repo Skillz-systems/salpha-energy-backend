@@ -50,7 +50,7 @@ export class CreateUserDto {
   })
   @IsNotEmpty()
   @IsObjectId({
-    message: "Invalid Role Id"
+    message: 'Invalid Role Id',
   })
   role: string;
 
