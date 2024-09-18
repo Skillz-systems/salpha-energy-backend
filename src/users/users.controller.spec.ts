@@ -2,13 +2,21 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { PaginatedUsers } from './entity/paginated-users.entity';
 import { UsersController } from './users.controller';
-import { ActionEnum, SubjectEnum, UserStatus } from '@prisma/client';
+import {
+  ActionEnum,
+  PrismaClient,
+  SubjectEnum,
+  UserStatus,
+} from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
 import { UserEntity } from './entity/user.entity';
+import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
+import { PrismaService } from '../prisma/prisma.service';
 
-describe('UsersService', () => {
+describe('UsersController', () => {
   let controller: UsersController;
   let userService: UsersService;
+  let mockPrismaService: DeepMockProxy<PrismaClient>;
 
   const mockUsersService = {
     getUsers: jest.fn(),
@@ -55,6 +63,8 @@ describe('UsersService', () => {
   ];
 
   beforeEach(async () => {
+    mockPrismaService = mockDeep<PrismaClient>();
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
       providers: [
@@ -62,6 +72,7 @@ describe('UsersService', () => {
           provide: UsersService,
           useValue: mockUsersService,
         },
+        { provide: PrismaService, useValue: mockPrismaService },
       ],
     }).compile();
 

@@ -30,6 +30,18 @@ async function bootstrap() {
     .setTitle('Energy Project Backend')
     .setDescription('APIs for the Energy Project.')
     .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        description: 'JWT Authorization header using the Bearer scheme.',
+        in: 'header',
+      },
+      'access_token',
+    )
+    .addSecurityRequirements('bearer')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

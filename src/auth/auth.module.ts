@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { EmailModule } from '../mailer/email.module';
 import { PrismaService } from '../prisma/prisma.service';
+import { JwtStrategy } from './strategy/jwt.strategy';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { PrismaService } from '../prisma/prisma.service';
     AuthService,
     PrismaService,
     ConfigService,
+    JwtStrategy,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

@@ -10,6 +10,8 @@ import {
 import * as request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service'; // Adjust to your path
 import { UsersModule } from '../src/users/users.module';
+import { JwtAuthGuard } from '../src/auth/guards/jwt.guard';
+import { RolesGuard } from '../src/auth/guards/roles.guard';
 
 describe('UsersController (e2e)', () => {
   let app: INestApplication;
@@ -63,6 +65,10 @@ describe('UsersController (e2e)', () => {
     })
       .overrideProvider(PrismaService)
       .useValue(mockPrismaService)
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -75,7 +81,7 @@ describe('UsersController (e2e)', () => {
     await app.close();
   });
 
-  describe('Add user', () => {
+  describe('List users', () => {
     it('/users (GET)', async () => {
       mockPrismaService.user.findMany.mockResolvedValueOnce(mockUsers);
       mockPrismaService.user.count.mockResolvedValueOnce(1);
