@@ -20,6 +20,7 @@ export const MESSAGES = {
   ROLE_NOT_FOUND: 'Role not found',
   ROLES_METADATA_INVALID: 'Roles metadata is invalid or missing',
   PERMISSIONS_METADATA_INVALID: 'Permissions metadata is invalid or missing',
+  EMPTY_OBJECT: 'At least one field must be provided to update',
 
   /**
    *
