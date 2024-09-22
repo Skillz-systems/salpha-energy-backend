@@ -19,13 +19,13 @@ export class PermissionsService {
   }
 
   // Get all permissions
-  async findAll() {
-    return this.prisma.permission.findMany({
-      include: {
-        role: true, // Include related roles for each permission
-      },
-    });
-  }
+  // async findAll() {
+  //   return this.prisma.permission.findMany({
+  //     include: {
+  //       role: true, // Include related roles for each permission
+  //     },
+  //   });
+  // }
 
   // Get one permission by ID
   async findOne(id: string) {
@@ -58,12 +58,12 @@ export class PermissionsService {
   }
 
   // Delete permission by ID
-  async remove(id: string) {
+  // async remove(id: string) {
     
-    const deleted = this.prisma.permission.delete({ where: { id } });
+  //   const deleted = this.prisma.permission.delete({ where: { id } });
 
-    return {
-      message: "Permission deleted successfully"
-    }
-  }
+  //   return {
+  //     message: "Permission deleted successfully"
+  //   }
+  // }
 }

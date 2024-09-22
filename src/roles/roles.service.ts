@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
@@ -10,7 +14,7 @@ export class RolesService {
 
   async create(createRoleDto: CreateRoleDto) {
     const { role, active, permissions } = createRoleDto;
-    
+
     // Check if the role already exists
     const existingRole = await this.prisma.role.findUnique({
       where: { role },
@@ -18,28 +22,35 @@ export class RolesService {
 
     if (existingRole) {
       throw new ConflictException(`Role with name ${role} already exists`);
-    } 
+    }
 
     return this.prisma.role.create({
       data: {
         role,
         active,
         permissions: {
-          connect: permissions?.map(id => ({ id })),
+          connect: permissions?.map((id) => ({ id })),
         },
       },
     });
   }
 
-
   async findAll() {
     return this.prisma.role.findMany({
-      include: { permissions: true },
+      include: {
+        permissions: {
+          select: {
+            id: true,
+            action: true,
+            subject: true,
+          },
+        },
+      },
     });
   }
 
   async findOne(id: string) {
-    const role = await this.prisma.role.findUnique({ 
+    const role = await this.prisma.role.findUnique({
       where: { id },
       include: { permissions: true },
     });
@@ -60,23 +71,22 @@ export class RolesService {
     if (permissions !== undefined) {
       data.permissions = {
         set: [],
-        connect: permissions.map(id => ({ id })),
+        connect: permissions.map((id) => ({ id })),
       };
     }
 
-      if (role !== undefined) {
-        const existingRole = await this.prisma.role.findFirst({
-          where: {
-            role,
-            NOT: { id },
-          },
-        });
-  
-        if (existingRole) {
-          throw new ConflictException(`Role with name ${role} already exists`);
-        }
+    if (role !== undefined) {
+      const existingRole = await this.prisma.role.findFirst({
+        where: {
+          role,
+          NOT: { id },
+        },
+      });
+
+      if (existingRole) {
+        throw new ConflictException(`Role with name ${role} already exists`);
       }
-  
+    }
 
     try {
       return await this.prisma.role.update({
@@ -101,28 +111,28 @@ export class RolesService {
 
   async assignUserToRole(id: string, assignUserToRoleDto: AssignUserToRoleDto) {
     const { roleId } = assignUserToRoleDto;
-  
+
     // Check if the role exists if provided
     if (roleId) {
       const roleExists = await this.prisma.role.findUnique({
         where: { id: roleId },
       });
-  
+
       if (!roleExists) {
         throw new NotFoundException(`Role with ID ${roleId} not found`);
       }
     }
-  
+
     // Update the user
     this.prisma.user.update({
       where: { id },
       data: {
-        role: { connect: { id: roleId } }
+        role: { connect: { id: roleId } },
       },
     });
 
     return {
-      message: "This user has been assigned to a role successfully"
-    }
-  } 
+      message: 'This user has been assigned to a role successfully',
+    };
+  }
 }

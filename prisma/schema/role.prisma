@@ -1,10 +1,12 @@
 model Role {
-  id     String    @id @default(auto()) @map("_id") @db.ObjectId
-  role   String @unique
-  active Boolean?  @default(true)
+  id     String   @id @default(auto()) @map("_id") @db.ObjectId
+  role   String   @unique
+  active Boolean? @default(true)
 
-  permissions Permission[]
-  users       User[]
+  permissions   Permission[] @relation(fields: [permissionIds], references: [id])
+  permissionIds String[]     @db.ObjectId
+
+  users User[]
 
   created_at DateTime  @default(now())
   updated_at DateTime? @updatedAt()
@@ -18,8 +20,11 @@ model Permission {
   action  ActionEnum // This field likely specifies the type of action that the permission grants or restricts
   subject SubjectEnum // The subject field usually refers to the resource or entity on which the action is performed.
 
-  role   Role?   @relation(fields: [roleId], references: [id])
-  roleId String? @db.ObjectId
+  // role   Role?   @relation(fields: [roleId], references: [id])
+  // roleId String? @db.ObjectId
+
+  roles   Role[]   @relation(fields: [roleIds], references: [id])
+  roleIds String[] @db.ObjectId
 
   created_at DateTime  @default(now())
   updated_at DateTime? @updatedAt()

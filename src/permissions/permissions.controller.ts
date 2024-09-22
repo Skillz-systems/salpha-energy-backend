@@ -14,10 +14,10 @@ export class PermissionsController {
     return this.permissionsService.create(createPermissionDto);
   }
 
-  @Get()
-  findAll() {
-    return this.permissionsService.findAll();
-  }
+  // @Get()
+  // findAll() {
+  //   return this.permissionsService.findAll();
+  // }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -29,8 +29,8 @@ export class PermissionsController {
     return this.permissionsService.update(id, updatePermissionDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.permissionsService.remove(id);
-  }
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.permissionsService.remove(id);
+  // }
 }
