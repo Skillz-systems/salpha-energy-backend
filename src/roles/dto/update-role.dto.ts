@@ -12,5 +12,5 @@ export class UpdateRoleDto {
   @IsOptional()
   @IsArray()
   @IsMongoId({ each: true })
-  permissions?: string[];
+  permissionIds?: string[];
 }

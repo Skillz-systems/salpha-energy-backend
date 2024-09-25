@@ -13,7 +13,7 @@ export class RolesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createRoleDto: CreateRoleDto) {
-    const { role, active, permissions } = createRoleDto;
+    const { role, active, permissionIds } = createRoleDto;
 
     // Check if the role already exists
     const existingRole = await this.prisma.role.findUnique({
@@ -29,7 +29,7 @@ export class RolesService {
         role,
         active,
         permissions: {
-          connect: permissions?.map((id) => ({ id })),
+          connect: permissionIds?.map((id) => ({ id })),
         },
       },
     });
@@ -61,17 +61,17 @@ export class RolesService {
   }
 
   async update(id: string, updateRoleDto: UpdateRoleDto) {
-    const { role, active, permissions } = updateRoleDto;
+    const { role, active, permissionIds } = updateRoleDto;
 
     // Prepare the data object for Prisma
     const data: any = {};
     if (role !== undefined) data.role = role;
     if (active !== undefined) data.active = active;
 
-    if (permissions !== undefined) {
+    if (permissionIds !== undefined) {
       data.permissions = {
         set: [],
-        connect: permissions.map((id) => ({ id })),
+        connect: permissionIds.map((id) => ({ id })),
       };
     }
 
@@ -134,5 +134,15 @@ export class RolesService {
     return {
       message: 'This user has been assigned to a role successfully',
     };
+  }
+
+  async getRoleWithUsersAndPermissions(roleId: string) {
+    return this.prisma.role.findUnique({
+      where: { id: roleId },
+      include: {
+        users: true, 
+        permissions: true,
+      },
+    });
   }
 }

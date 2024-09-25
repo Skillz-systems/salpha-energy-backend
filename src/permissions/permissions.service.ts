@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
@@ -19,17 +19,21 @@ export class PermissionsService {
   }
 
   // Get all permissions
-  // async findAll() {
-  //   return this.prisma.permission.findMany({
-  //     include: {
-  //       role: true, // Include related roles for each permission
-  //     },
-  //   });
-  // }
+  async findAll() {
+    return this.prisma.permission.findMany();
+  }
 
   // Get one permission by ID
   async findOne(id: string) {
-    return this.prisma.permission.findUnique({ where: { id } });
+    const existingPermission = await this.prisma.permission.findUnique({
+      where: { id: String(id) },
+    });
+
+    if (!existingPermission) {
+      throw new NotFoundException(`Permission with ID ${id} not found`);
+    }
+
+    return existingPermission
   }
 
   // Update permission by ID
@@ -51,19 +55,34 @@ export class PermissionsService {
       updateData.subject = updatePermissionDto.subject;
     }
 
+    const updatedPermission = await this.prisma.permission.update({
+      where: { id: String(id) },
+      data: updateData,
+    });
+  
+
     return {
       message: `Permission with ID ${id} updated successfully`,
-      data: updateData,
+      data: updatedPermission,
     };
   }
 
   // Delete permission by ID
-  // async remove(id: string) {
-    
-  //   const deleted = this.prisma.permission.delete({ where: { id } });
-
-  //   return {
-  //     message: "Permission deleted successfully"
-  //   }
-  // }
+  async remove(id: string) {
+    const existingPermission = await this.prisma.permission.findUnique({
+      where: { id },
+    });
+  
+    if (!existingPermission) {
+      throw new NotFoundException(`Permission with ID ${id} not found`);
+    }
+  
+    await this.prisma.permission.delete({
+      where: { id },
+    });
+  
+    return {
+      message: "Permission deleted successfully",
+    };
+  }
 }

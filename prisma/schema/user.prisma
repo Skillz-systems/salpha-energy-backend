@@ -16,7 +16,7 @@ model User {
 
   tempToken TempToken[]
 
-  role   Role   @relation(fields: [roleId], references: [id])
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
   roleId String @db.ObjectId
 
   createdAt DateTime  @default(now())
