@@ -11,7 +11,7 @@ import {
 import { MESSAGES } from '../constants';
 import { PasswordResetDTO } from './dto/password-reset.dto';
 import { LoginUserDTO } from './dto/login-user.dto';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService } from '@nestjs/jwt';  
 
 describe('AuthController', () => {
   let controller: AuthController;
