@@ -9,7 +9,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { AuthModule } from './../src/auth/auth.module';
-import { PrismaService } from './../src/prisma/prisma.service';
+import { PrismaService } from '../src/prisma/prisma.service';
 import { EmailService } from './../src/mailer/email.service';
 import { MESSAGES } from '../src/constants';
 import { CreateUserDto } from '../src/auth/dto/create-user.dto';
@@ -83,6 +83,7 @@ describe('AuthController (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AuthModule],
     })
+
       .overrideProvider(PrismaService)
       .useValue(mockPrismaService)
       .overrideProvider(EmailService)
@@ -152,7 +153,7 @@ describe('AuthController (e2e)', () => {
       const { role, ...dataWithoutRole } = testData;
 
       // First create a user
-      await prisma.user.create({
+      await mockPrismaService.user.create({
         data: {
           ...dataWithoutRole,
           roleId: '66dce4173c5d3bc2fd5f5728',
@@ -188,7 +189,7 @@ describe('AuthController (e2e)', () => {
       const { role, ...dataWithoutRole } = testData;
 
       // First create a user
-      const user = await prisma.user.create({
+      const user = await mockPrismaService.user.create({
         data: {
           ...dataWithoutRole,
           roleId: '66dce4173c5d3bc2fd5f5728',
@@ -198,7 +199,7 @@ describe('AuthController (e2e)', () => {
 
       const resetToken = 'valid-reset-token';
 
-      const token = await prisma.tempToken.create({
+      const token = await mockPrismaService.tempToken.create({
         data: {
           token: resetToken,
           token_type: TokenType.password_reset,
@@ -241,7 +242,7 @@ describe('AuthController (e2e)', () => {
       const { role, ...dataWithoutRole } = testData;
 
       // First create a user
-      const user = await prisma.user.create({
+      const user = await mockPrismaService.user.create({
         data: {
           ...dataWithoutRole,
           roleId: '66dce4173c5d3bc2fd5f5728',
@@ -250,7 +251,7 @@ describe('AuthController (e2e)', () => {
       });
       const validResetToken = 'valid-reset-token';
 
-      await prisma.tempToken.create({
+      await mockPrismaService.tempToken.create({
         data: {
           token: validResetToken,
           token_type: 'password_reset',
