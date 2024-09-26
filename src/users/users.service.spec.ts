@@ -3,6 +3,8 @@ import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { ActionEnum, PrismaClient, SubjectEnum, UserStatus } from '@prisma/client';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { plainToInstance } from 'class-transformer';
+import { UserEntity } from './entity/user.entity';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -75,7 +77,7 @@ describe('UsersService', () => {
 
       const result = await service.getUsers(1, 10);
       expect(result).toEqual({
-        users: mockUsers,
+        users: plainToInstance(UserEntity, mockUsers),
         total: 1,
         page: 1,
         limit: 10,

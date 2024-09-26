@@ -1,5 +1,5 @@
 import { ActionEnum, SubjectEnum } from '@prisma/client';
-import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import { IsEnum } from 'class-validator';
 
 export class CreatePermissionDto {
 
@@ -8,6 +8,4 @@ export class CreatePermissionDto {
 
   @IsEnum(SubjectEnum, { message: 'Invalid subject' })
   subject: SubjectEnum;
-
-
 }

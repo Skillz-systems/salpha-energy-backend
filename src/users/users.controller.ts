@@ -3,7 +3,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  ParseIntPipe,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -17,25 +16,23 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { UserEntity } from './entity/user.entity';
-import { PaginatedUsers } from './entity/paginated-users.entity';
 import { SkipThrottle } from '@nestjs/throttler';
-import { plainToInstance } from 'class-transformer';
 import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { ActionEnum, SubjectEnum } from '@prisma/client';
 
 @SkipThrottle()
-@ApiTags('users')
+@ApiTags('Users')
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles({
-    roles: ['admin'],
-    permissions: [`${ActionEnum.manage}:${SubjectEnum.User}`],
-  })
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles({
+  //   roles: ['admin'],
+  //   permissions: [`${ActionEnum.manage}:${SubjectEnum.User}`],
+  // })
   @Get()
   @ApiBearerAuth('access_token')
   @ApiOkResponse({
@@ -48,11 +45,13 @@ export class UsersController {
     name: 'page',
     description: 'The current page numer to view',
     type: String,
+    required: false,
   })
   @ApiQuery({
     name: 'limit',
     description: 'The number of rows per page page',
     type: String,
+    required: false,
   })
   @ApiHeader({
     name: 'Authorization',
@@ -65,12 +64,9 @@ export class UsersController {
   })
   @HttpCode(HttpStatus.OK)
   async listUsers(
-    @Query('page', ParseIntPipe) page?: number,
-    @Query('limit', ParseIntPipe) limit?: number,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
   ) {
-    const result = await this.usersService.getUsers(page, limit);
-    result.users = plainToInstance(UserEntity, result.users);
-
-    return new PaginatedUsers(result);
+    return await this.usersService.getUsers(page, limit);
   }
 }

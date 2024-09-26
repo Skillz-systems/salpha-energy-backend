@@ -25,9 +25,10 @@ import { ForgotPasswordDTO } from './dto/forgot-password.dto';
 import { PasswordResetDTO } from './dto/password-reset.dto';
 import { LoginUserDTO } from './dto/login-user.dto';
 import { SkipThrottle } from '@nestjs/throttler';
+import { plainToClass } from 'class-transformer';
 
 @SkipThrottle()
-@ApiTags('auth')
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -42,9 +43,12 @@ export class AuthController {
   })
   @HttpCode(HttpStatus.CREATED)
   async addUser(@Body() registerUserDto: CreateUserDto) {
-    return new UserEntity(await this.authService.addUser(registerUserDto));
+    // return new UserEntity(await this.authService.addUser(registerUserDto));
+    // return await this.authService.addUser(registerUserDto)
+    const newUser = await this.authService.addUser(registerUserDto);
+    return plainToClass(UserEntity, newUser);
   }
-
+  
   @SkipThrottle({ default: false })
   @Post('login')
   @ApiOkResponse({})
