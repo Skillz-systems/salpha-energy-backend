@@ -1,4 +1,12 @@
-import { Controller, Post, Body, HttpCode, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  Param,
+  Res,
+  HttpStatus,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBody,
@@ -7,12 +15,15 @@ import {
   ApiOkResponse,
   ApiParam,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { UserEntity } from '../users/entity/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ForgotPasswordDTO } from './dto/forgot-password.dto';
 import { PasswordResetDTO } from './dto/password-reset.dto';
+import { LoginUserDTO } from './dto/login-user.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -27,9 +38,26 @@ export class AuthController {
     type: CreateUserDto,
     description: 'Json structure for request payload',
   })
-  @HttpCode(201)
+  @HttpCode(HttpStatus.CREATED)
   async addUser(@Body() registerUserDto: CreateUserDto) {
     return new UserEntity(await this.authService.addUser(registerUserDto));
+  }
+
+  @Post('login')
+  @ApiOkResponse({})
+  @ApiBadRequestResponse({})
+  @ApiUnauthorizedResponse({})
+  @ApiInternalServerErrorResponse({})
+  @ApiBody({
+    type: LoginUserDTO,
+    description: 'Json structure for request payload',
+  })
+  @HttpCode(HttpStatus.OK)
+  async login(
+    @Body() userDetails: LoginUserDTO,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return new UserEntity(await this.authService.login(userDetails, res));
   }
 
   @Post('forgot-password')
@@ -40,7 +68,7 @@ export class AuthController {
     type: ForgotPasswordDTO,
     description: 'Json structure for request payload',
   })
-  @HttpCode(200)
+  @HttpCode(HttpStatus.OK)
   forgotPassword(@Body() forgotPasswordDetails: ForgotPasswordDTO) {
     return this.authService.forgotPassword(forgotPasswordDetails);
   }
@@ -54,7 +82,7 @@ export class AuthController {
   @ApiOkResponse({})
   @ApiBadRequestResponse({})
   @ApiInternalServerErrorResponse({})
-  @HttpCode(200)
+  @HttpCode(HttpStatus.OK)
   verifyResetToken(@Param('resetToken') resetToken: string) {
     return this.authService.verifyResetToken(resetToken);
   }
@@ -67,7 +95,7 @@ export class AuthController {
     type: PasswordResetDTO,
     description: 'Json structure for request payload',
   })
-  @HttpCode(200)
+  @HttpCode(HttpStatus.OK)
   resetPassword(@Body() resetPasswordDetails: PasswordResetDTO) {
     return this.authService.resetPassword(resetPasswordDetails);
   }

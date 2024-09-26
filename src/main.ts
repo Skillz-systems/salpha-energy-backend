@@ -37,7 +37,7 @@ async function bootstrap() {
 
   app.useGlobalFilters();
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
-  
+
   await app.listen(configService.get<number>('PORT') || 3000);
 }
 bootstrap();

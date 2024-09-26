@@ -14,7 +14,7 @@ export class RolesService {
     //   data: {
     //     role: 'superduper',
     //     // active: true
-        
+
     //   },
     // });
     return 'This action adds a new role';

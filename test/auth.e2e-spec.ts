@@ -83,7 +83,6 @@ describe('AuthController (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AuthModule],
     })
-
       .overrideProvider(PrismaService)
       .useValue(mockPrismaService)
       .overrideProvider(EmailService)
@@ -148,18 +147,36 @@ describe('AuthController (e2e)', () => {
     });
   });
 
+  describe('Login', () => {
+    it('/auth/login (POST) should return a user with access token', async () => {
+      const mockUser = {
+        id: fakeData.id,
+        email: fakeData.email,
+        password: fakeData.password,
+      };
+      const mockAccessToken = 'token';
+
+      // Set up the mock implementations
+      (mockPrismaService.user.findUnique as jest.Mock).mockResolvedValue(
+        mockUser,
+      );
+      (argon.verify as jest.Mock).mockResolvedValue(true);
+      (mockJwtService.sign as jest.Mock).mockReturnValue(mockAccessToken);
+
+      const response = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: testData.email, password: 'password' })
+        .expect(200);
+
+      expect(response.headers['access_token']).toBeDefined();
+      expect(response.body).toHaveProperty('id', 'user-id');
+    });
+  });
+
   describe('Forgot Password', () => {
     it('/auth/forgot-password (POST) should send a reset password email if user exists', async () => {
-      const { role, ...dataWithoutRole } = testData;
-
-      // First create a user
-      await mockPrismaService.user.create({
-        data: {
-          ...dataWithoutRole,
-          roleId: '66dce4173c5d3bc2fd5f5728',
-          password: 'hashedPwd',
-        },
-      });
+      mockPrismaService.user.findUnique.mockResolvedValue(fakeData);
+      mockPrismaService.tempToken.findFirst.mockResolvedValue(null);
 
       const forgotPasswordData = { email: testData.email };
 
@@ -186,39 +203,21 @@ describe('AuthController (e2e)', () => {
 
   describe('Reset Password', () => {
     it('/auth/reset-password (POST) should reset the password with a valid token', async () => {
-      const { role, ...dataWithoutRole } = testData;
-
-      // First create a user
-      const user = await mockPrismaService.user.create({
-        data: {
-          ...dataWithoutRole,
-          roleId: '66dce4173c5d3bc2fd5f5728',
-          password: 'hashedPwd',
-        },
-      });
-
-      const resetToken = 'valid-reset-token';
-
-      const token = await mockPrismaService.tempToken.create({
-        data: {
-          token: resetToken,
-          token_type: TokenType.password_reset,
-          userId: user.id,
-          expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1-hour expiry
-        },
-      });
+      mockPrismaService.tempToken.findFirst.mockResolvedValue(tokenData);
+      mockPrismaService.user.update.mockResolvedValue(fakeData);
+      mockPrismaService.tempToken.update.mockResolvedValue(null);
 
       const resetPasswordData = {
-        resetToken: token.token,
-        newPassword: 'new-password123',
-        confirmNewPassword: 'new-password123',
+        newPassword: 'new-password',
+        confirmNewPassword: 'new-password',
+        resetToken: 'valid-token',
       };
-      
+
       const response = await request(app.getHttpServer())
-      .post('/auth/reset-password')
-      .send(resetPasswordData)
-      .expect(200);
-      
+        .post('/auth/reset-password')
+        .send(resetPasswordData)
+        .expect(200);
+
       expect(response.body).toEqual({
         message: MESSAGES.PWD_RESET_SUCCESS,
       });
@@ -239,28 +238,9 @@ describe('AuthController (e2e)', () => {
 
   describe('Verify Reset Token', () => {
     it('/auth/verify-reset-token/:resetToken (POST) should verify a valid reset token', async () => {
-      const { role, ...dataWithoutRole } = testData;
-
-      // First create a user
-      const user = await mockPrismaService.user.create({
-        data: {
-          ...dataWithoutRole,
-          roleId: '66dce4173c5d3bc2fd5f5728',
-          password: 'hashedPwd',
-        },
-      });
+      mockPrismaService.tempToken.findFirst.mockResolvedValue(tokenData);
       const validResetToken = 'valid-reset-token';
 
-      await mockPrismaService.tempToken.create({
-        data: {
-          token: validResetToken,
-          token_type: 'password_reset',
-          userId: user.id, // Use the created user's ID
-          expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1-hour expiry
-        },
-      });
-
-      // Call the verify-reset-token route
       const response = await request(app.getHttpServer())
         .post(`/auth/verify-reset-token/${validResetToken}`)
         .expect(200);
