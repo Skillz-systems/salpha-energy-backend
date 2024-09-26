@@ -6,7 +6,6 @@ import {
   HttpStatus,
   INestApplication,
   ValidationPipe,
-  BadRequestException,
 } from '@nestjs/common';
 import { AuthModule } from './../src/auth/auth.module';
 import { PrismaService } from '../src/prisma/prisma.service';
