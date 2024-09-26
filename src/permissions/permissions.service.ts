@@ -20,7 +20,11 @@ export class PermissionsService {
 
   // Get all permissions
   async findAll() {
-    return this.prisma.permission.findMany();
+    return this.prisma.permission.findMany({
+      include: {
+        role: true, // Include related roles for each permission
+      },
+    });
   }
 
   // Get one permission by ID
