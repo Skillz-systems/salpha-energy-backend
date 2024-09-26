@@ -96,4 +96,49 @@ describe('UsersController (e2e)', () => {
       expect(response.body.limit).toEqual(10);
     });
   });
+
+  describe('Update user', () => {
+    it('should return 404 if user is not found', () => {
+      return request(app.getHttpServer())
+        .patch('/users/nonexistent-id')
+        .set('Authorization', 'Bearer valid_token')
+        .send({ username: 'newusername' })
+        .expect(404);
+    });
+
+    it('should return 400 if the update payload is empty', () => {
+      return request(app.getHttpServer())
+        .patch('/users/existing-id')
+        .set('Authorization', 'Bearer valid_token')
+        .send({})
+        .expect(400);
+    });
+
+    it('should update the user profile successfully', async () => {
+      const mockUser = {
+        id: 'test-id',
+        username: 'testuser',
+        email: 'testuser@example.com',
+        password: 'password',
+      };
+
+      (mockPrismaService.user.findUnique as jest.Mock).mockResolvedValueOnce(
+        mockUser,
+      );
+      (mockPrismaService.user.update as jest.Mock).mockResolvedValueOnce({
+        ...mockUser,
+        username: 'updateduser',
+      });
+
+      return request(app.getHttpServer())
+        .patch(`/users/${mockUser.id}`)
+        .set('Authorization', 'Bearer valid_token')
+        .send({ username: 'updateduser' })
+        .expect(200)
+        .then((response) => {
+          console.log({ response: response.body });
+          expect(response.body.username).toBe('updateduser');
+        });
+    });
+  });
 });
