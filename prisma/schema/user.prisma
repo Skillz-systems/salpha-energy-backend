@@ -14,7 +14,7 @@ model User {
 
   isBlocked Boolean @default(false)
 
-  TempToken TempToken[]
+  tempToken TempToken[]
 
   role   Role   @relation(fields: [roleId], references: [id])
   roleId String @db.ObjectId

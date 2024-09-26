@@ -1,8 +1,8 @@
 model TempToken {
   id    String @id @default(auto()) @map("_id") @db.ObjectId
-  token String
+  token String?
 
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @db.ObjectId
 
   expiresAt  DateTime
