@@ -2,9 +2,14 @@ import * as request from 'supertest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { PrismaClient, TokenType, User, UserStatus } from '@prisma/client';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  HttpStatus,
+  INestApplication,
+  ValidationPipe,
+  BadRequestException,
+} from '@nestjs/common';
 import { AuthModule } from './../src/auth/auth.module';
-import { PrismaService } from './../src/prisma/prisma.service';
+import { PrismaService } from '../src/prisma/prisma.service';
 import { EmailService } from './../src/mailer/email.service';
 import { MESSAGES } from '../src/constants';
 import { CreateUserDto } from '../src/auth/dto/create-user.dto';
@@ -114,14 +119,14 @@ describe('AuthController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/auth/add-user')
         .send(testData)
-        .expect(201);
+        .expect(HttpStatus.CREATED);
 
       expect(response.body).toHaveProperty('id');
       expect(response.body).toHaveProperty('firstname', 'John');
       expect(mockEmailService.sendMail).toHaveBeenCalled();
     }, 10000);
 
-    it('/auth/add-user (POST) should return 400 if email already exists', async () => {
+    it('/auth/add-user (POST) should return HttpStatus.BAD_REQUEST if email already exists', async () => {
       const { role, ...dataWithoutRole } = testData;
       console.log({ role });
 
@@ -138,7 +143,7 @@ describe('AuthController (e2e)', () => {
         .send({
           testData,
         })
-        .expect(400);
+        .expect(HttpStatus.BAD_REQUEST);
     });
   });
 
