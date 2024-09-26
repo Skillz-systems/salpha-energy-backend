@@ -148,14 +148,14 @@ describe('AuthController (e2e)', () => {
   });
 
   describe('Login', () => {
-    it('/auth/login (POST) should return a user with access token', async () => {
-      const mockUser = {
-        id: fakeData.id,
-        email: fakeData.email,
-        password: fakeData.password,
-      };
-      const mockAccessToken = 'token';
+    const mockUser = {
+      id: fakeData.id,
+      email: fakeData.email,
+      password: fakeData.password,
+    };
+    const mockAccessToken = 'token';
 
+    it('/auth/login (POST) should return a user with access token', async () => {
       // Set up the mock implementations
       (mockPrismaService.user.findUnique as jest.Mock).mockResolvedValue(
         mockUser,
@@ -166,10 +166,35 @@ describe('AuthController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/auth/login')
         .send({ email: testData.email, password: 'password' })
-        .expect(200);
+        .expect(HttpStatus.OK);
 
       expect(response.headers['access_token']).toBeDefined();
       expect(response.body).toHaveProperty('id', 'user-id');
+    });
+
+    it('should block requests above the rate limit', async () => {
+      // Set up the mock implementations
+      (mockPrismaService.user.findUnique as jest.Mock).mockResolvedValue(
+        mockUser,
+      );
+      (argon.verify as jest.Mock).mockResolvedValue(true);
+      (mockJwtService.sign as jest.Mock).mockReturnValue(mockAccessToken);
+
+      const rateLimit = 6;
+
+      for (let i = 0; i < 10; i++) {
+        const response = await request(app.getHttpServer())
+          .post('/auth/login')
+          .send({ email: testData.email, password: 'password' })
+          .expect(
+            i >= rateLimit ? HttpStatus.TOO_MANY_REQUESTS : HttpStatus.OK,
+          );
+
+        if (i >= rateLimit) {
+          expect(response.status).toBe(HttpStatus.TOO_MANY_REQUESTS);
+          break;
+        } else expect(response.status).toBe(HttpStatus.OK);
+      }
     });
   });
 
@@ -183,7 +208,7 @@ describe('AuthController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/auth/forgot-password')
         .send(forgotPasswordData)
-        .expect(200);
+        .expect(HttpStatus.OK);
 
       expect(response.body).toEqual({
         message: MESSAGES.PWD_RESET_MAIL_SENT,
@@ -191,13 +216,13 @@ describe('AuthController (e2e)', () => {
       expect(mockEmailService.sendMail).toHaveBeenCalled();
     });
 
-    it('/auth/forgot-password (POST) should return 400 if user does not exist', async () => {
+    it('/auth/forgot-password (POST) should return HttpStatus.BAD_REQUEST if user does not exist', async () => {
       const forgotPasswordData = { email: 'non-existent@example.com' };
 
       await request(app.getHttpServer())
         .post('/auth/forgot-password')
         .send(forgotPasswordData)
-        .expect(400);
+        .expect(HttpStatus.BAD_REQUEST);
     });
   });
 
@@ -216,14 +241,14 @@ describe('AuthController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/auth/reset-password')
         .send(resetPasswordData)
-        .expect(200);
+        .expect(HttpStatus.OK);
 
       expect(response.body).toEqual({
         message: MESSAGES.PWD_RESET_SUCCESS,
       });
     });
 
-    it('/auth/reset-password (POST) should return 400 with invalid or expired token', async () => {
+    it('/auth/reset-password (POST) should return HttpStatus.BAD_REQUEST with invalid or expired token', async () => {
       const resetPasswordData = {
         token: 'invalid-token',
         newPassword: 'new-password123',
@@ -232,7 +257,7 @@ describe('AuthController (e2e)', () => {
       await request(app.getHttpServer())
         .post('/auth/reset-password')
         .send(resetPasswordData)
-        .expect(400);
+        .expect(HttpStatus.BAD_REQUEST);
     });
   });
 
@@ -243,17 +268,17 @@ describe('AuthController (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .post(`/auth/verify-reset-token/${validResetToken}`)
-        .expect(200);
+        .expect(HttpStatus.OK);
 
       expect(response.body).toEqual({ message: 'Token is valid' });
     });
 
-    it('/auth/verify-reset-token/:resetToken (POST) should return 400 for an invalid or expired token', async () => {
+    it('/auth/verify-reset-token/:resetToken (POST) should return HttpStatus.BAD_REQUEST for an invalid or expired token', async () => {
       const invalidResetToken = 'invalid-reset-token';
 
       await request(app.getHttpServer())
         .post(`/auth/verify-reset-token/${invalidResetToken}`)
-        .expect(400);
+        .expect(HttpStatus.BAD_REQUEST);
     });
   });
 });

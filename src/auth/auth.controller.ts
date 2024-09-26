@@ -24,7 +24,9 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { ForgotPasswordDTO } from './dto/forgot-password.dto';
 import { PasswordResetDTO } from './dto/password-reset.dto';
 import { LoginUserDTO } from './dto/login-user.dto';
+import { SkipThrottle } from '@nestjs/throttler';
 
+@SkipThrottle()
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
@@ -43,6 +45,7 @@ export class AuthController {
     return new UserEntity(await this.authService.addUser(registerUserDto));
   }
 
+  @SkipThrottle({ default: false })
   @Post('login')
   @ApiOkResponse({})
   @ApiBadRequestResponse({})
