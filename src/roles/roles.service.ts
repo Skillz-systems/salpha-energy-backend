@@ -1,12 +1,14 @@
 import {
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { AssignUserToRoleDto } from './dto/assign-user.dto';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class RolesService {
@@ -95,7 +97,12 @@ export class RolesService {
         include: { permissions: true },
       });
     } catch (error) {
-      throw new NotFoundException(`Role with id ${id} not found`);
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException(`Role with id ${id} not found`);
+        }
+      }
+      throw new InternalServerErrorException('An unexpected error occurred');
     }
   }
 

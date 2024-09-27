@@ -10,6 +10,17 @@ export class PermissionsService {
 
    // Create a new permission
    async create(createPermissionDto: CreatePermissionDto) {
+    const existingPermission = await this.prisma.permission.findFirst({
+      where: {
+        action: createPermissionDto.action,
+        subject: createPermissionDto.subject,
+      },
+    });
+  
+    if (existingPermission) {
+      throw new BadRequestException('Permission with the same action and subject already exists.');
+    }
+    
     return this.prisma.permission.create({
       data: {
         action: createPermissionDto.action,
