@@ -1,25 +1,39 @@
 import { PrismaClient, TokenType, User, UserStatus } from '@prisma/client';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../mailer/email.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { ForgotPasswordDTO } from './dto/forgot-password.dto';
 import { MESSAGES } from '../constants';
+import * as argon from 'argon2';
+
+jest.mock('argon2', () => ({
+  verify: jest.fn(),
+  hash: jest.fn(),
+}));
+
+jest.mock('../utils/helpers.util', () => ({
+  hashPassword: jest.fn().mockResolvedValue(expect.any(String)),
+}));
 
 describe('AuthService', () => {
   let service: AuthService;
   let prisma: PrismaService;
-  let emailService: EmailService;
-  let configService: ConfigService;
 
   let mockPrismaService: DeepMockProxy<PrismaClient>;
 
   const mockEmailService = {
     sendMail: jest.fn(),
+  };
+
+  const mockJwtService = {
+    sign: jest.fn(),
   };
 
   const testData = {
@@ -36,7 +50,8 @@ describe('AuthService', () => {
     firstname: 'John',
     lastname: 'Doe',
     username: 'johndoe',
-    password: 'hashed-password',
+    password:
+      '$argon2id$v=19$m=65536,t=3,p=4$f+0kBa9fD6cExuwn/+Obug$C8I/ylTXWI7EzgrABXiVclIkJsbDu/jCEJ0LuwzqAzY',
     email: 'john.doe@example.com',
     phone: '1234567890',
     location: 'Some Location',
@@ -79,13 +94,12 @@ describe('AuthService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: EmailService, useValue: mockEmailService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: JwtService, useValue: mockJwtService },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
     prisma = module.get<PrismaService>(PrismaService);
-    emailService = module.get<EmailService>(EmailService);
-    configService = module.get<ConfigService>(ConfigService);
   });
 
   it('should be defined', () => {
@@ -147,9 +161,10 @@ describe('AuthService', () => {
 
     it('should throw BadRequestException if role does not exist', async () => {
       const { role, ...dataWithoutRole } = testData;
+      
       const dto: CreateUserDto = {
         ...dataWithoutRole,
-        role: 'non-existent-role-id',
+        role: role + 'non-existent-role-id',
       };
 
       (prisma.user.findFirst as jest.Mock).mockResolvedValue(null);
@@ -162,14 +177,55 @@ describe('AuthService', () => {
     });
   });
 
+  describe('login', () => {
+    it('should return a user and access token', async () => {
+      const mockUser = {
+        id: fakeData.id,
+        email: fakeData.email,
+        password: fakeData.password,
+      };
+      const mockPayload = { sub: 'user-id' };
+      const mockAccessToken = 'token';
+
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
+      (argon.verify as jest.Mock).mockResolvedValue(true);
+      (mockJwtService.sign as jest.Mock).mockReturnValue(mockAccessToken);
+
+      const mockRes = {
+        setHeader: jest.fn(),
+      } as unknown as Response;
+
+      const result = await service.login(
+        { email: fakeData.email, password: 'password' },
+        mockRes,
+      );
+
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { email: fakeData.email },
+      });
+      expect(mockJwtService.sign).toHaveBeenCalledWith(mockPayload);
+      expect(result).toEqual(mockUser);
+      expect(mockRes.setHeader).toHaveBeenCalledWith(
+        'Access-Control-Expose-Headers',
+        'access_token',
+      );
+    });
+
+    it('should throw UnauthorizedException for invalid credentials', async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.login(
+          { email: fakeData.email, password: fakeData.password },
+          {} as any,
+        ),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
   describe('forgotPassword', () => {
     const forgotPasswordDTO: ForgotPasswordDTO = {
       email: testData.email,
-    };
-    const existingUser: Partial<User> = {
-      id: 'user-id',
-      firstname: 'John',
-      email: 'john.doe@example.com',
     };
 
     it('should throw error if user is not found', async () => {

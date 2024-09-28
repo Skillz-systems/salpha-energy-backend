@@ -1,10 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Response } from 'express';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { MESSAGES } from '../constants';
 import { PasswordResetDTO } from './dto/password-reset.dto';
+import { LoginUserDTO } from './dto/login-user.dto';
+import { JwtService } from '@nestjs/jwt';  
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -17,10 +24,15 @@ describe('AuthController', () => {
         ...dto,
       };
     }),
+    login: jest.fn(),
     verifyResetToken: jest.fn(),
     forgotPassword: jest.fn(),
     resetPassword: jest.fn(),
   };
+
+   const mockJwtService = {
+     sign: jest.fn(),
+   };
 
   const testData = {
     firstname: 'John',
@@ -29,6 +41,11 @@ describe('AuthController', () => {
     phone: '09062736182',
     role: '66dce4173c5d3b2fd5f5728',
     location: 'Abuja',
+  };
+
+  const loginCred: LoginUserDTO = {
+    email: testData.email,
+    password: 'password',
   };
 
   const resetPwdData: PasswordResetDTO = {
@@ -45,6 +62,7 @@ describe('AuthController', () => {
           provide: AuthService,
           useValue: mockAuthService,
         },
+        { provide: JwtService, useValue: mockJwtService },
       ],
     }).compile();
 
@@ -76,6 +94,53 @@ describe('AuthController', () => {
 
       await expect(controller.addUser(dto)).rejects.toThrow(
         BadRequestException,
+      );
+    });
+  });
+
+  describe('login', () => {
+    it('should return user information and set accessToken header', async () => {
+      const mockUser = { id: 'user-id', email: 'test@example.com' };
+      const mockRes = {
+        setHeader: jest.fn(),
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      } as unknown as Response;
+
+      mockAuthService.login.mockResolvedValue(mockUser);
+
+      await controller.login(loginCred, mockRes);
+
+      expect(mockAuthService.login).toHaveBeenCalledWith(loginCred, mockRes);
+    });
+
+    it('should handle UnauthorizedException', async () => {
+      const mockRes = {
+        setHeader: jest.fn(),
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      } as unknown as Response;
+
+      mockAuthService.login.mockRejectedValue(new UnauthorizedException());
+
+      await expect(controller.login(loginCred, mockRes)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should handle InternalServerErrorException', async () => {
+      const mockRes = {
+        setHeader: jest.fn(),
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      } as unknown as Response;
+
+      mockAuthService.login.mockRejectedValue(
+        new InternalServerErrorException(),
+      );
+
+      await expect(controller.login(loginCred, mockRes)).rejects.toThrow(
+        InternalServerErrorException,
       );
     });
   });
@@ -141,11 +206,6 @@ describe('AuthController', () => {
     });
 
     it('should throw BadRequestException when service throws', async () => {
-      const dto = {
-        newPassword: 'new-password',
-        resetToken: 'invalid-reset-token',
-      };
-
       mockAuthService.resetPassword.mockRejectedValue(
         new BadRequestException(MESSAGES.INVALID_TOKEN),
       );

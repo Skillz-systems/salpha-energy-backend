@@ -15,6 +15,12 @@ export const MESSAGES = {
   PASSWORD_TOO_WEAK: 'Password is too weak',
   USER_NOT_FOUND: 'User not found',
   INVALID_TOKEN: 'Invalid or expired token',
+  NOT_PERMITTED:
+    "You don't have sufficient permissions to perform the necessary action",
+  ROLE_NOT_FOUND: 'Role not found',
+  ROLES_METADATA_INVALID: 'Roles metadata is invalid or missing',
+  PERMISSIONS_METADATA_INVALID: 'Permissions metadata is invalid or missing',
+  EMPTY_OBJECT: 'At least one field must be provided to update',
 
   /**
    *

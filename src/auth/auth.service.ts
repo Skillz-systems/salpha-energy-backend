@@ -1,12 +1,14 @@
 import {
   BadRequestException,
   Injectable,
-  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TokenType } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
+import * as argon from 'argon2';
+import { Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { hashPassword } from '../utils/helpers.util';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -15,6 +17,7 @@ import { generateRandomPassword } from '../utils/generate-pwd';
 import { ForgotPasswordDTO } from './dto/forgot-password.dto';
 import { MESSAGES } from '../constants';
 import { PasswordResetDTO } from './dto/password-reset.dto';
+import { LoginUserDTO } from './dto/login-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -22,6 +25,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly Email: EmailService,
     private readonly config: ConfigService,
+    private jwtService: JwtService,
   ) {}
 
   async addUser(userData: CreateUserDto) {
@@ -69,7 +73,11 @@ export class AuthService {
         roleId,
       },
       include: {
-        role: true,
+        role: {
+          include: {
+            permissions: true,
+          },
+        },
       },
     });
 
@@ -93,6 +101,32 @@ export class AuthService {
     });
 
     return newUser;
+  }
+
+  async login(data: LoginUserDTO, res: Response) {
+    const { email, password } = data;
+
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
+
+    if (!user) throw new UnauthorizedException(MESSAGES.INVALID_CREDENTIALS);
+
+    const verifyPassword = await argon.verify(user.password, password);
+
+    if (!verifyPassword)
+      throw new UnauthorizedException(MESSAGES.INVALID_CREDENTIALS);
+
+    const payload = { sub: user.id };
+
+    const access_token = this.jwtService.sign(payload);
+
+    res.setHeader('access_token', access_token);
+    res.setHeader('Access-Control-Expose-Headers', 'access_token');
+
+    return user;
   }
 
   async forgotPassword(forgotPasswordDetails: ForgotPasswordDTO) {
@@ -188,7 +222,7 @@ export class AuthService {
 
     const hashedPwd = await hashPassword(newPassword);
 
-    const existingUser = await this.prisma.user.update({
+    await this.prisma.user.update({
       where: {
         id: tokenValid.userId,
       },

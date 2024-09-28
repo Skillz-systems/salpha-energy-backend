@@ -17,6 +17,7 @@
   - Comprehensive implementations of all required endpoints and workflows.
 
 - **Swagger Documentation**
+
   - Comprehensive API documentation using Swagger.
 
 - **Automated Testing**
@@ -101,11 +102,13 @@ Open a pull request.
 Ensure all independently developed units of software work correctly when they are connected to each other by running tests.
 
 for unit tests
+
 ```bash
     pnpm test
 ```
 
 for integration/e2e tests
+
 ```bash
     pnpm test:e2e
 ```
