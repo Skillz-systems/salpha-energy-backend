@@ -1,8 +1,8 @@
 import { NestFactory, Reflector } from '@nestjs/core';
+import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -49,6 +49,10 @@ async function bootstrap() {
 
   app.useGlobalFilters();
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
+  
+
+  // Enable validation globally
+  app.useGlobalPipes(new ValidationPipe());
 
   await app.listen(configService.get<number>('PORT') || 3000);
 }
