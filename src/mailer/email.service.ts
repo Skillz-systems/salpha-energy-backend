@@ -21,7 +21,7 @@ export class EmailService {
       console.log(error);
 
       // to remove the user being created when the mailing fails
-      const newUser = await this.prisma.user.delete({
+      await this.prisma.user.delete({
         where: {
           id: value.userId,
         },
