@@ -42,6 +42,7 @@ export class RolesController {
     try {
       return await this.roleService.findAll();
     } catch (error) {
+      console.log({error})
       throw new InternalServerErrorException('Error retrieving roles');
     }
   }

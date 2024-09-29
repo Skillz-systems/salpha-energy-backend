@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsNotEmpty, IsString, MinLength } from 'class-validator';
 import { PasswordMatches } from '../../auth/customValidators/passwordMatches';
 import { ApiProperty } from '@nestjs/swagger';
 
