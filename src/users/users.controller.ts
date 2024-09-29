@@ -1,8 +1,12 @@
 import {
+  BadRequestException,
+  Body,
   Controller,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
+  Patch,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -10,6 +14,7 @@ import { UsersService } from './users.service';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiBody,
   ApiHeader,
   ApiOkResponse,
   ApiQuery,
@@ -20,7 +25,9 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { ActionEnum, SubjectEnum } from '@prisma/client';
+import { ActionEnum, SubjectEnum, User } from '@prisma/client';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { MESSAGES } from '../constants';
 
 @SkipThrottle()
 @ApiTags('Users')
@@ -68,5 +75,29 @@ export class UsersController {
     @Query('limit') limit?: number,
   ) {
     return await this.usersService.getUsers(page, limit);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles({
+    roles: ['admin'],
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.User}`],
+  })
+  @Patch(':id')
+  @ApiBearerAuth('access_token')
+  @ApiBody({ type: UpdateUserDto })
+  @ApiOkResponse({
+    description: 'User profile updated successfully',
+    type: UserEntity,
+  })
+  async updateUser(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ): Promise<User> {
+    if (Object.keys(updateUserDto).length === 0) {
+      throw new BadRequestException(MESSAGES.EMPTY_OBJECT);
+    }
+    return new UserEntity(
+      await this.usersService.updateUser(id, updateUserDto),
+    );
   }
 }

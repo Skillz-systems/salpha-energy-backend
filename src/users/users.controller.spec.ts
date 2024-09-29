@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
+import { BadRequestException } from '@nestjs/common';
 import {
   ActionEnum,
   PrismaClient,
@@ -8,9 +9,11 @@ import {
   UserStatus,
 } from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
-import { UserEntity } from './entity/user.entity';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
+import { UserEntity } from './entity/user.entity';
 import { PrismaService } from '../prisma/prisma.service';
+import { MESSAGES } from '../constants';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -19,6 +22,7 @@ describe('UsersController', () => {
 
   const mockUsersService = {
     getUsers: jest.fn(),
+    updateUser: jest.fn(),
   };
 
   const mockUsers = [
@@ -106,6 +110,28 @@ describe('UsersController', () => {
       const result = await controller.listUsers(1, 10);
       expect(result).toMatchObject(paginatedUsers);
       expect(userService.getUsers).toHaveBeenCalledWith(1, 10);
+    });
+  });
+
+  describe('Update User', () => {
+    it('should throw BadRequestException if the DTO is empty', async () => {
+      await expect(controller.updateUser('test-id', {})).rejects.toThrow(
+        new BadRequestException(MESSAGES.EMPTY_OBJECT),
+      );
+    });
+
+    it('should call updateUser service method', async () => {
+      const updateUserDto: UpdateUserDto = { username: 'newusername' };
+      const mockUser = { id: 'test-id', username: 'newusername' };
+      mockUsersService.updateUser.mockResolvedValue(mockUser);
+
+      const result = await controller.updateUser('test-id', updateUserDto);
+
+      expect(result).toEqual(mockUser);
+      expect(mockUsersService.updateUser).toHaveBeenCalledWith(
+        'test-id',
+        updateUserDto,
+      );
     });
   });
 });
