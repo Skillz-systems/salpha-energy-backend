@@ -28,7 +28,7 @@ async function main() {
       permissions: {
         create: [
           {
-            action: ActionEnum.read,
+            action: ActionEnum.manage,
             subject: SubjectEnum.User,
           },
         ],

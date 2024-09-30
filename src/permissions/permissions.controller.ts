@@ -49,6 +49,16 @@ export class PermissionsController {
     return this.permissionsService.findAll();
   }
 
+  @Get('subjects')
+  @ApiOperation({ summary: 'Retrieve all permission subjects' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Returns a list of all permission subjects.',
+  })
+  findAllPermissionSubjects() {
+    return this.permissionsService.findAllPermissionSubjects();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Retrieve a specific permission by ID' })
   @ApiParam({
@@ -100,7 +110,10 @@ export class PermissionsController {
     description: 'Permission not found.',
     type: NotFoundException,
   })
-  update(@Param('id') id: string, @Body() updatePermissionDto: UpdatePermissionDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updatePermissionDto: UpdatePermissionDto,
+  ) {
     return this.permissionsService.update(id, updatePermissionDto);
   }
 

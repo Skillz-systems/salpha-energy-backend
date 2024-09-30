@@ -1,26 +1,32 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, SubjectEnum } from '@prisma/client';
 
 @Injectable()
 export class PermissionsService {
   constructor(private prisma: PrismaService) {}
 
-   // Create a new permission
-   async create(createPermissionDto: CreatePermissionDto) {
+  // Create a new permission
+  async create(createPermissionDto: CreatePermissionDto) {
     const existingPermission = await this.prisma.permission.findFirst({
       where: {
         action: createPermissionDto.action,
         subject: createPermissionDto.subject,
       },
     });
-  
+
     if (existingPermission) {
-      throw new BadRequestException('Permission with the same action and subject already exists.');
+      throw new BadRequestException(
+        'Permission with the same action and subject already exists.',
+      );
     }
-    
+
     return this.prisma.permission.create({
       data: {
         action: createPermissionDto.action,
@@ -34,6 +40,17 @@ export class PermissionsService {
     return this.prisma.permission.findMany();
   }
 
+  // Get all permission subjects
+  async findAllPermissionSubjects() {
+    const hiddenSubjects: SubjectEnum[] = [SubjectEnum.all];
+
+    const subjects = Object.values(SubjectEnum).filter(
+      (subject) => !hiddenSubjects.includes(subject),
+    );
+
+    return { subjects };
+  }
+
   // Get one permission by ID
   async findOne(id: string) {
     const existingPermission = await this.prisma.permission.findUnique({
@@ -44,7 +61,7 @@ export class PermissionsService {
       throw new NotFoundException(`Permission with ID ${id} not found`);
     }
 
-    return existingPermission
+    return existingPermission;
   }
 
   // Update permission by ID
@@ -70,7 +87,6 @@ export class PermissionsService {
       where: { id: String(id) },
       data: updateData,
     });
-  
 
     return {
       message: `Permission with ID ${id} updated successfully`,
@@ -83,17 +99,17 @@ export class PermissionsService {
     const existingPermission = await this.prisma.permission.findUnique({
       where: { id },
     });
-  
+
     if (!existingPermission) {
       throw new NotFoundException(`Permission with ID ${id} not found`);
     }
-  
+
     await this.prisma.permission.delete({
       where: { id },
     });
-  
+
     return {
-      message: "Permission deleted successfully",
+      message: 'Permission deleted successfully',
     };
   }
 }

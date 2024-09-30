@@ -11,7 +11,7 @@ import * as request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service'; // Adjust to your path
 import { UsersModule } from '../src/users/users.module';
 import { JwtAuthGuard } from '../src/auth/guards/jwt.guard';
-import { RolesGuard } from '../src/auth/guards/roles.guard';
+import { RolesAndPermissionsGuard } from '../src/auth/guards/roles.guard';
 
 describe('UsersController (e2e)', () => {
   let app: INestApplication;
@@ -67,7 +67,7 @@ describe('UsersController (e2e)', () => {
       .useValue(mockPrismaService)
       .overrideGuard(JwtAuthGuard)
       .useValue({ canActivate: () => true })
-      .overrideGuard(RolesGuard)
+      .overrideGuard(RolesAndPermissionsGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

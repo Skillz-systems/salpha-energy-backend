@@ -44,5 +44,13 @@ enum ActionEnum {
 enum SubjectEnum {
   all
   User
-  TempToken
+  Sales
+  Agents
+  Customers
+  Inventory
+  Accounts
+  Products
+  Contracts
+  Support
+  Communication
 }

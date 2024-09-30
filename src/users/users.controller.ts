@@ -23,8 +23,8 @@ import {
 import { UserEntity } from './entity/user.entity';
 import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesAndPermissionsGuard } from '../auth/guards/roles.guard';
+import { RolesAndPermissions } from '../auth/decorators/roles.decorator';
 import { ActionEnum, SubjectEnum, User } from '@prisma/client';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { MESSAGES } from '../constants';
@@ -35,10 +35,12 @@ import { MESSAGES } from '../constants';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles({
-    roles: ['admin'],
-    permissions: [`${ActionEnum.manage}:${SubjectEnum.User}`],
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    // roles: ['admin'],
+    permissions: [
+      `${ActionEnum.manage}:${SubjectEnum.User}`,
+    ],
   })
   @Get()
   @ApiBearerAuth('access_token')
@@ -77,11 +79,11 @@ export class UsersController {
     return await this.usersService.getUsers(page, limit);
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles({
-    roles: ['admin'],
-    permissions: [`${ActionEnum.manage}:${SubjectEnum.User}`],
-  })
+  // @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  // @RolesAndPermissions({
+  //   roles: ['admin'],
+  //   permissions: [`${ActionEnum.manage}:${SubjectEnum.User}`],
+  // })
   @Patch(':id')
   @ApiBearerAuth('access_token')
   @ApiBody({ type: UpdateUserDto })

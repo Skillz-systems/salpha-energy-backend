@@ -5,7 +5,7 @@ import { ActionEnum, SubjectEnum } from '@prisma/client';
 export class UpdatePermissionDto {
   @ApiProperty({
     description: 'The updated action type that defines the permission (e.g., manage, read, write, delete).',
-    example: ActionEnum.write,
+    example: ActionEnum.manage,
     enum: ActionEnum,
     required: false,
   })
@@ -14,7 +14,7 @@ export class UpdatePermissionDto {
 
   @ApiProperty({
     description: 'The updated subject to which the action applies (e.g., User, TempToken, or all).',
-    example: SubjectEnum.TempToken,
+    example: SubjectEnum.Customers,
     enum: SubjectEnum,
     required: false,
   })
