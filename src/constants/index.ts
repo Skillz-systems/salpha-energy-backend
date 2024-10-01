@@ -4,6 +4,7 @@ export const MESSAGES = {
   UPDATED: 'The Record has been updated successfully',
   DELETED: 'The Record has been deleted successfully',
   PWD_RESET_SUCCESS: 'Password Successfully updated',
+  PWD_CREATION_SUCCESS: 'Password Successfully created',
   PWD_RESET_MAIL_SENT: 'A password reset link has been sent to your mail',
   TOKEN_VALID: 'Token is valid',
 
