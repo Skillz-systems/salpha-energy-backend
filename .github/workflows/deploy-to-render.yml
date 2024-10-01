@@ -36,3 +36,4 @@ jobs:
           deploy-hook: ${{ secrets.RENDER_DEPLOY_HOOK }}
           image-url: ${{ secrets.DOCKER_USERNAME }}/nestjs-app:latest
           render-api-key: ${{ secrets.RENDER_API_KEY }}
+          wait-for-deployment: true
