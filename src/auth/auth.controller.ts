@@ -12,7 +12,6 @@ import {
   ApiBadRequestResponse,
   ApiBody,
   ApiCreatedResponse,
-  ApiExtraModels,
   ApiForbiddenResponse,
   ApiInternalServerErrorResponse,
   ApiOkResponse,
@@ -45,10 +44,10 @@ import {
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
-  // @RolesAndPermissions({
-  //   permissions: [`${ActionEnum.manage}:${SubjectEnum.Customers}`],
-  // })
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Customers}`],
+  })
   @Post('add-user')
   @ApiCreatedResponse({})
   @ApiBadRequestResponse({})
@@ -141,7 +140,6 @@ export class AuthController {
     @Body() body: CreateUserPasswordDto,
     @Param() params: CreateUserPasswordParamsDto,
   ) {
-    console.log({params})
     return this.authService.createUserPassword(body, params);
   }
 
