@@ -11,6 +11,7 @@ import {
   ApiBadRequestResponse,
   ApiBody,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiInternalServerErrorResponse,
   ApiOkResponse,
   ApiParam,
@@ -26,6 +27,7 @@ import { PasswordResetDTO } from './dto/password-reset.dto';
 import { LoginUserDTO } from './dto/login-user.dto';
 import { SkipThrottle } from '@nestjs/throttler';
 import { plainToClass } from 'class-transformer';
+import { CreateSuperUserDto } from './dto/create-super-user.dto';
 
 @SkipThrottle()
 @ApiTags('Auth')
@@ -48,7 +50,23 @@ export class AuthController {
     const newUser = await this.authService.addUser(registerUserDto);
     return plainToClass(UserEntity, newUser);
   }
-  
+
+  @Post('create-superuser')
+  @ApiCreatedResponse({})
+  @ApiBadRequestResponse({})
+  @ApiForbiddenResponse({})
+  @ApiInternalServerErrorResponse({})
+  @ApiBody({
+    type: CreateSuperUserDto,
+    description: 'Json structure for request payload',
+  })
+  @HttpCode(HttpStatus.CREATED)
+  // @ApiExcludeEndpoint()
+  async createSuperuser(@Body() registerUserDto: CreateSuperUserDto) {
+    const newUser = await this.authService.createSuperuser(registerUserDto);
+    return plainToClass(UserEntity, newUser);
+  }
+
   @SkipThrottle({ default: false })
   @Post('login')
   @ApiOkResponse({})

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -18,6 +19,7 @@ import { ForgotPasswordDTO } from './dto/forgot-password.dto';
 import { MESSAGES } from '../constants';
 import { PasswordResetDTO } from './dto/password-reset.dto';
 import { LoginUserDTO } from './dto/login-user.dto';
+import { CreateSuperUserDto } from './dto/create-super-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -97,6 +99,59 @@ export class AuthService {
         platformName,
         supportEmail: this.config.get<string>('EMAIL_USER'),
         tempPassword: newPwd,
+      },
+    });
+
+    return newUser;
+  }
+
+  async createSuperuser(userData: CreateSuperUserDto) {
+    const { email, firstname, lastname, password, cKey } = userData;
+
+    // this is a mock key that should be fetched
+    // from an env or compared with a hashed value
+    // in the database
+    const adminCreationToken = '09yu2408h0wnh89h20';
+
+    if (adminCreationToken !== cKey) {
+      throw new ForbiddenException();
+    }
+
+    const emailExists = await this.prisma.user.findFirst({
+      where: {
+        email,
+      },
+    });
+
+    if (emailExists) {
+      throw new BadRequestException(MESSAGES.EMAIL_EXISTS);
+    }
+
+    const hashedPwd = await hashPassword(password);
+
+    const newUser = await this.prisma.user.create({
+      data: {
+        firstname,
+        lastname,
+        email,
+        password: hashedPwd,
+        role: {
+          connectOrCreate: {
+            where: {
+              role: 'admin',
+            },
+            create: {
+              role: 'admin',
+            },
+          },
+        },
+      },
+      include: {
+        role: {
+          include: {
+            permissions: true,
+          },
+        },
       },
     });
 

@@ -51,14 +51,18 @@ export class RolesAndPermissionsGuard implements CanActivate {
 
     // Check user roles
     const userRole = user.role.role;
+
+    // allow admin and super-admin users to access resource
+    if(userRole == "admin" || userRole == "super-admin"){
+      return true
+    }
+
     const hasRequiredRoles = requiredRoles.length
       ? requiredRoles.includes(userRole)
       : true;
 
     // Check user permissions
     const userPermissions = await this.getUserPermissions(user.roleId);
-
-    console.log({ userPermissions, user });
 
     // Check if any user permission has the subject 'all'
     const hasRequiredPermissions = requiredPermissions.length
