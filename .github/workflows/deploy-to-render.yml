@@ -31,8 +31,8 @@ jobs:
 
       # Step 4: Deploy to Render
       - name: Deploy to Render
-        uses: gh-actions-workflows/deploy-docker-render@v1
+        uses: gh-actions-workflows/deploy-docker-render@v1.3
         with:
           service-id: ${{ secrets.RENDER_SERVICE_ID }}
-          docker-image: ${{ secrets.DOCKER_USERNAME }}/nestjs-app:latest
+          docker-image: ${{ secrets.DOCKER_USERNAME }}/energy-api:latest
           api-key: ${{ secrets.RENDER_API_KEY }}
