@@ -33,6 +33,6 @@ jobs:
       - name: Deploy to Render
         uses: gh-actions-workflows/deploy-docker-render@v1.3
         with:
-          service-id: ${{ secrets.RENDER_SERVICE_ID }}
-          docker-image: ${{ secrets.DOCKER_USERNAME }}/energy-api:latest
-          api-key: ${{ secrets.RENDER_API_KEY }}
+          deploy-hook: ${{ secrets.RENDER_DEPLOY_HOOK }}
+          image-url: ${{ secrets.DOCKER_USERNAME }}/nestjs-app:latest
+          render-api-key: ${{ secrets.RENDER_API_KEY }}
