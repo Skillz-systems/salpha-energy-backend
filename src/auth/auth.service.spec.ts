@@ -161,7 +161,7 @@ describe('AuthService', () => {
 
     it('should throw BadRequestException if role does not exist', async () => {
       const { role, ...dataWithoutRole } = testData;
-      
+
       const dto: CreateUserDto = {
         ...dataWithoutRole,
         role: role + 'non-existent-role-id',
