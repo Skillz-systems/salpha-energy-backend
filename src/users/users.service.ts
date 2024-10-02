@@ -152,4 +152,22 @@ export class UsersService {
 
     return serialisedData;
   }
+
+  async deleteUser(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new NotFoundException(MESSAGES.USER_NOT_FOUND);
+    }
+
+    await this.prisma.user.delete({
+      where: { id },
+    });
+
+    return {
+      message: MESSAGES.DELETED,
+    };
+  }
 }
