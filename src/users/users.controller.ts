@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -63,12 +64,10 @@ export class UsersController {
   })
   @HttpCode(HttpStatus.OK)
   async listUsers(@Query() query: ListUsersQueryDto) {
-    // return await this.usersService.getUsers(page, limit);
     return await this.usersService.getUsers(query);
   }
 
   @UseGuards(JwtAuthGuard)
-  // @Patch(':id')
   @Patch()
   @ApiBearerAuth('access_token')
   @ApiOperation({
@@ -102,8 +101,7 @@ export class UsersController {
   @ApiBearerAuth('access_token')
   @ApiOperation({
     summary: 'Update user details by superuser',
-    description:
-      'This endpoint allows superusers to update user details.',
+    description: 'This endpoint allows superusers to update user details.',
   })
   @ApiBody({ type: UpdateUserDto })
   @ApiOkResponse({
@@ -156,5 +154,26 @@ export class UsersController {
   })
   async superUserFetchUser(@Param('id') id: string): Promise<User> {
     return new UserEntity(await this.usersService.fetchUser(id));
+  }
+
+  // @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  // @RolesAndPermissions({
+  //   permissions: [`${ActionEnum.manage}:${SubjectEnum.Customers}`],
+  // })
+  @ApiParam({
+    name: 'id',
+    description: "User's id",
+  })
+  @ApiOperation({
+    summary: 'Delete user by superuser',
+    description: 'This endpoint allows a permitted user to delete a user.',
+  })
+  @ApiBearerAuth('access_token')
+  @ApiOkResponse({
+    type: UserEntity,
+  })
+  @Delete(':id')
+  async deleteUser(@Param('id') id: string) {
+    return await this.usersService.deleteUser(id);
   }
 }
