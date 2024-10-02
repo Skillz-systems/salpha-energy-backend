@@ -24,6 +24,8 @@ import {
   CreateUserPasswordParamsDto,
 } from './dto/create-user-password.dto';
 import { generateRandomPassword } from '../utils/generate-pwd';
+import { plainToInstance } from 'class-transformer';
+import { UserEntity } from 'src/users/entity/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -104,8 +106,6 @@ export class AuthService {
     const clientUrl = this.config.get<string>('CLIENT_URL');
 
     const createPasswordUrl = `${clientUrl}create-password/${newUser.id}/${token.token}/`;
-
-    console.log({ id: newUser.id, token });
 
     await this.Email.sendMail({
       userId: newUser.id,
@@ -208,7 +208,7 @@ export class AuthService {
     res.setHeader('access_token', access_token);
     res.setHeader('Access-Control-Expose-Headers', 'access_token');
 
-    return user;
+    return plainToInstance(UserEntity, user);
   }
 
   async forgotPassword(forgotPasswordDetails: ForgotPasswordDTO) {
@@ -224,7 +224,7 @@ export class AuthService {
       throw new BadRequestException(MESSAGES.USER_NOT_FOUND);
     }
 
-    const existingToken = await this.prisma.tempToken.findFirst({
+    let existingToken = await this.prisma.tempToken.findFirst({
       where: {
         token_type: TokenType.password_reset,
         token: {
@@ -250,7 +250,7 @@ export class AuthService {
         },
       });
     } else {
-      await this.prisma.tempToken.create({
+      existingToken = await this.prisma.tempToken.create({
         data: {
           token: resetToken,
           expiresAt: newExpirationTime,
@@ -261,8 +261,9 @@ export class AuthService {
     }
 
     const platformName = 'A4T Energy';
-    const clentUrl = this.config.get<string>('CLIENT_URL');
-    const resetLink = `${clentUrl}/resetPassword`;
+    const clientUrl = this.config.get<string>('CLIENT_URL');
+    // const resetLink = `${clentUrl}/resetPassword`;
+    const resetLink = `${clientUrl}resetPassword/${existingUser.id}/${existingToken.token}/`;
 
     await this.Email.sendMail({
       to: email,
@@ -283,9 +284,13 @@ export class AuthService {
   }
 
   async resetPassword(resetPasswordDetails: PasswordResetDTO) {
-    const { newPassword, resetToken } = resetPasswordDetails;
+    const { newPassword, resetToken, userid } = resetPasswordDetails;
 
-    const tokenValid = await this.verifyToken(resetToken);
+    const tokenValid = await this.verifyToken(
+      resetToken,
+      TokenType.password_reset,
+      userid,
+    );
 
     const hashedPwd = await hashPassword(newPassword);
 
