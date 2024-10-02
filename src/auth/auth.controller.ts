@@ -93,7 +93,7 @@ export class AuthController {
     @Body() userDetails: LoginUserDTO,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return new UserEntity(await this.authService.login(userDetails, res));
+    return this.authService.login(userDetails, res);
   }
 
   @Post('forgot-password')

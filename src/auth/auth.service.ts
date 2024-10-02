@@ -24,6 +24,8 @@ import {
   CreateUserPasswordParamsDto,
 } from './dto/create-user-password.dto';
 import { generateRandomPassword } from '../utils/generate-pwd';
+import { plainToInstance } from 'class-transformer';
+import { UserEntity } from 'src/users/entity/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -104,8 +106,6 @@ export class AuthService {
     const clientUrl = this.config.get<string>('CLIENT_URL');
 
     const createPasswordUrl = `${clientUrl}create-password/${newUser.id}/${token.token}/`;
-
-    console.log({ id: newUser.id, token });
 
     await this.Email.sendMail({
       userId: newUser.id,
@@ -208,7 +208,7 @@ export class AuthService {
     res.setHeader('access_token', access_token);
     res.setHeader('Access-Control-Expose-Headers', 'access_token');
 
-    return user;
+    return plainToInstance(UserEntity, user);
   }
 
   async forgotPassword(forgotPasswordDetails: ForgotPasswordDTO) {
