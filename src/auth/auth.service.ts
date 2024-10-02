@@ -185,6 +185,13 @@ export class AuthService {
       where: {
         email,
       },
+      include: {
+        role: {
+          include: {
+            permissions: true,
+          },
+        },
+      },
     });
 
     if (!user) throw new UnauthorizedException(MESSAGES.INVALID_CREDENTIALS);
