@@ -7,10 +7,16 @@ import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, SubjectEnum } from '@prisma/client';
+import { ObjectId } from 'mongodb';
 
 @Injectable()
 export class PermissionsService {
   constructor(private prisma: PrismaService) {}
+
+  // Helper function to validate MongoDB ObjectId
+  private isValidObjectId(id: string): boolean {
+    return ObjectId.isValid(id);
+  }
 
   // Create a new permission
   async create(createPermissionDto: CreatePermissionDto) {
@@ -53,6 +59,11 @@ export class PermissionsService {
 
   // Get one permission by ID
   async findOne(id: string) {
+    // Validate ObjectId
+    if (!this.isValidObjectId(id)) {
+      throw new BadRequestException(`Invalid permission ID: ${id}`);
+    }
+
     const existingPermission = await this.prisma.permission.findUnique({
       where: { id: String(id) },
     });
@@ -66,6 +77,11 @@ export class PermissionsService {
 
   // Update permission by ID
   async update(id: string, updatePermissionDto: UpdatePermissionDto) {
+    // Validate ObjectId
+    if (!this.isValidObjectId(id)) {
+      throw new BadRequestException(`Invalid permission ID: ${id}`);
+    }
+
     const existingPermission = await this.prisma.permission.findUnique({
       where: { id: String(id) },
     });
@@ -96,6 +112,11 @@ export class PermissionsService {
 
   // Delete permission by ID
   async remove(id: string) {
+    // Validate ObjectId
+    if (!this.isValidObjectId(id)) {
+      throw new BadRequestException(`Invalid permission ID: ${id}`);
+    }
+
     const existingPermission = await this.prisma.permission.findUnique({
       where: { id },
     });
