@@ -31,7 +31,7 @@ import { plainToClass } from 'class-transformer';
 import { CreateSuperUserDto } from './dto/create-super-user.dto';
 import { JwtAuthGuard } from './guards/jwt.guard';
 import { RolesAndPermissionsGuard } from './guards/roles.guard';
-import { ActionEnum, SubjectEnum } from '@prisma/client';
+import { ActionEnum, SubjectEnum, TokenType } from '@prisma/client';
 import { RolesAndPermissions } from './decorators/roles.decorator';
 import {
   CreateUserPasswordDto,
@@ -109,9 +109,13 @@ export class AuthController {
     return this.authService.forgotPassword(forgotPasswordDetails);
   }
 
-  @Post('verify-reset-token/:resetToken')
+  @Post('verify-reset-token/:userid/:token')
   @ApiParam({
-    name: 'resetToken',
+    name: 'userid',
+    description: 'userid of user',
+  })
+  @ApiParam({
+    name: 'token',
     description: 'The token used for password reset verification',
     type: String,
   })
@@ -119,8 +123,12 @@ export class AuthController {
   @ApiBadRequestResponse({})
   @ApiInternalServerErrorResponse({})
   @HttpCode(HttpStatus.OK)
-  verifyResetToken(@Param('resetToken') resetToken: string) {
-    return this.authService.verifyResetToken(resetToken);
+  async verifyResetToken(@Param() params: CreateUserPasswordParamsDto) {
+    return await this.authService.verifyToken(
+      params.token,
+      TokenType.password_reset,
+      params.userid,
+    );
   }
 
   @Post('create-user-password/:userid/:token')
