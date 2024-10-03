@@ -318,11 +318,11 @@ export class AuthService {
     };
   }
 
-  async verifyResetToken(resetToken: string) {
-    await this.verifyToken(resetToken);
+  // async verifyResetToken(resetToken: string) {
+  //   await this.verifyToken(resetToken);
 
-    return { message: MESSAGES.TOKEN_VALID };
-  }
+  //   return { message: MESSAGES.TOKEN_VALID };
+  // }
 
   async createUserPassword(
     pwds: CreateUserPasswordDto,
@@ -368,7 +368,7 @@ export class AuthService {
     const tokenValid = await this.prisma.tempToken.findFirst({
       where: {
         token_type,
-        token: token,
+        token,
         ...(userId && { userId }),
         expiresAt: {
           gte: new Date(),
