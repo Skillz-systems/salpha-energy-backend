@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import { PermissionEntity } from '../../permissions/entity/permissions.entity';
+import { UserEntity } from 'src/users/entity/user.entity';
 
 export class RolesEntity {
   id: string;
@@ -8,6 +9,9 @@ export class RolesEntity {
 
   @Type(() => PermissionEntity)
   permissions: PermissionEntity[];
+
+  @Type(() => UserEntity)
+  creator?: UserEntity;
 
   createdAt: Date;
 

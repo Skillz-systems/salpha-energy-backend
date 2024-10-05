@@ -328,9 +328,10 @@ export class AuthService {
     pwds: CreateUserPasswordDto,
     params: CreateUserPasswordParamsDto,
   ) {
+    console.log({ params });
     const tokenValid = await this.verifyToken(
       params.token,
-      TokenType.email_verification,
+      TokenType.password_reset,
       params.userid,
     );
 

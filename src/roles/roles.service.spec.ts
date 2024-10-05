@@ -42,7 +42,7 @@ describe('RolesService', () => {
   it('should create a new role', async () => {
     mockPrismaService.role.findUnique = jest.fn().mockResolvedValue(null);
   
-    const roleData = { role: 'admin123', active: true, permissionIds: [] };
+    const roleData = { role: 'admin123', created_by: '60d0fe4f5311236168a109cb', active: true, permissionIds: [] };
     const createdRole = await service.create(roleData);
     expect(createdRole).toEqual(mockRole);
   });
@@ -50,7 +50,7 @@ describe('RolesService', () => {
 
   it('should throw ConflictException if role already exists', async () => {
     mockPrismaService.role.findUnique = jest.fn().mockResolvedValue(mockRole);
-    const roleData = { role: 'admin123', active: true, permissionIds: [] };
+    const roleData = { role: 'admin123', created_by: '60d0fe4f5311236168a109cb', active: true, permissionIds: [] };
     
     await expect(service.create(roleData)).rejects.toThrow(ConflictException);
   });

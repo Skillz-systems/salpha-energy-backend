@@ -36,7 +36,7 @@ describe('RolesController', () => {
   });
 
   it('should create a new role', async () => {
-    const createRoleDto: CreateRoleDto = { role: 'admin123', active: true, permissionIds: [] };
+    const createRoleDto: CreateRoleDto = { role: 'admin123', created_by: '60d0fe4f5311236168a109cb', active: true, permissionIds: [] };
     const result = await controller.create(createRoleDto);
     expect(result).toEqual(mockRole);
   });
