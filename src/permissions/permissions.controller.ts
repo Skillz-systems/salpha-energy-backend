@@ -1,15 +1,26 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { PermissionsService } from './permissions.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { RolesAndPermissions } from 'src/auth/decorators/roles.decorator';
+import { ActionEnum, SubjectEnum } from '@prisma/client';
+import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+import { RolesAndPermissionsGuard } from 'src/auth/guards/roles.guard';
 
 @ApiTags('permissions')
 @Controller('permissions')
 export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
 
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [
+      `${ActionEnum.manage}:${SubjectEnum.User}`,
+    ],
+  })
+  @ApiBearerAuth('access_token')
   @Post()
   @ApiOperation({ summary: 'Create a new permission' })
   @ApiBody({
@@ -39,6 +50,14 @@ export class PermissionsController {
     return this.permissionsService.create(createPermissionDto);
   }
 
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [
+      `${ActionEnum.manage}:${SubjectEnum.User}`,
+    ],
+  })
+  @ApiBearerAuth('access_token')
   @Get()
   @ApiOperation({ summary: 'Retrieve all permissions' })
   @ApiResponse({
@@ -49,6 +68,13 @@ export class PermissionsController {
     return this.permissionsService.findAll();
   }
 
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [
+      `${ActionEnum.manage}:${SubjectEnum.User}`,
+    ],
+  })
+  @ApiBearerAuth('access_token')
   @Get('subjects')
   @ApiOperation({ summary: 'Retrieve all permission subjects' })
   @ApiResponse({
@@ -59,6 +85,13 @@ export class PermissionsController {
     return this.permissionsService.findAllPermissionSubjects();
   }
 
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [
+      `${ActionEnum.manage}:${SubjectEnum.User}`,
+    ],
+  })
+  @ApiBearerAuth('access_token')
   @Get(':id')
   @ApiOperation({ summary: 'Retrieve a specific permission by ID' })
   @ApiParam({
@@ -80,6 +113,13 @@ export class PermissionsController {
     return this.permissionsService.findOne(id);
   }
 
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [
+      `${ActionEnum.manage}:${SubjectEnum.User}`,
+    ],
+  })
+  @ApiBearerAuth('access_token')
   @Patch(':id')
   @ApiOperation({ summary: 'Update a specific permission by ID' })
   @ApiParam({
@@ -117,6 +157,13 @@ export class PermissionsController {
     return this.permissionsService.update(id, updatePermissionDto);
   }
 
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [
+      `${ActionEnum.manage}:${SubjectEnum.User}`,
+    ],
+  })
+  @ApiBearerAuth('access_token')
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a specific permission by ID' })
   @ApiParam({
