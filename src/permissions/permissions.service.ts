@@ -48,7 +48,7 @@ export class PermissionsService {
 
   // Get all permission subjects
   async findAllPermissionSubjects() {
-    const hiddenSubjects: SubjectEnum[] = [SubjectEnum.all];
+    const hiddenSubjects: SubjectEnum[] = [SubjectEnum.all, SubjectEnum.User];
 
     const subjects = Object.values(SubjectEnum).filter(
       (subject) => !hiddenSubjects.includes(subject),

@@ -14,12 +14,18 @@ import { PrismaService } from '../prisma/prisma.service';
 import { hashPassword } from '../utils/helpers.util';
 import { CreateUserDto } from './dto/create-user.dto';
 import { EmailService } from '../mailer/email.service';
-import { generateRandomPassword } from '../utils/generate-pwd';
 import { ForgotPasswordDTO } from './dto/forgot-password.dto';
 import { MESSAGES } from '../constants';
 import { PasswordResetDTO } from './dto/password-reset.dto';
 import { LoginUserDTO } from './dto/login-user.dto';
 import { CreateSuperUserDto } from './dto/create-super-user.dto';
+import {
+  CreateUserPasswordDto,
+  CreateUserPasswordParamsDto,
+} from './dto/create-user-password.dto';
+import { generateRandomPassword } from '../utils/generate-pwd';
+import { plainToInstance } from 'class-transformer';
+import { UserEntity } from 'src/users/entity/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -60,7 +66,7 @@ export class AuthService {
       throw new BadRequestException(MESSAGES.customInvalidMsg('role'));
     }
 
-    const newPwd = generateRandomPassword();
+    const newPwd = generateRandomPassword(30);
 
     const hashedPwd = await hashPassword(newPwd);
 
@@ -83,8 +89,23 @@ export class AuthService {
       },
     });
 
+    const resetToken = uuidv4();
+    const expirationTime = new Date();
+    expirationTime.setHours(expirationTime.getFullYear() + 1);
+
+    const token = await this.prisma.tempToken.create({
+      data: {
+        token: resetToken,
+        expiresAt: expirationTime,
+        token_type: TokenType.email_verification,
+        userId: newUser.id,
+      },
+    });
+
     const platformName = 'A4T Energy';
-    const loginUrl = 'https://google.com';
+    const clientUrl = this.config.get<string>('CLIENT_URL');
+
+    const createPasswordUrl = `${clientUrl}create-password/${newUser.id}/${token.token}/`;
 
     await this.Email.sendMail({
       userId: newUser.id,
@@ -95,10 +116,9 @@ export class AuthService {
       context: {
         firstname,
         userEmail: email,
-        loginUrl,
         platformName,
-        supportEmail: this.config.get<string>('EMAIL_USER'),
-        tempPassword: newPwd,
+        createPasswordUrl,
+        supportEmail: this.config.get<string>('EMAIL_USER') || 'a4t@gmail.com',
       },
     });
 
@@ -165,6 +185,13 @@ export class AuthService {
       where: {
         email,
       },
+      include: {
+        role: {
+          include: {
+            permissions: true,
+          },
+        },
+      },
     });
 
     if (!user) throw new UnauthorizedException(MESSAGES.INVALID_CREDENTIALS);
@@ -181,7 +208,7 @@ export class AuthService {
     res.setHeader('access_token', access_token);
     res.setHeader('Access-Control-Expose-Headers', 'access_token');
 
-    return user;
+    return plainToInstance(UserEntity, user);
   }
 
   async forgotPassword(forgotPasswordDetails: ForgotPasswordDTO) {
@@ -197,7 +224,7 @@ export class AuthService {
       throw new BadRequestException(MESSAGES.USER_NOT_FOUND);
     }
 
-    const existingToken = await this.prisma.tempToken.findFirst({
+    let existingToken = await this.prisma.tempToken.findFirst({
       where: {
         token_type: TokenType.password_reset,
         token: {
@@ -223,7 +250,7 @@ export class AuthService {
         },
       });
     } else {
-      await this.prisma.tempToken.create({
+      existingToken = await this.prisma.tempToken.create({
         data: {
           token: resetToken,
           expiresAt: newExpirationTime,
@@ -234,8 +261,9 @@ export class AuthService {
     }
 
     const platformName = 'A4T Energy';
-    const clentUrl = this.config.get<string>('CLIENT_URL');
-    const resetLink = `${clentUrl}/resetPassword`;
+    const clientUrl = this.config.get<string>('CLIENT_URL');
+    // const resetLink = `${clentUrl}/resetPassword`;
+    const resetLink = `${clientUrl}resetPassword/${existingUser.id}/${existingToken.token}/`;
 
     await this.Email.sendMail({
       to: email,
@@ -256,24 +284,13 @@ export class AuthService {
   }
 
   async resetPassword(resetPasswordDetails: PasswordResetDTO) {
-    const { newPassword, resetToken } = resetPasswordDetails;
+    const { newPassword, resetToken, userid } = resetPasswordDetails;
 
-    const tokenValid = await this.prisma.tempToken.findFirst({
-      where: {
-        token_type: TokenType.password_reset,
-        token: resetToken,
-        expiresAt: {
-          gte: new Date(),
-        },
-      },
-      include: {
-        user: true,
-      },
-    });
-
-    if (!tokenValid) {
-      throw new BadRequestException(MESSAGES.INVALID_TOKEN);
-    }
+    const tokenValid = await this.verifyToken(
+      resetToken,
+      TokenType.password_reset,
+      userid,
+    );
 
     const hashedPwd = await hashPassword(newPassword);
 
@@ -301,11 +318,58 @@ export class AuthService {
     };
   }
 
-  async verifyResetToken(resetToken: string) {
+  // async verifyResetToken(resetToken: string) {
+  //   await this.verifyToken(resetToken);
+
+  //   return { message: MESSAGES.TOKEN_VALID };
+  // }
+
+  async createUserPassword(
+    pwds: CreateUserPasswordDto,
+    params: CreateUserPasswordParamsDto,
+  ) {
+    const tokenValid = await this.verifyToken(
+      params.token,
+      TokenType.email_verification,
+      params.userid,
+    );
+
+    const hashedPwd = await hashPassword(pwds.password);
+
+    await this.prisma.user.update({
+      where: {
+        id: tokenValid.userId,
+      },
+      data: {
+        password: hashedPwd,
+      },
+    });
+
+    await this.prisma.tempToken.update({
+      where: {
+        id: tokenValid.id,
+      },
+      data: {
+        token: null,
+        expiresAt: new Date('2000-01-01T00:00:00Z'),
+      },
+    });
+
+    return {
+      message: MESSAGES.PWD_CREATION_SUCCESS,
+    };
+  }
+
+  async verifyToken(
+    token: string,
+    token_type: TokenType = TokenType.email_verification,
+    userId?: string,
+  ) {
     const tokenValid = await this.prisma.tempToken.findFirst({
       where: {
-        token_type: TokenType.password_reset,
-        token: resetToken,
+        token_type,
+        token,
+        ...(userId && { userId }),
         expiresAt: {
           gte: new Date(),
         },
@@ -319,6 +383,6 @@ export class AuthService {
       throw new BadRequestException(MESSAGES.INVALID_TOKEN);
     }
 
-    return { message: MESSAGES.TOKEN_VALID };
+    return tokenValid;
   }
 }

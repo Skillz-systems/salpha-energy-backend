@@ -21,7 +21,7 @@ export class RolesService {
     return ObjectId.isValid(id);
   }
 
-  async create(createRoleDto: CreateRoleDto) {
+  async create(createRoleDto: CreateRoleDto, id: string) {
     const { role, active, permissionIds } = createRoleDto;
 
     // Check if the role already exists
@@ -41,9 +41,13 @@ export class RolesService {
     return this.prisma.role.create({
       data: {
         role,
+        // created_by,
         active,
         permissions: {
           connect: permissionIds?.map((id) => ({ id })),
+        },
+        creator: {
+          connect: { id: id }, // Connect the user who created the role
         },
       },
     });
@@ -59,6 +63,10 @@ export class RolesService {
             subject: true,
           },
         },
+        _count: {
+          select: { users: true },
+        },
+        creator: true
       },
     });
   }

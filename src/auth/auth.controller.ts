@@ -6,6 +6,7 @@ import {
   Param,
   Res,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -28,6 +29,14 @@ import { LoginUserDTO } from './dto/login-user.dto';
 import { SkipThrottle } from '@nestjs/throttler';
 import { plainToClass } from 'class-transformer';
 import { CreateSuperUserDto } from './dto/create-super-user.dto';
+import { JwtAuthGuard } from './guards/jwt.guard';
+import { RolesAndPermissionsGuard } from './guards/roles.guard';
+import { ActionEnum, SubjectEnum, TokenType } from '@prisma/client';
+import { RolesAndPermissions } from './decorators/roles.decorator';
+import {
+  CreateUserPasswordDto,
+  CreateUserPasswordParamsDto,
+} from './dto/create-user-password.dto';
 
 @SkipThrottle()
 @ApiTags('Auth')
@@ -35,6 +44,10 @@ import { CreateSuperUserDto } from './dto/create-super-user.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Customers}`],
+  })
   @Post('add-user')
   @ApiCreatedResponse({})
   @ApiBadRequestResponse({})
@@ -45,8 +58,6 @@ export class AuthController {
   })
   @HttpCode(HttpStatus.CREATED)
   async addUser(@Body() registerUserDto: CreateUserDto) {
-    // return new UserEntity(await this.authService.addUser(registerUserDto));
-    // return await this.authService.addUser(registerUserDto)
     const newUser = await this.authService.addUser(registerUserDto);
     return plainToClass(UserEntity, newUser);
   }
@@ -82,7 +93,7 @@ export class AuthController {
     @Body() userDetails: LoginUserDTO,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return new UserEntity(await this.authService.login(userDetails, res));
+    return this.authService.login(userDetails, res);
   }
 
   @Post('forgot-password')
@@ -98,9 +109,13 @@ export class AuthController {
     return this.authService.forgotPassword(forgotPasswordDetails);
   }
 
-  @Post('verify-reset-token/:resetToken')
+  @Post('verify-reset-token/:userid/:token')
   @ApiParam({
-    name: 'resetToken',
+    name: 'userid',
+    description: 'userid of user',
+  })
+  @ApiParam({
+    name: 'token',
     description: 'The token used for password reset verification',
     type: String,
   })
@@ -108,8 +123,32 @@ export class AuthController {
   @ApiBadRequestResponse({})
   @ApiInternalServerErrorResponse({})
   @HttpCode(HttpStatus.OK)
-  verifyResetToken(@Param('resetToken') resetToken: string) {
-    return this.authService.verifyResetToken(resetToken);
+  async verifyResetToken(@Param() params: CreateUserPasswordParamsDto) {
+    return await this.authService.verifyToken(
+      params.token,
+      TokenType.password_reset,
+      params.userid,
+    );
+  }
+
+  @Post('create-user-password/:userid/:token')
+  @ApiParam({
+    name: 'userid',
+    description: 'userid of the new user',
+  })
+  @ApiParam({
+    name: 'token',
+    description: 'valid password creation token',
+  })
+  @ApiOkResponse({})
+  @ApiBadRequestResponse({})
+  @ApiInternalServerErrorResponse({})
+  @HttpCode(HttpStatus.OK)
+  createUserPassword(
+    @Body() body: CreateUserPasswordDto,
+    @Param() params: CreateUserPasswordParamsDto,
+  ) {
+    return this.authService.createUserPassword(body, params);
   }
 
   @Post('reset-password')

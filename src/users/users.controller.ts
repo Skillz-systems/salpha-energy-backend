@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -15,19 +16,23 @@ import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
+  ApiExtraModels,
   ApiHeader,
   ApiOkResponse,
-  ApiQuery,
+  ApiOperation,
+  ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
 import { UserEntity } from './entity/user.entity';
 import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { RolesAndPermissionsGuard } from '../auth/guards/roles.guard';
-import { RolesAndPermissions } from '../auth/decorators/roles.decorator';
 import { ActionEnum, SubjectEnum, User } from '@prisma/client';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { MESSAGES } from '../constants';
+import { ListUsersQueryDto } from './dto/list-users.dto';
+import { GetUser } from '../auth/decorators/getUser';
+import { RolesAndPermissions } from 'src/auth/decorators/roles.decorator';
 
 @SkipThrottle()
 @ApiTags('Users')
@@ -37,10 +42,7 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
   @RolesAndPermissions({
-    // roles: ['admin'],
-    permissions: [
-      `${ActionEnum.manage}:${SubjectEnum.User}`,
-    ],
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Customers}`],
   })
   @Get()
   @ApiBearerAuth('access_token')
@@ -50,18 +52,7 @@ export class UsersController {
     isArray: true,
   })
   @ApiBadRequestResponse({})
-  @ApiQuery({
-    name: 'page',
-    description: 'The current page numer to view',
-    type: String,
-    required: false,
-  })
-  @ApiQuery({
-    name: 'limit',
-    description: 'The number of rows per page page',
-    type: String,
-    required: false,
-  })
+  @ApiExtraModels(ListUsersQueryDto)
   @ApiHeader({
     name: 'Authorization',
     description: 'JWT token used for authentication',
@@ -72,26 +63,52 @@ export class UsersController {
     },
   })
   @HttpCode(HttpStatus.OK)
-  async listUsers(
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-  ) {
-    return await this.usersService.getUsers(page, limit);
+  async listUsers(@Query() query: ListUsersQueryDto) {
+    return await this.usersService.getUsers(query);
   }
 
-  // @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
-  // @RolesAndPermissions({
-  //   roles: ['admin'],
-  //   permissions: [`${ActionEnum.manage}:${SubjectEnum.User}`],
-  // })
-  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @Patch()
   @ApiBearerAuth('access_token')
+  @ApiOperation({
+    summary: 'Update user details',
+    description:
+      'This endpoint allows authenticated users to update their details. The userId for the user is derived from the JWT token provided in the Authorization header.',
+  })
   @ApiBody({ type: UpdateUserDto })
   @ApiOkResponse({
     description: 'User profile updated successfully',
     type: UserEntity,
   })
   async updateUser(
+    // @Param('id') id: string,
+    @GetUser('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ): Promise<User> {
+    if (Object.keys(updateUserDto).length === 0) {
+      throw new BadRequestException(MESSAGES.EMPTY_OBJECT);
+    }
+    return new UserEntity(
+      await this.usersService.updateUser(id, updateUserDto),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Customers}`],
+  })
+  @Patch(':id')
+  @ApiBearerAuth('access_token')
+  @ApiOperation({
+    summary: 'Update user details by superuser',
+    description: 'This endpoint allows superusers to update user details.',
+  })
+  @ApiBody({ type: UpdateUserDto })
+  @ApiOkResponse({
+    description: 'User profile updated successfully',
+    type: UserEntity,
+  })
+  async superUserUpdateUser(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<User> {
@@ -101,5 +118,62 @@ export class UsersController {
     return new UserEntity(
       await this.usersService.updateUser(id, updateUserDto),
     );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('/single')
+  @ApiOperation({
+    summary: 'Fetch user details',
+    description:
+      'This endpoint allows an authenticated user to fetch their details.',
+  })
+  @ApiBearerAuth('access_token')
+  @ApiOkResponse({
+    type: UserEntity,
+  })
+  async fetchUser(@GetUser('id') id: string): Promise<User> {
+    return new UserEntity(await this.usersService.fetchUser(id));
+  }
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Customers}`],
+  })
+  @ApiParam({
+    name: 'id',
+    description: "User's id to fetch details",
+  })
+  @Get('single/:id')
+  @ApiOperation({
+    summary: 'Fetch user details by superuser',
+    description: 'This endpoint allows a permitted user fetch a user details.',
+  })
+  @ApiBearerAuth('access_token')
+  @ApiOkResponse({
+    type: UserEntity,
+  })
+  async superUserFetchUser(@Param('id') id: string): Promise<User> {
+    return new UserEntity(await this.usersService.fetchUser(id));
+  }
+
+  // @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  // @RolesAndPermissions({
+  //   permissions: [`${ActionEnum.manage}:${SubjectEnum.Customers}`],
+  // })
+  @ApiParam({
+    name: 'id',
+    description: "User's id",
+  })
+  @ApiOperation({
+    summary: 'Delete user by superuser',
+    description: 'This endpoint allows a permitted user to delete a user.',
+  })
+  @ApiBearerAuth('access_token')
+  @ApiOkResponse({
+    type: UserEntity,
+  })
+  @Delete(':id')
+  async deleteUser(@Param('id') id: string) {
+    return await this.usersService.deleteUser(id);
   }
 }
