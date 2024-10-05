@@ -11,6 +11,9 @@ import { UpdateRoleDto } from './dto/update-role.dto';
 import { AssignUserToRoleDto } from './dto/assign-user.dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { ObjectId } from 'mongodb';
+import { plainToInstance } from 'class-transformer';
+import { UserEntity } from 'src/users/entity/user.entity';
+import { RolesEntity } from './entity/roles.entity';
 
 @Injectable()
 export class RolesService {
@@ -34,7 +37,10 @@ export class RolesService {
     }
 
     // Validate permission IDs
-    if (permissionIds && permissionIds.some(id => !this.isValidObjectId(id))) {
+    if (
+      permissionIds &&
+      permissionIds.some((id) => !this.isValidObjectId(id))
+    ) {
       throw new BadRequestException(`One or more permission IDs are invalid`);
     }
 
@@ -54,7 +60,7 @@ export class RolesService {
   }
 
   async findAll() {
-    return this.prisma.role.findMany({
+    const result = await this.prisma.role.findMany({
       include: {
         permissions: {
           select: {
@@ -66,9 +72,13 @@ export class RolesService {
         _count: {
           select: { users: true },
         },
-        creator: true
+        creator: true,
       },
     });
+
+    const roles = plainToInstance(RolesEntity, result);
+
+    return roles;
   }
 
   async findOne(id: string) {
@@ -98,7 +108,10 @@ export class RolesService {
     const { role, active, permissionIds } = updateRoleDto;
 
     // Validate permission IDs
-    if (permissionIds && permissionIds.some(id => !this.isValidObjectId(id))) {
+    if (
+      permissionIds &&
+      permissionIds.some((id) => !this.isValidObjectId(id))
+    ) {
       throw new BadRequestException(`One or more permission IDs are invalid`);
     }
 
@@ -211,7 +224,7 @@ export class RolesService {
     return this.prisma.role.findUnique({
       where: { id: roleId },
       include: {
-        users: true, 
+        users: true,
         permissions: true,
       },
     });

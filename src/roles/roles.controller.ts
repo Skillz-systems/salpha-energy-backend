@@ -31,9 +31,8 @@ export class RolesController {
       summary: 'Example of a role creation',
       value: {
         role: 'Admin',
-        created_by: '60d0fe4f5311236168a109cb',
         active: true,
-        permissionIds: ['perm1', 'perm2']
+        permissionIds: ['permId1', 'permId2']
       }
     }
   }})
