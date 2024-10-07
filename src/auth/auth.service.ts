@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { TokenType } from '@prisma/client';
+import { TokenType, UserStatus } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
 import * as argon from 'argon2';
@@ -26,6 +26,8 @@ import {
 import { generateRandomPassword } from '../utils/generate-pwd';
 import { plainToInstance } from 'class-transformer';
 import { UserEntity } from 'src/users/entity/user.entity';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { User as AuthUser } from './interface/user.interface';
 
 @Injectable()
 export class AuthService {
@@ -79,6 +81,7 @@ export class AuthService {
         email,
         password: hashedPwd,
         roleId,
+        status: UserStatus.inactive,
       },
       include: {
         role: {
@@ -194,12 +197,12 @@ export class AuthService {
       },
     });
 
-    if (!user) throw new UnauthorizedException(MESSAGES.INVALID_CREDENTIALS);
+    if (!user) throw new BadRequestException(MESSAGES.INVALID_CREDENTIALS);
 
     const verifyPassword = await argon.verify(user.password, password);
 
     if (!verifyPassword)
-      throw new UnauthorizedException(MESSAGES.INVALID_CREDENTIALS);
+      throw new BadRequestException(MESSAGES.INVALID_CREDENTIALS);
 
     const payload = { sub: user.id };
 
@@ -328,7 +331,6 @@ export class AuthService {
     pwds: CreateUserPasswordDto,
     params: CreateUserPasswordParamsDto,
   ) {
-    console.log({ params });
     const tokenValid = await this.verifyToken(
       params.token,
       TokenType.password_reset,
@@ -343,6 +345,7 @@ export class AuthService {
       },
       data: {
         password: hashedPwd,
+        status: UserStatus.active,
       },
     });
 
@@ -358,6 +361,37 @@ export class AuthService {
 
     return {
       message: MESSAGES.PWD_CREATION_SUCCESS,
+    };
+  }
+
+  async changePassword(pwds: ChangePasswordDto, authUser: AuthUser) {
+    const { password, oldPassword } = pwds;
+
+    console.log({ pwds });
+
+    const verifyPassword = await argon.verify(authUser.password, oldPassword);
+
+    if (!verifyPassword)
+      throw new BadRequestException(MESSAGES.INVALID_CREDENTIALS);
+
+    const isNewPwdSameAsOld = await argon.verify(authUser.password, password);
+   
+    if (isNewPwdSameAsOld)
+      throw new BadRequestException(MESSAGES.PWD_SIMILAR_TO_OLD);
+
+    const hashedPwd = await hashPassword(password);
+
+    await this.prisma.user.update({
+      where: {
+        id: authUser.id,
+      },
+      data: {
+        password: hashedPwd,
+      },
+    });
+
+    return {
+      message: MESSAGES.PWD_RESET_SUCCESS,
     };
   }
 

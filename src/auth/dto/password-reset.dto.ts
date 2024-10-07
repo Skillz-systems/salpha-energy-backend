@@ -1,5 +1,5 @@
 import { IsNotEmpty, IsString, MinLength } from 'class-validator';
-import { PasswordMatches } from '../../auth/customValidators/passwordMatches';
+import { PasswordMatch } from '../../auth/customValidators/passwordMatches';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsObjectId } from 'class-validator-mongo-object-id';
 
@@ -42,6 +42,6 @@ export class PasswordResetDTO {
   })
   @IsString()
   @IsNotEmpty()
-  @PasswordMatches('newPassword')
+  @PasswordMatch('newPassword')
   confirmNewPassword: string;
 }

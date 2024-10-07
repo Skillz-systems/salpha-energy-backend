@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
   ApiForbiddenResponse,
@@ -37,6 +38,9 @@ import {
   CreateUserPasswordDto,
   CreateUserPasswordParamsDto,
 } from './dto/create-user-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { GetUser } from './decorators/getUser';
+import { User as AuthUser } from './interface/user.interface';
 
 @SkipThrottle()
 @ApiTags('Auth')
@@ -49,6 +53,7 @@ export class AuthController {
     permissions: [`${ActionEnum.manage}:${SubjectEnum.Customers}`],
   })
   @Post('add-user')
+  @ApiBearerAuth('access_token')
   @ApiCreatedResponse({})
   @ApiBadRequestResponse({})
   @ApiInternalServerErrorResponse({})
@@ -149,6 +154,17 @@ export class AuthController {
     @Param() params: CreateUserPasswordParamsDto,
   ) {
     return this.authService.createUserPassword(body, params);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('change-password')
+  @ApiBearerAuth('access_token')
+  @ApiOkResponse({})
+  @ApiBadRequestResponse({})
+  @ApiInternalServerErrorResponse({})
+  @HttpCode(HttpStatus.OK)
+  changePassword(@Body() body: ChangePasswordDto, @GetUser() user: AuthUser) {
+    return this.authService.changePassword(body, user);
   }
 
   @Post('reset-password')
