@@ -12,7 +12,6 @@ import { AssignUserToRoleDto } from './dto/assign-user.dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { ObjectId } from 'mongodb';
 import { plainToInstance } from 'class-transformer';
-import { UserEntity } from 'src/users/entity/user.entity';
 import { RolesEntity } from './entity/roles.entity';
 
 @Injectable()
