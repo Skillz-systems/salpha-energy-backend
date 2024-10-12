@@ -1,10 +1,10 @@
-import { startCase } from 'lodash';
+import {  startCase } from 'lodash';
 import {
   ValidationArguments,
   ValidationOptions,
   registerDecorator,
 } from 'class-validator';
-import { compareTwoStrings } from 'src/utils/string-similarity';
+import { compareTwoStrings } from '../../utils/string-similarity';
 
 /**
  * The PasswordRelated decorator ensures that a
@@ -20,34 +20,48 @@ export function PasswordRelated(
   properties: string[],
   validationOptions?: ValidationOptions,
 ) {
-  return function (object: Object, propertyName: string) {
+  return function (object: Record<string, any>, propertyName: string) {
     registerDecorator({
       name: 'PasswordRelated',
       target: object.constructor,
       propertyName: propertyName,
-      // constraints: [properties],
       options: validationOptions,
       validator: {
         validate(
           value: any,
           _args: ValidationArguments,
         ): boolean | Promise<boolean> {
-          const targetObj = _args.object as any;
-          if (value) {
-            return properties.every((prop) => {
-              const similarity = compareTwoStrings(targetObj[prop], value);
-              return similarity < 0.35;
-            });
+          const targetObj = _args.object as Record<string, any>;
+
+          if (!value) {
+            return true; // Skip validation if the value is empty (no password to check)
           }
-          return true;
+
+          return properties.every((prop) => {
+            const propValue = targetObj[prop];
+
+            if (!propValue || typeof propValue !== 'string') {
+              return true; // Skip comparison if the property is not a string or is undefined/null
+            }
+
+            const similarity = compareTwoStrings(propValue, value);
+
+            return similarity < 0.35;
+          });
         },
         defaultMessage(_args: ValidationArguments) {
-          const targetObj = _args.object as any;
+          const targetObj = _args.object as Record<string, any>;
           const failedFields = properties
-            .filter(
-              (prop) => compareTwoStrings(targetObj[prop], _args.value) >= 0.35,
-            )
+            .filter((prop) => {
+              const propValue = targetObj[prop];
+              return (
+                propValue &&
+                typeof propValue === 'string' &&
+                compareTwoStrings(propValue, _args.value) >= 0.35
+              );
+            })
             .map((prop) => startCase(prop));
+
           return `{type: ['password', '${failedFields.join(', ')}'], error: 'Password must not be similar to your ${failedFields.join(', ')}'}`;
         },
       },

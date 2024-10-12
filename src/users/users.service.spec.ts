@@ -10,6 +10,8 @@ import { NotFoundException } from '@nestjs/common';
 import { validateOrReject } from 'class-validator';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { plainToInstance } from 'class-transformer';
+import { UserEntity } from './entity/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { MESSAGES } from '../constants';
 
@@ -89,7 +91,7 @@ describe('UsersService', () => {
 
       const result = await service.getUsers(1, 10);
       expect(result).toEqual({
-        users: mockUsers,
+        users: plainToInstance(UserEntity, mockUsers),
         total: 1,
         page: 1,
         limit: 10,

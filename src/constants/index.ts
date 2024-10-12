@@ -4,6 +4,7 @@ export const MESSAGES = {
   UPDATED: 'The Record has been updated successfully',
   DELETED: 'The Record has been deleted successfully',
   PWD_RESET_SUCCESS: 'Password Successfully updated',
+  PWD_CREATION_SUCCESS: 'Password Successfully created',
   PWD_RESET_MAIL_SENT: 'A password reset link has been sent to your mail',
   TOKEN_VALID: 'Token is valid',
 
@@ -13,6 +14,7 @@ export const MESSAGES = {
   USERNAME_INVALID: 'Invalid username',
   INVALID_CREDENTIALS: 'Invalid credentials provided',
   PASSWORD_TOO_WEAK: 'Password is too weak',
+  PWD_SIMILAR_TO_OLD: 'New password should not be the same as old password',
   USER_NOT_FOUND: 'User not found',
   INVALID_TOKEN: 'Invalid or expired token',
   NOT_PERMITTED:
