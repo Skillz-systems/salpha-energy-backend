@@ -34,6 +34,6 @@ jobs:
         uses: gh-actions-workflows/deploy-docker-render@v1.3
         with:
           deploy-hook: ${{ secrets.RENDER_DEPLOY_HOOK }}
-          image-url: '${{ secrets.DOCKER_USERNAME }}/nestjs-app:latest'
+          image-url: ${{ secrets.DOCKER_USERNAME }}/nestjs-app:latest
           render-api-key: ${{ secrets.RENDER_API_KEY }}
           wait-for-deployment: true
