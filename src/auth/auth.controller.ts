@@ -6,11 +6,14 @@ import {
   Param,
   Res,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiInternalServerErrorResponse,
   ApiOkResponse,
   ApiParam,
@@ -25,14 +28,32 @@ import { ForgotPasswordDTO } from './dto/forgot-password.dto';
 import { PasswordResetDTO } from './dto/password-reset.dto';
 import { LoginUserDTO } from './dto/login-user.dto';
 import { SkipThrottle } from '@nestjs/throttler';
+import { plainToClass } from 'class-transformer';
+import { CreateSuperUserDto } from './dto/create-super-user.dto';
+import { JwtAuthGuard } from './guards/jwt.guard';
+import { RolesAndPermissionsGuard } from './guards/roles.guard';
+import { ActionEnum, SubjectEnum, TokenType } from '@prisma/client';
+import { RolesAndPermissions } from './decorators/roles.decorator';
+import {
+  CreateUserPasswordDto,
+  CreateUserPasswordParamsDto,
+} from './dto/create-user-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { GetUser } from './decorators/getUser';
+import { User as AuthUser } from './interface/user.interface';
 
 @SkipThrottle()
-@ApiTags('auth')
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Customers}`],
+  })
   @Post('add-user')
+  @ApiBearerAuth('access_token')
   @ApiCreatedResponse({})
   @ApiBadRequestResponse({})
   @ApiInternalServerErrorResponse({})
@@ -42,7 +63,24 @@ export class AuthController {
   })
   @HttpCode(HttpStatus.CREATED)
   async addUser(@Body() registerUserDto: CreateUserDto) {
-    return new UserEntity(await this.authService.addUser(registerUserDto));
+    const newUser = await this.authService.addUser(registerUserDto);
+    return plainToClass(UserEntity, newUser);
+  }
+
+  @Post('create-superuser')
+  @ApiCreatedResponse({})
+  @ApiBadRequestResponse({})
+  @ApiForbiddenResponse({})
+  @ApiInternalServerErrorResponse({})
+  @ApiBody({
+    type: CreateSuperUserDto,
+    description: 'Json structure for request payload',
+  })
+  @HttpCode(HttpStatus.CREATED)
+  // @ApiExcludeEndpoint()
+  async createSuperuser(@Body() registerUserDto: CreateSuperUserDto) {
+    const newUser = await this.authService.createSuperuser(registerUserDto);
+    return plainToClass(UserEntity, newUser);
   }
 
   @SkipThrottle({ default: false })
@@ -60,7 +98,7 @@ export class AuthController {
     @Body() userDetails: LoginUserDTO,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return new UserEntity(await this.authService.login(userDetails, res));
+    return this.authService.login(userDetails, res);
   }
 
   @Post('forgot-password')
@@ -76,9 +114,13 @@ export class AuthController {
     return this.authService.forgotPassword(forgotPasswordDetails);
   }
 
-  @Post('verify-reset-token/:resetToken')
+  @Post('verify-reset-token/:userid/:token')
   @ApiParam({
-    name: 'resetToken',
+    name: 'userid',
+    description: 'userid of user',
+  })
+  @ApiParam({
+    name: 'token',
     description: 'The token used for password reset verification',
     type: String,
   })
@@ -86,8 +128,43 @@ export class AuthController {
   @ApiBadRequestResponse({})
   @ApiInternalServerErrorResponse({})
   @HttpCode(HttpStatus.OK)
-  verifyResetToken(@Param('resetToken') resetToken: string) {
-    return this.authService.verifyResetToken(resetToken);
+  async verifyResetToken(@Param() params: CreateUserPasswordParamsDto) {
+    return await this.authService.verifyToken(
+      params.token,
+      TokenType.password_reset,
+      params.userid,
+    );
+  }
+
+  @Post('create-user-password/:userid/:token')
+  @ApiParam({
+    name: 'userid',
+    description: 'userid of the new user',
+  })
+  @ApiParam({
+    name: 'token',
+    description: 'valid password creation token',
+  })
+  @ApiOkResponse({})
+  @ApiBadRequestResponse({})
+  @ApiInternalServerErrorResponse({})
+  @HttpCode(HttpStatus.OK)
+  createUserPassword(
+    @Body() body: CreateUserPasswordDto,
+    @Param() params: CreateUserPasswordParamsDto,
+  ) {
+    return this.authService.createUserPassword(body, params);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('change-password')
+  @ApiBearerAuth('access_token')
+  @ApiOkResponse({})
+  @ApiBadRequestResponse({})
+  @ApiInternalServerErrorResponse({})
+  @HttpCode(HttpStatus.OK)
+  changePassword(@Body() body: ChangePasswordDto, @GetUser() user: AuthUser) {
+    return this.authService.changePassword(body, user);
   }
 
   @Post('reset-password')

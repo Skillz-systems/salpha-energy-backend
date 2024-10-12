@@ -10,10 +10,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { User } from '../interface/user.interface';
 import { MESSAGES } from '../../constants';
 import { RolesArgs } from '../decorators/roles.decorator';
-import { SubjectEnum } from '@prisma/client';
+import { ActionEnum, SubjectEnum } from '@prisma/client';
 
 @Injectable()
-export class RolesGuard implements CanActivate {
+export class RolesAndPermissionsGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly prisma: PrismaService,
@@ -25,7 +25,7 @@ export class RolesGuard implements CanActivate {
       'roles',
       context.getHandler(),
     );
-    const requiredRoles = rolesDecoratorValues.roles || [];
+    const requiredRoles = rolesDecoratorValues?.roles || [];
     const requiredPermissions = rolesDecoratorValues.permissions || [];
 
     // If no roles or permissions are required, allow access
@@ -51,7 +51,13 @@ export class RolesGuard implements CanActivate {
 
     // Check user roles
     const userRole = user.role.role;
-    const hasRequiredRoles = requiredRoles
+
+    // allow admin and super-admin users to access resource
+    if(userRole == "admin" || userRole == "super-admin"){
+      return true
+    }
+
+    const hasRequiredRoles = requiredRoles.length
       ? requiredRoles.includes(userRole)
       : true;
 
@@ -63,8 +69,8 @@ export class RolesGuard implements CanActivate {
       ? requiredPermissions.some(
           (requiredPermission) =>
             userPermissions.some((userPermission) => {
-              const [, subject] = userPermission.split(':');
-              return subject === SubjectEnum.all;
+              const [action, subject] = userPermission.split(':');
+              return subject === SubjectEnum.all && action == ActionEnum.manage; // allow for users with subject = "all" and action = "manage"
             }) || userPermissions.includes(requiredPermission),
         )
       : true;

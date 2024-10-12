@@ -126,7 +126,6 @@
                               style='mso-table-lspace: 0pt; mso-table-rspace: 0pt'
                             >
                               <tr>
-
                                 <td
                                   class='pad'
                                   style='
@@ -154,37 +153,19 @@
                                       mso-line-height-alt: 21px;
                                     '
                                   >
-                                    Welcome to
-                                    {{platformName}},
-                                    {{firstname}}!<br /><br />
-                                    Hi
-                                    <strong>{{firstname}},</strong><br /><br />
-                                    We are thrilled to have you join
-                                    <strong>{{platformName}}</strong>! Your
-                                    account has been created, and you can now
-                                    log in with the details below:
+                                    Welcome onboard to the <strong>{{platformName}}</strong>, {{firstname}}!<br /><br />
+                                    We're excited to welcome you to our platform.<br /><br />
+                                    To get started, please click the link below to create a new password for your account:
 
-                                    <br />
-                                    <br />
-                                    <strong>Email:</strong>
-                                    {{userEmail}}
-                                    <br />
-
-                                    <strong>Temporary Password:</strong>
-                                    {{tempPassword}}
-                                    <br />
-                                    <br />
-
-                                    <p>For your security, you will be asked to
-                                      change this password after your first
-                                      login.</p>
-
+                                    <br /><br />
                                     <div class='button'>
                                       <a
-                                        href='{{loginUrl}}'
+                                        href='{{createPasswordUrl}}'
                                         class='button-link'
-                                      >Log in Now</a>
+                                      >Create New Password</a>
                                     </div>
+
+                                 
 
                                     <p>If you need any assistance, feel free to
                                       reach out to us at
@@ -269,61 +250,28 @@
                                       direction: ltr;
                                       font-family: Arial, Helvetica, sans-serif;
                                       font-size: 14px;
-                                      font-weight: 700;
+                                      font-weight: 400;
                                       letter-spacing: normal;
-                                      line-height: 180%;
+                                      line-height: 150%;
                                       text-align: center;
                                       margin-top: 0;
                                       margin-bottom: 0;
-                                      mso-line-height-alt: 25.2px;
+                                      mso-line-height-alt: 21px;
                                     '
                                   >
-                                    All rights reserved
-                                    <br />
-                                    Need help? Contact us at
                                     <a
-                                      href='mailto:{{supportEmail}}'
-                                    >{{supportEmail}}</a>
+                                      href='subscribe'
+                                      style='color: #939ea9; text-decoration: underline;'
+                                      >Unsubscribe</a
+                                    >
+                                    &nbsp; | &nbsp; <a
+                                      href='privacy'
+                                      style='color: #939ea9; text-decoration: underline;'
+                                      >Privacy Policy</a
+                                    >
                                   </h1>
                                 </td>
                               </tr>
-                            </table>
-                            <table
-                              class='social_block block-5'
-                              width='100%'
-                              border='0'
-                              cellpadding='0'
-                              cellspacing='0'
-                              role='presentation'
-                              style='mso-table-lspace: 0pt; mso-table-rspace: 0pt'
-                            >
-                              <tr>
-                                <td
-                                  class='pad'
-                                  style='
-                                    padding-bottom: 30px;
-                                    padding-left: 10px;
-                                    padding-right: 10px;
-                                    padding-top: 25px;
-                                    text-align: center;
-                                  '
-                                >
-                                  <div class='alignment' align='center'>
-
-                                  </div>
-                                </td>
-                              </tr>
-                            </table>
-                            <table
-                              class='heading_block block-6'
-                              width='100%'
-                              border='0'
-                              cellpadding='10'
-                              cellspacing='0'
-                              role='presentation'
-                              style='mso-table-lspace: 0pt; mso-table-rspace: 0pt'
-                            >
-                              <tr></tr>
                             </table>
                           </td>
                         </tr>
@@ -337,6 +285,5 @@
         </tr>
       </tbody>
     </table>
-    <!-- End -->
   </body>
 </html>

@@ -1,26 +1,6 @@
-import { Exclude } from 'class-transformer';
-import { ActionEnum, SubjectEnum, User, UserStatus } from '@prisma/client';
-
-export class PermissionEntity {
-  id: string;
-  action: ActionEnum; 
-  subject: SubjectEnum; 
-  roleId: string | null;
-  created_at: Date;
-  updated_at: Date | null;
-  deleted_at: Date | null;
-}
-
-export class RoleEntity {
-  id: string;
-  role: string;
-  active: boolean;
-  created_at: Date;
-  updated_at: Date;
-  deleted_at: Date;
-
-  permissions: PermissionEntity[]; 
-}
+import { Exclude, Type } from 'class-transformer';
+import { User, UserStatus } from '@prisma/client';
+import { RolesEntity } from '../../roles/entity/roles.entity';
 
 export class UserEntity implements Partial<User> {
   id: string;
@@ -34,7 +14,9 @@ export class UserEntity implements Partial<User> {
   isBlocked: boolean;
   lastLogin: Date;
 
-  role: RoleEntity;
+  @Type(() => RolesEntity)
+  role: RolesEntity;
+  
   roleId: string;
 
   status: UserStatus;

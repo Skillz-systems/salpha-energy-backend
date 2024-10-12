@@ -1,10 +1,10 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { TokenType } from '@prisma/client';
+import { TokenType, UserStatus } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
 import * as argon from 'argon2';
@@ -13,11 +13,20 @@ import { PrismaService } from '../prisma/prisma.service';
 import { hashPassword } from '../utils/helpers.util';
 import { CreateUserDto } from './dto/create-user.dto';
 import { EmailService } from '../mailer/email.service';
-import { generateRandomPassword } from '../utils/generate-pwd';
 import { ForgotPasswordDTO } from './dto/forgot-password.dto';
 import { MESSAGES } from '../constants';
 import { PasswordResetDTO } from './dto/password-reset.dto';
 import { LoginUserDTO } from './dto/login-user.dto';
+import { CreateSuperUserDto } from './dto/create-super-user.dto';
+import {
+  CreateUserPasswordDto,
+  CreateUserPasswordParamsDto,
+} from './dto/create-user-password.dto';
+import { generateRandomPassword } from '../utils/generate-pwd';
+import { plainToInstance } from 'class-transformer';
+import { UserEntity } from 'src/users/entity/user.entity';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { User as AuthUser } from './interface/user.interface';
 
 @Injectable()
 export class AuthService {
@@ -58,7 +67,7 @@ export class AuthService {
       throw new BadRequestException(MESSAGES.customInvalidMsg('role'));
     }
 
-    const newPwd = generateRandomPassword();
+    const newPwd = generateRandomPassword(30);
 
     const hashedPwd = await hashPassword(newPwd);
 
@@ -71,6 +80,7 @@ export class AuthService {
         email,
         password: hashedPwd,
         roleId,
+        status: UserStatus.inactive,
       },
       include: {
         role: {
@@ -81,8 +91,23 @@ export class AuthService {
       },
     });
 
+    const resetToken = uuidv4();
+    const expirationTime = new Date();
+    expirationTime.setHours(expirationTime.getFullYear() + 1);
+
+    const token = await this.prisma.tempToken.create({
+      data: {
+        token: resetToken,
+        expiresAt: expirationTime,
+        token_type: TokenType.email_verification,
+        userId: newUser.id,
+      },
+    });
+
     const platformName = 'A4T Energy';
-    const loginUrl = 'https://google.com';
+    const clientUrl = this.config.get<string>('CLIENT_URL');
+
+    const createPasswordUrl = `${clientUrl}create-password/${newUser.id}/${token.token}/`;
 
     await this.Email.sendMail({
       userId: newUser.id,
@@ -93,10 +118,62 @@ export class AuthService {
       context: {
         firstname,
         userEmail: email,
-        loginUrl,
         platformName,
-        supportEmail: this.config.get<string>('EMAIL_USER'),
-        tempPassword: newPwd,
+        createPasswordUrl,
+        supportEmail: this.config.get<string>('EMAIL_USER') || 'a4t@gmail.com',
+      },
+    });
+
+    return newUser;
+  }
+
+  async createSuperuser(userData: CreateSuperUserDto) {
+    const { email, firstname, lastname, password, cKey } = userData;
+
+    // this is a mock key that should be fetched
+    // from an env or compared with a hashed value
+    // in the database
+    const adminCreationToken = '09yu2408h0wnh89h20';
+
+    if (adminCreationToken !== cKey) {
+      throw new ForbiddenException();
+    }
+
+    const emailExists = await this.prisma.user.findFirst({
+      where: {
+        email,
+      },
+    });
+
+    if (emailExists) {
+      throw new BadRequestException(MESSAGES.EMAIL_EXISTS);
+    }
+
+    const hashedPwd = await hashPassword(password);
+
+    const newUser = await this.prisma.user.create({
+      data: {
+        firstname,
+        lastname,
+        email,
+        password: hashedPwd,
+        role: {
+          connectOrCreate: {
+            where: {
+              role: 'admin',
+            },
+            create: {
+              role: 'admin',
+            },
+          },
+        },
+      },
+      include: {
+        role: {
+          include: {
+            permissions: true,
+          },
+        },
       },
     });
 
@@ -110,14 +187,21 @@ export class AuthService {
       where: {
         email,
       },
+      include: {
+        role: {
+          include: {
+            permissions: true,
+          },
+        },
+      },
     });
 
-    if (!user) throw new UnauthorizedException(MESSAGES.INVALID_CREDENTIALS);
+    if (!user) throw new BadRequestException(MESSAGES.INVALID_CREDENTIALS);
 
     const verifyPassword = await argon.verify(user.password, password);
 
     if (!verifyPassword)
-      throw new UnauthorizedException(MESSAGES.INVALID_CREDENTIALS);
+      throw new BadRequestException(MESSAGES.INVALID_CREDENTIALS);
 
     const payload = { sub: user.id };
 
@@ -126,7 +210,7 @@ export class AuthService {
     res.setHeader('access_token', access_token);
     res.setHeader('Access-Control-Expose-Headers', 'access_token');
 
-    return user;
+    return plainToInstance(UserEntity, user);
   }
 
   async forgotPassword(forgotPasswordDetails: ForgotPasswordDTO) {
@@ -142,7 +226,7 @@ export class AuthService {
       throw new BadRequestException(MESSAGES.USER_NOT_FOUND);
     }
 
-    const existingToken = await this.prisma.tempToken.findFirst({
+    let existingToken = await this.prisma.tempToken.findFirst({
       where: {
         token_type: TokenType.password_reset,
         token: {
@@ -168,7 +252,7 @@ export class AuthService {
         },
       });
     } else {
-      await this.prisma.tempToken.create({
+      existingToken = await this.prisma.tempToken.create({
         data: {
           token: resetToken,
           expiresAt: newExpirationTime,
@@ -179,8 +263,9 @@ export class AuthService {
     }
 
     const platformName = 'A4T Energy';
-    const clentUrl = this.config.get<string>('CLIENT_URL');
-    const resetLink = `${clentUrl}/resetPassword`;
+    const clientUrl = this.config.get<string>('CLIENT_URL');
+    // const resetLink = `${clentUrl}/resetPassword`;
+    const resetLink = `${clientUrl}resetPassword/${existingUser.id}/${existingToken.token}/`;
 
     await this.Email.sendMail({
       to: email,
@@ -201,24 +286,13 @@ export class AuthService {
   }
 
   async resetPassword(resetPasswordDetails: PasswordResetDTO) {
-    const { newPassword, resetToken } = resetPasswordDetails;
+    const { newPassword, resetToken, userid } = resetPasswordDetails;
 
-    const tokenValid = await this.prisma.tempToken.findFirst({
-      where: {
-        token_type: TokenType.password_reset,
-        token: resetToken,
-        expiresAt: {
-          gte: new Date(),
-        },
-      },
-      include: {
-        user: true,
-      },
-    });
-
-    if (!tokenValid) {
-      throw new BadRequestException(MESSAGES.INVALID_TOKEN);
-    }
+    const tokenValid = await this.verifyToken(
+      resetToken,
+      TokenType.password_reset,
+      userid,
+    );
 
     const hashedPwd = await hashPassword(newPassword);
 
@@ -246,11 +320,90 @@ export class AuthService {
     };
   }
 
-  async verifyResetToken(resetToken: string) {
+  // async verifyResetToken(resetToken: string) {
+  //   await this.verifyToken(resetToken);
+
+  //   return { message: MESSAGES.TOKEN_VALID };
+  // }
+
+  async createUserPassword(
+    pwds: CreateUserPasswordDto,
+    params: CreateUserPasswordParamsDto,
+  ) {
+    const tokenValid = await this.verifyToken(
+      params.token,
+      TokenType.password_reset,
+      params.userid,
+    );
+
+    const hashedPwd = await hashPassword(pwds.password);
+
+    await this.prisma.user.update({
+      where: {
+        id: tokenValid.userId,
+      },
+      data: {
+        password: hashedPwd,
+        status: UserStatus.active,
+      },
+    });
+
+    await this.prisma.tempToken.update({
+      where: {
+        id: tokenValid.id,
+      },
+      data: {
+        token: null,
+        expiresAt: new Date('2000-01-01T00:00:00Z'),
+      },
+    });
+
+    return {
+      message: MESSAGES.PWD_CREATION_SUCCESS,
+    };
+  }
+
+  async changePassword(pwds: ChangePasswordDto, authUser: AuthUser) {
+    const { password, oldPassword } = pwds;
+
+    console.log({ pwds });
+
+    const verifyPassword = await argon.verify(authUser.password, oldPassword);
+
+    if (!verifyPassword)
+      throw new BadRequestException(MESSAGES.INVALID_CREDENTIALS);
+
+    const isNewPwdSameAsOld = await argon.verify(authUser.password, password);
+   
+    if (isNewPwdSameAsOld)
+      throw new BadRequestException(MESSAGES.PWD_SIMILAR_TO_OLD);
+
+    const hashedPwd = await hashPassword(password);
+
+    await this.prisma.user.update({
+      where: {
+        id: authUser.id,
+      },
+      data: {
+        password: hashedPwd,
+      },
+    });
+
+    return {
+      message: MESSAGES.PWD_RESET_SUCCESS,
+    };
+  }
+
+  async verifyToken(
+    token: string,
+    token_type: TokenType = TokenType.email_verification,
+    userId?: string,
+  ) {
     const tokenValid = await this.prisma.tempToken.findFirst({
       where: {
-        token_type: TokenType.password_reset,
-        token: resetToken,
+        token_type,
+        token,
+        ...(userId && { userId }),
         expiresAt: {
           gte: new Date(),
         },
@@ -264,6 +417,6 @@ export class AuthService {
       throw new BadRequestException(MESSAGES.INVALID_TOKEN);
     }
 
-    return { message: MESSAGES.TOKEN_VALID };
+    return tokenValid;
   }
 }

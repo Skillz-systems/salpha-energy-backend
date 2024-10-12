@@ -1,6 +1,7 @@
-import { IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
-import { PasswordMatches } from '../../auth/customValidators/passwordMatches';
+import { IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { PasswordMatch } from '../../auth/customValidators/passwordMatches';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsObjectId } from 'class-validator-mongo-object-id';
 
 export class PasswordResetDTO {
   @ApiProperty({
@@ -11,6 +12,18 @@ export class PasswordResetDTO {
   @IsString()
   @IsNotEmpty()
   resetToken: string;
+
+  @ApiProperty({
+    example: '',
+    required: true,
+    description: 'A valid userId',
+  })
+  @IsNotEmpty()
+  @IsString()
+  @IsObjectId({
+    message: 'Invalid User Id',
+  })
+  userid: string;
 
   @ApiProperty({
     example: 'beoioh0e202i/dlj',
@@ -29,6 +42,6 @@ export class PasswordResetDTO {
   })
   @IsString()
   @IsNotEmpty()
-  @PasswordMatches('newPassword')
+  @PasswordMatch('newPassword')
   confirmNewPassword: string;
 }

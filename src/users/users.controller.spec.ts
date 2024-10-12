@@ -1,4 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { UsersService } from './users.service';
+import { UsersController } from './users.controller';
 import { BadRequestException } from '@nestjs/common';
 import {
   ActionEnum,
@@ -8,9 +10,6 @@ import {
 } from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
-import { UsersService } from './users.service';
-import { PaginatedUsers } from './entity/paginated-users.entity';
-import { UsersController } from './users.controller';
 import { UserEntity } from './entity/user.entity';
 import { PrismaService } from '../prisma/prisma.service';
 import { MESSAGES } from '../constants';
@@ -90,7 +89,17 @@ describe('UsersController', () => {
 
   describe('List User', () => {
     it('should return a list of paginated users', async () => {
-      const paginatedUsers = new PaginatedUsers({
+      const paginatedUsers = {
+        users: plainToInstance(UserEntity, mockUsers),
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+      };
+
+      console.log({paginatedUsers})
+
+      mockUsersService.getUsers.mockResolvedValueOnce({
         users: plainToInstance(UserEntity, mockUsers),
         total: 1,
         page: 1,
@@ -98,16 +107,8 @@ describe('UsersController', () => {
         totalPages: 1,
       });
 
-      mockUsersService.getUsers.mockResolvedValueOnce({
-        users: mockUsers,
-        total: 1,
-        page: 1,
-        limit: 10,
-        totalPages: 1,
-      });
-
       const result = await controller.listUsers(1, 10);
-      expect(result).toEqual(paginatedUsers);
+      expect(result).toMatchObject(paginatedUsers);
       expect(userService.getUsers).toHaveBeenCalledWith(1, 10);
     });
   });
