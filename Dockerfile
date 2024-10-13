@@ -15,7 +15,6 @@ RUN npm install glob rimraf
 ##Copy new files or directories into the filesystem of the container
 COPY . /usr/src/app
 
+EXPOSE 3000
 
-
-
-
+CMD ["npm", "run", "start:prod"]
