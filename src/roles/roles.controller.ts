@@ -4,7 +4,7 @@ import { ApiTags, ApiResponse, ApiOperation, ApiParam, ApiBody, ApiBearerAuth } 
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { AssignUserToRoleDto } from './dto/assign-user.dto';
-import { RolesAndPermissions } from 'src/auth/decorators/roles.decorator';
+import { RolesAndPermissions } from '../auth/decorators/roles.decorator';
 import { ActionEnum, SubjectEnum } from '@prisma/client';
 import { RolesAndPermissionsGuard } from 'src/auth/guards/roles.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';

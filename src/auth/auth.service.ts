@@ -24,9 +24,8 @@ import {
 } from './dto/create-user-password.dto';
 import { generateRandomPassword } from '../utils/generate-pwd';
 import { plainToInstance } from 'class-transformer';
-import { UserEntity } from 'src/users/entity/user.entity';
+import { UserEntity } from '../users/entity/user.entity';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { User as AuthUser } from './interface/user.interface';
 
 @Injectable()
 export class AuthService {
@@ -363,10 +362,17 @@ export class AuthService {
     };
   }
 
-  async changePassword(pwds: ChangePasswordDto, authUser: AuthUser) {
-    const { password, oldPassword } = pwds;
+  async changePassword(pwds: ChangePasswordDto, userId: string) {
+    const authUser = await this.prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      include: {
+        role: true,
+      },
+    });
 
-    console.log({ pwds });
+    const { password, oldPassword } = pwds;
 
     const verifyPassword = await argon.verify(authUser.password, oldPassword);
 
@@ -374,7 +380,7 @@ export class AuthService {
       throw new BadRequestException(MESSAGES.INVALID_CREDENTIALS);
 
     const isNewPwdSameAsOld = await argon.verify(authUser.password, password);
-   
+
     if (isNewPwdSameAsOld)
       throw new BadRequestException(MESSAGES.PWD_SIMILAR_TO_OLD);
 
@@ -390,7 +396,7 @@ export class AuthService {
     });
 
     return {
-      message: MESSAGES.PWD_RESET_SUCCESS,
+      message: MESSAGES.PASSWORD_CHANGED_SUCCESS,
     };
   }
 

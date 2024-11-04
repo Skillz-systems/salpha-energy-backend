@@ -14,6 +14,7 @@ import { plainToInstance } from 'class-transformer';
 import { UserEntity } from './entity/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { MESSAGES } from '../constants';
+import { ListUsersQueryDto } from './dto/list-users.dto';
 
 jest.mock('class-validator', () => ({
   ...jest.requireActual('class-validator'),
@@ -89,14 +90,18 @@ describe('UsersService', () => {
       mockPrismaService.user.findMany.mockResolvedValueOnce(mockUsers);
       mockPrismaService.user.count.mockResolvedValueOnce(1);
 
-      const result = await service.getUsers(1, 10);
-      expect(result).toEqual({
+      const paginatedUsers = {
         users: plainToInstance(UserEntity, mockUsers),
         total: 1,
-        page: 1,
-        limit: 10,
+        page: '1',
+        limit: '10',
         totalPages: 1,
-      });
+      };
+
+      const query: ListUsersQueryDto = { page: '1', limit: '10' };
+
+      const result = await service.getUsers(query);
+      expect(result).toEqual(paginatedUsers);
       expect(prisma.user.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           skip: 0,
@@ -140,6 +145,50 @@ describe('UsersService', () => {
         where: { id: 'test-id' },
         data: { username: 'newusername' },
       });
+    });
+  });
+
+  describe('fetchUser', () => {
+    it('should return a user', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(mockUsers[0]);
+
+      const result = await service.fetchUser('66e9fe02014ca14746800d33');
+
+      expect(result).toEqual(plainToInstance(UpdateUserDto, mockUsers[0]));
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: '66e9fe02014ca14746800d33' },
+        include: { role: { include: { permissions: true } } },
+      });
+    });
+
+    it('should throw NotFoundException if user does not exist', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.fetchUser('nonexistent-id')).rejects.toThrow(
+        new NotFoundException(MESSAGES.USER_NOT_FOUND),
+      );
+    });
+  });
+
+  describe('deleteUser', () => {
+    it('should delete a user successfully', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(mockUsers[0]);
+      mockPrismaService.user.delete.mockResolvedValue({} as any);
+
+      const result = await service.deleteUser('66e9fe02014ca14746800d33');
+
+      expect(result).toEqual({ message: MESSAGES.DELETED });
+      expect(prisma.user.delete).toHaveBeenCalledWith({
+        where: { id: '66e9fe02014ca14746800d33' },
+      });
+    });
+
+    it('should throw NotFoundException if user does not exist', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.deleteUser('nonexistent-id')).rejects.toThrow(
+        new NotFoundException(MESSAGES.USER_NOT_FOUND),
+      );
     });
   });
 });

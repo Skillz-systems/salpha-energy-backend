@@ -4,7 +4,7 @@ import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { RolesAndPermissions } from 'src/auth/decorators/roles.decorator';
+import { RolesAndPermissions } from '../auth/decorators/roles.decorator';
 import { ActionEnum, SubjectEnum } from '@prisma/client';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { RolesAndPermissionsGuard } from 'src/auth/guards/roles.guard';

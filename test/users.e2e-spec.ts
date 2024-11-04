@@ -8,7 +8,7 @@ import {
   UserStatus,
 } from '@prisma/client';
 import * as request from 'supertest';
-import { PrismaService } from '../src/prisma/prisma.service'; // Adjust to your path
+import { PrismaService } from '../src/prisma/prisma.service';
 import { UsersModule } from '../src/users/users.module';
 import { JwtAuthGuard } from '../src/auth/guards/jwt.guard';
 import { RolesAndPermissionsGuard } from '../src/auth/guards/roles.guard';
@@ -136,7 +136,6 @@ describe('UsersController (e2e)', () => {
         .send({ username: 'updateduser' })
         .expect(200)
         .then((response) => {
-          console.log({ response: response.body });
           expect(response.body.username).toBe('updateduser');
         });
     });

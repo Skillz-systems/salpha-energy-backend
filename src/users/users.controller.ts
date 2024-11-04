@@ -32,7 +32,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { MESSAGES } from '../constants';
 import { ListUsersQueryDto } from './dto/list-users.dto';
 import { GetUser } from '../auth/decorators/getUser';
-import { RolesAndPermissions } from 'src/auth/decorators/roles.decorator';
+import { RolesAndPermissions } from '../auth/decorators/roles.decorator';
 
 @SkipThrottle()
 @ApiTags('Users')
@@ -156,10 +156,10 @@ export class UsersController {
     return new UserEntity(await this.usersService.fetchUser(id));
   }
 
-  // @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
-  // @RolesAndPermissions({
-  //   permissions: [`${ActionEnum.manage}:${SubjectEnum.Customers}`],
-  // })
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Customers}`],
+  })
   @ApiParam({
     name: 'id',
     description: "User's id",

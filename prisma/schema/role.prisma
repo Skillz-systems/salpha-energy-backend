@@ -8,8 +8,8 @@ model Role {
 
   users User[]
 
-  created_by   String?    @db.ObjectId
-  creator      User?       @relation("RoleCreator", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  created_by String? @db.ObjectId
+  creator    User?   @relation("RoleCreator", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   created_at DateTime  @default(now())
   updated_at DateTime? @updatedAt()
