@@ -1,0 +1,20 @@
+model Category {
+    id   String @id @default(auto()) @map("_id") @db.ObjectId
+    name String @unique
+
+    type CategoryTypes
+
+    products ProductCategory[]
+
+    inventoryCategories InventoryCategory[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("categories")
+}
+
+enum CategoryTypes {
+    INVENTORY
+    PRODUCT
+}

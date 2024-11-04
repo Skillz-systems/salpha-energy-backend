@@ -1,0 +1,39 @@
+model Customer {
+    id        String  @id @default(auto()) @map("_id") @db.ObjectId
+    fullname  String
+    longitude Float?
+    latitude  Float?
+    location  String?
+
+    type CustomerType @default(lead) // Defaults to LEAD until purchase
+
+    status UserStatus @default(active)
+
+    createdBy WhoCreatedCustomer // Enum to store who created the customer, e.g., "USER" or "AGENT"
+
+    createdByUserId  String? @db.ObjectId // Link to User if created by a User
+    createdByAgentId String? @db.ObjectId // Link to Agent if created by an Agent
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime?
+
+    lastLogin DateTime?
+
+    products CustomerProducts[]
+
+    user  User?  @relation("CustomerCreator", fields: [createdByUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    agent Agent? @relation("CustomerCreator", fields: [createdByAgentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@map("customers")
+}
+
+enum WhoCreatedCustomer {
+    user
+    agent
+}
+
+enum CustomerType {
+    lead
+    purchase
+}

@@ -21,6 +21,8 @@ model User {
 
   createdRoles Role[] @relation("RoleCreator")
 
+  createdCustomers Customer[] @relation("CustomerCreator")
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -33,4 +35,5 @@ model User {
 enum UserStatus {
   active
   inactive
+  barred
 }

@@ -1,0 +1,42 @@
+model Inventory {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    inventoryCategories InventoryCategory[]
+
+    productId String    @db.ObjectId
+    product   Product[]
+
+    batches InventoryBatch[] // Relation to batch records
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime?
+
+    @@map("inventories")
+}
+
+model InventoryBatch {
+    id                String @id @default(auto()) @map("_id") @db.ObjectId
+    inventoryId       String @db.ObjectId
+    batchNumber       Int // Unique identifier for each batch of a product
+    price             Float // Price specific to this batch
+    initialQuantity   Int // Original quantity in this batch
+    remainingQuantity Int // Current remaining quantity in this batch
+
+    status InventoryStatus @default(IN_STOCK)
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime?
+
+    inventory Inventory @relation(fields: [inventoryId], references: [id])
+
+    @@unique([inventoryId, batchNumber]) // Ensures batchNumber is unique within a product's inventory
+    @@map("inventory_batches")
+}
+
+enum InventoryStatus {
+    IN_STOCK
+    OUT_OF_STOCK
+    DISCONTINUED
+}
