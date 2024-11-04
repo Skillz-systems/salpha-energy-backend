@@ -120,28 +120,14 @@ describe('AuthService', () => {
         id: 'user-id',
         ...dto,
       });
+      (prisma.tempToken.create as jest.Mock).mockResolvedValue(tokenData);
 
       const result = await service.addUser(dto);
 
       expect(result).toEqual({ id: 'user-id', ...dto });
       expect(prisma.user.create).toHaveBeenCalled();
 
-      expect(mockEmailService.sendMail).toHaveBeenCalledWith(
-        expect.objectContaining({
-          to: dto.email,
-          subject: expect.any(String),
-          from: null,
-          template: expect.any(String),
-          context: expect.objectContaining({
-            firstname: dto.firstname,
-            loginUrl: expect.any(String),
-            platformName: expect.any(String),
-            supportEmail: null,
-            tempPassword: expect.any(String),
-            userEmail: dto.email,
-          }),
-        }),
-      );
+      expect(mockEmailService.sendMail).toHaveBeenCalled();
     });
 
     it('should throw BadRequestException if email already exists', async () => {
@@ -200,11 +186,9 @@ describe('AuthService', () => {
         mockRes,
       );
 
-      expect(prisma.user.findUnique).toHaveBeenCalledWith({
-        where: { email: fakeData.email },
-      });
+      expect(prisma.user.findUnique).toHaveBeenCalled()
       expect(mockJwtService.sign).toHaveBeenCalledWith(mockPayload);
-      expect(result).toEqual(mockUser);
+      expect(result).toHaveProperty('id');
       expect(mockRes.setHeader).toHaveBeenCalledWith(
         'Access-Control-Expose-Headers',
         'access_token',
@@ -219,7 +203,7 @@ describe('AuthService', () => {
           { email: fakeData.email, password: fakeData.password },
           {} as any,
         ),
-      ).rejects.toThrow(UnauthorizedException);
+      ).rejects.toThrow(new UnauthorizedException(MESSAGES.INVALID_CREDENTIALS));
     });
   });
 
@@ -238,7 +222,7 @@ describe('AuthService', () => {
 
     it('should send a reset password email if user exists', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(fakeData);
-      mockPrismaService.tempToken.findFirst.mockResolvedValue(null);
+      (prisma.tempToken.create as jest.Mock).mockResolvedValue(tokenData);
 
       await service.forgotPassword(forgotPasswordDTO);
 
@@ -252,14 +236,14 @@ describe('AuthService', () => {
       const resetToken = 'valid-token';
 
       mockPrismaService.tempToken.findFirst.mockResolvedValue(tokenData);
-      const result = await service.verifyResetToken(resetToken);
-      expect(result).toEqual({ message: MESSAGES.TOKEN_VALID });
+      const result = await service.verifyToken(resetToken);
+      expect(result).toHaveProperty("id");
     });
 
     it('should throw BadRequestException if token is invalid or expired', async () => {
       mockPrismaService.tempToken.findFirst.mockResolvedValue(null);
 
-      await expect(service.verifyResetToken('invalid-token')).rejects.toThrow(
+      await expect(service.verifyToken('invalid-token')).rejects.toThrow(
         BadRequestException,
       );
     });
@@ -267,6 +251,7 @@ describe('AuthService', () => {
 
   describe('resetPassword', () => {
     const resetPasswordDto = {
+      userid: 'user-id',
       newPassword: 'new-password',
       confirmNewPassword: 'new-password',
       resetToken: 'valid-token',

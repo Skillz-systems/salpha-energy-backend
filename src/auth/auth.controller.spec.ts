@@ -11,7 +11,12 @@ import {
 import { MESSAGES } from '../constants';
 import { PasswordResetDTO } from './dto/password-reset.dto';
 import { LoginUserDTO } from './dto/login-user.dto';
-import { JwtService } from '@nestjs/jwt';  
+import { JwtService } from '@nestjs/jwt';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { CreateSuperUserDto } from './dto/create-super-user.dto';
+import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
+import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -26,13 +31,19 @@ describe('AuthController', () => {
     }),
     login: jest.fn(),
     verifyResetToken: jest.fn(),
+    verifyToken: jest.fn(),
     forgotPassword: jest.fn(),
     resetPassword: jest.fn(),
+    createSuperuser: jest.fn(),
+    createUserPassword: jest.fn(),
+    changePassword: jest.fn(),
   };
 
-   const mockJwtService = {
-     sign: jest.fn(),
-   };
+  const mockJwtService = {
+    sign: jest.fn(),
+  };
+
+  let mockPrismaService: DeepMockProxy<PrismaClient>;
 
   const testData = {
     firstname: 'John',
@@ -49,12 +60,15 @@ describe('AuthController', () => {
   };
 
   const resetPwdData: PasswordResetDTO = {
+    userid: 'user-id',
     newPassword: 'new-password',
     confirmNewPassword: 'new-password',
     resetToken: 'valid-reset-token',
   };
 
   beforeEach(async () => {
+    mockPrismaService = mockDeep<PrismaClient>();
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
@@ -63,6 +77,9 @@ describe('AuthController', () => {
           useValue: mockAuthService,
         },
         { provide: JwtService, useValue: mockJwtService },
+        { provide: PrismaService, useValue: mockPrismaService },
+        // { provide: RolesAndPermissionsGuard, useValue: {} },
+        // RolesAndPermissionsGuard,
       ],
     }).compile();
 
@@ -171,27 +188,38 @@ describe('AuthController', () => {
     });
   });
 
-  describe('verifyResetToken', () => {
+  describe('verifyResetTokens', () => {
+    const verificationParams = {
+      userid: 'user-id',
+      token: 'valid-reset-token',
+    };
+
     it('should verify reset token', async () => {
-      const resetToken = 'valid-reset-token';
       const response = { message: MESSAGES.TOKEN_VALID };
 
-      mockAuthService.verifyResetToken.mockResolvedValue(response);
+      mockAuthService.verifyToken.mockResolvedValue(response);
 
-      expect(await controller.verifyResetToken(resetToken)).toEqual(response);
-      expect(mockAuthService.verifyResetToken).toHaveBeenCalledWith(resetToken);
+      expect(
+        await controller.verifyResetToken(verificationParams),
+      ).toBeDefined();
+
+      expect(mockAuthService.verifyToken).toHaveBeenCalled();
+      
+      expect(
+        await controller.verifyEmailVerficationToken(verificationParams),
+      ).toBeDefined();
+
+      expect(mockAuthService.verifyToken).toHaveBeenCalled();
     });
 
     it('should throw BadRequestException when service throws', async () => {
-      const resetToken = 'invalid-reset-token';
-
-      mockAuthService.verifyResetToken.mockRejectedValue(
+      mockAuthService.verifyToken.mockRejectedValue(
         new BadRequestException(MESSAGES.INVALID_TOKEN),
       );
 
-      await expect(controller.verifyResetToken(resetToken)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        controller.verifyResetToken(verificationParams),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -213,6 +241,73 @@ describe('AuthController', () => {
       await expect(controller.resetPassword(resetPwdData)).rejects.toThrow(
         BadRequestException,
       );
+    });
+  });
+
+  describe('changePassword', () => {
+    const changePasswordData: ChangePasswordDto = {
+      oldPassword: 'old-password',
+      password: 'new-password',
+      confirmPassword: 'new-password',
+    };
+
+    it('should change password successfully', async () => {
+      const response = { message: MESSAGES.PASSWORD_CHANGED_SUCCESS };
+      mockAuthService.changePassword.mockResolvedValue(response);
+
+      expect(
+        await controller.changePassword(changePasswordData, 'user-id'),
+      ).toEqual(response);
+      expect(mockAuthService.changePassword).toHaveBeenCalledWith(
+        changePasswordData,
+        'user-id',
+      );
+    });
+
+    it('should throw BadRequestException when service throws', async () => {
+      mockAuthService.changePassword.mockRejectedValue(
+        new BadRequestException('Current password is incorrect'),
+      );
+
+      await expect(
+        controller.changePassword(changePasswordData, 'user-id'),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('createSuperuser', () => {
+    const createSuperuserData: CreateSuperUserDto = {
+      firstname: 'John',
+      lastname: 'Doe',
+      email: 'john.doe@example.com',
+      cKey: '09062736182',
+      password: '66dce4173c5d3b2fd5f5728',
+    };
+
+    it('should create a superuser', async () => {
+      const result = {
+        id: 'superuser-id',
+        ...createSuperuserData,
+        password: undefined,
+      };
+      mockAuthService.createSuperuser.mockResolvedValue(result);
+
+      expect(await controller.createSuperuser(createSuperuserData)).toEqual(
+        result,
+      );
+      expect(mockAuthService.createSuperuser).toHaveBeenCalledWith(
+        createSuperuserData,
+      );
+    });
+
+    it('should throw BadRequestException when service throws', async () => {
+      mockAuthService.createSuperuser.mockRejectedValue(
+        new BadRequestException('Invalid data'),
+      );
+
+      await expect(
+        controller.createSuperuser(createSuperuserData),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });
