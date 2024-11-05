@@ -8,6 +8,7 @@ import { UsersModule } from './users/users.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { EmailModule } from './mailer/email.module';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { EmailModule } from './mailer/email.module';
       isGlobal: true,
     }),
     EmailModule,
+    CloudinaryModule,
     PrismaModule,
     AuthModule,
     RolesModule,
