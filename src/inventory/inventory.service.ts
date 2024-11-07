@@ -275,12 +275,42 @@ export class InventoryService {
     return await this.prisma.category.findMany({
       where: {
         type: CategoryTypes.INVENTORY,
-        parent: null
+        parent: null,
       },
       include: {
-        children: true
-      }
+        children: true,
+      },
     });
+  }
+
+  async getInventoryStats() {
+    const inventoryClassCounts = await this.prisma.inventoryBatch.groupBy({
+      by: ['class'],
+      _count: {
+        class: true,
+      },
+    });
+
+    const transformedClassCounts = inventoryClassCounts.map((item) => ({
+      inventoryClass: item.class,
+      count: item._count.class,
+    }));
+
+    const totalInventoryCount = await this.prisma.inventoryBatch.count();
+
+    const deletedInventoryCount = await this.prisma.inventoryBatch.count({
+      where: {
+        deletedAt: {
+          not: null,
+        },
+      },
+    });
+
+    return {
+      inventoryClassCounts: transformedClassCounts,
+      totalInventoryCount,
+      deletedInventoryCount,
+    };
   }
 
   private generateBatchNumber(): number {
