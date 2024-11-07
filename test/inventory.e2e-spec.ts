@@ -4,9 +4,9 @@ import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import {
-//   CategoryTypes,
+  //   CategoryTypes,
   InventoryClass,
-//   InventoryStatus,
+  //   InventoryStatus,
   PrismaClient,
 } from '@prisma/client';
 // import { MESSAGES } from '../src/constants';
@@ -15,6 +15,7 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import { RolesAndPermissionsGuard } from '../src/auth/guards/roles.guard';
 import { JwtAuthGuard } from '../src/auth/guards/jwt.guard';
 import { CloudinaryService } from '../src/cloudinary/cloudinary.service';
+import { mockInventoryResponse } from '../test/mockData/inventory';
 
 describe('InventoryController (e2e)', () => {
   let app: INestApplication;
@@ -78,7 +79,6 @@ describe('InventoryController (e2e)', () => {
     //     updatedAt: new Date(),
     //   });
 
-
     //   mockCloudinaryService.uploadFile.mockResolvedValue({
     //     secure_url: 'http://example.com/image.png',
     //   });
@@ -132,8 +132,8 @@ describe('InventoryController (e2e)', () => {
     //       createInventoryDto.inventorySubCategoryId,
     //     )
     //     .attach(
-    //       'inventoryImage', 
-    //       Buffer.from('test content'), 
+    //       'inventoryImage',
+    //       Buffer.from('test content'),
     //       'test.png',
     //     );
 
@@ -173,6 +173,22 @@ describe('InventoryController (e2e)', () => {
       expect(response.body.message).toContain(
         'Invalid inventorySubCategoryId or inventoryCategoryId',
       );
+    });
+  });
+
+  describe('List users', () => {
+    it('/users (GET)', async () => {
+      prisma.inventory.findMany.mockResolvedValueOnce(mockInventoryResponse);
+      prisma.inventory.count.mockResolvedValueOnce(1);
+
+      const response = await request(app.getHttpServer())
+        .get('/inventory/fetch-inventory?page=1&limit=10')
+        .expect(200);
+
+      expect(response.body.inventories.length).toBeGreaterThan(0);
+      expect(response.body.total).toBeTruthy();
+      expect(response.body.page).toBeTruthy();
+      expect(response.body.limit).toBeTruthy();
     });
   });
 });

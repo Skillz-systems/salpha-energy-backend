@@ -12,6 +12,8 @@ import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { BadRequestException } from '@nestjs/common';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { MESSAGES } from '../constants';
+import { FetchInventoryQueryDto } from './dto/fetch-inventory.dto';
+import { mockInventoryResponse } from '../../test/mockData/inventory';
 
 describe('InventoryService', () => {
   let service: InventoryService;
@@ -123,6 +125,32 @@ describe('InventoryService', () => {
       await expect(
         service.createInventory(createInventoryDto, {} as Express.Multer.File),
       ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('Get Inventories', () => {
+    it('should return paginated users', async () => {
+      mockPrismaService.inventory.findMany.mockResolvedValueOnce(mockInventoryResponse);
+      mockPrismaService.inventory.count.mockResolvedValueOnce(1);
+
+      const paginatedInventory = {
+        inventories: mockInventoryResponse,
+        total: 1,
+        page: '1',
+        limit: '10',
+        totalPages: 1,
+      };
+
+      const query: FetchInventoryQueryDto = { page: '1', limit: '10' };
+
+      const result = await service.getInventories(query);
+      expect(result).toEqual(paginatedInventory);
+      expect(mockPrismaService.inventory.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 0,
+          take: 10,
+        }),
+      );
     });
   });
 });

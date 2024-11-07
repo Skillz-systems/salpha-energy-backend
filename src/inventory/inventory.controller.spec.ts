@@ -7,6 +7,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { BadRequestException } from '@nestjs/common';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { MESSAGES } from '../constants';
+import { FetchInventoryQueryDto } from './dto/fetch-inventory.dto';
+import { mockInventoryResponse } from '../../test/mockData/inventory';
 
 describe('InventoryController', () => {
   let controller: InventoryController;
@@ -15,6 +17,7 @@ describe('InventoryController', () => {
 
   const mockInventoryService = {
     createInventory: jest.fn(),
+    getInventories: jest.fn(),
   };
 
   const mockFile = {
@@ -88,6 +91,25 @@ describe('InventoryController', () => {
         createInventoryDto,
         mockFile,
       );
+    });
+  });
+
+  describe('Get Inventories', () => {
+    it('should return a list of paginated inventories', async () => {
+      const paginatedInventory = {
+        inventories: mockInventoryResponse,
+        total: 1,
+        page: '1',
+        limit: '10',
+        totalPages: 1,
+      };
+
+      const query: FetchInventoryQueryDto = { page: '1', limit: '10' };
+      mockInventoryService.getInventories.mockResolvedValueOnce(paginatedInventory);
+
+      const result = await controller.getInventories(query);
+      expect(result).toMatchObject(paginatedInventory);
+      expect(mockInventoryService.getInventories).toHaveBeenCalledWith(query);
     });
   });
 });

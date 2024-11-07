@@ -2,10 +2,12 @@ import { SkipThrottle } from '@nestjs/throttler';
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   ParseFilePipeBuilder,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -20,11 +22,14 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiConsumes,
+  ApiExtraModels,
   ApiHeader,
+  ApiOkResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { FetchInventoryQueryDto } from './dto/fetch-inventory.dto';
 
 @SkipThrottle()
 @ApiTags('Inventory')
@@ -68,5 +73,31 @@ export class InventoryController {
       createInventoryDto,
       file,
     );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Inventory}`],
+  })
+  @ApiBearerAuth('access_token')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'JWT token used for authentication',
+    required: true,
+    schema: {
+      type: 'string',
+      example: 'Bearer <token>',
+    },
+  })
+  @Get('fetch-inventory')
+  @ApiOkResponse({
+    description: 'Fetch all inventory with pagination',
+    isArray: true,
+  })
+  @ApiBadRequestResponse({})
+  @ApiExtraModels(FetchInventoryQueryDto)
+  @HttpCode(HttpStatus.OK)
+  async getInventories(@Query() query: FetchInventoryQueryDto) {
+    return await this.inventoryService.getInventories(query);
   }
 }
