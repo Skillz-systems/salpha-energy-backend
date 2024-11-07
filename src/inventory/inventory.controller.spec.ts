@@ -12,6 +12,7 @@ import {
   mockInventoryBatchResponse,
   mockInventoryResponse,
 } from '../../test/mockData/inventory';
+import { CreateCategoryArrayDto } from './dto/create-category.dto';
 
 describe('InventoryController', () => {
   let controller: InventoryController;
@@ -22,6 +23,7 @@ describe('InventoryController', () => {
     createInventory: jest.fn(),
     getInventories: jest.fn(),
     fetchInventoryBatchDetails: jest.fn(),
+    createInventoryCategory: jest.fn(),
   };
 
   const mockFile = {
@@ -146,6 +148,56 @@ describe('InventoryController', () => {
       expect(
         mockInventoryService.fetchInventoryBatchDetails,
       ).toHaveBeenCalledWith('nonexistent-id');
+    });
+  });
+
+  describe('createInventoryCategory', () => {
+    it('should create categories successfully', async () => {
+      const createCategoryDto: CreateCategoryArrayDto = {
+        categories: [
+          {
+            name: 'Electronics',
+            parentId: null,
+            subCategories: [{ name: 'Battery Charger' }],
+          },
+        ],
+      };
+
+      mockInventoryService.createInventoryCategory.mockResolvedValueOnce({
+        message: MESSAGES.CREATED,
+      });
+
+      const result =
+        await controller.createInventoryCategory(createCategoryDto);
+
+      expect(result.message).toBe(MESSAGES.CREATED);
+      expect(mockInventoryService.createInventoryCategory).toHaveBeenCalledWith(
+        createCategoryDto.categories,
+      );
+    });
+
+    it('should throw BadRequestException when parentId is invalid', async () => {
+      const createCategoryDto: CreateCategoryArrayDto = {
+        categories: [
+          {
+            name: 'Invalid Category',
+            parentId: 'nonexistent-id',
+            subCategories: [],
+          },
+        ],
+      };
+
+      mockInventoryService.createInventoryCategory.mockRejectedValueOnce(
+        new BadRequestException('Invalid Parent Id'),
+      );
+
+      await expect(
+        controller.createInventoryCategory(createCategoryDto),
+      ).rejects.toThrow(new BadRequestException('Invalid Parent Id'));
+
+      expect(mockInventoryService.createInventoryCategory).toHaveBeenCalledWith(
+        createCategoryDto.categories,
+      );
     });
   });
 });

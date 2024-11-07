@@ -33,6 +33,7 @@ import {
 import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FetchInventoryQueryDto } from './dto/fetch-inventory.dto';
+import { CreateCategoryArrayDto } from './dto/create-category.dto';
 
 @SkipThrottle()
 @ApiTags('Inventory')
@@ -133,5 +134,40 @@ export class InventoryController {
   @HttpCode(HttpStatus.OK)
   async getInventoryBatchDetails(@Param('id') id: string) {
     return await this.inventoryService.fetchInventoryBatchDetails(id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Inventory}`],
+  })
+  @ApiBearerAuth('access_token')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'JWT token used for authentication',
+    required: true,
+    schema: {
+      type: 'string',
+      example: 'Bearer <token>',
+    },
+  })
+  @ApiBearerAuth('access_token')
+  @ApiBody({
+    type: CreateCategoryArrayDto,
+    description: 'Category creation payload',
+  })
+  @HttpCode(HttpStatus.CREATED)
+  @Post('category/create')
+  @ApiOperation({
+    summary: 'Create Inventory Category',
+    description:
+      'This endpoint allows a permitted user Create an Inventory Category',
+  })
+  @ApiOkResponse({})
+  async createInventoryCategory(
+    @Body() createCategoryArrayDto: CreateCategoryArrayDto,
+  ) {
+    return await this.inventoryService.createInventoryCategory(
+      createCategoryArrayDto.categories,
+    );
   }
 }
