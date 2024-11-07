@@ -3,7 +3,8 @@ import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { MESSAGES } from '../constants';
-import { CategoryTypes } from '@prisma/client';
+import { CategoryTypes, InventoryClass, Prisma } from '@prisma/client';
+import { FetchInventoryQueryDto } from './dto/fetch-inventory.dto';
 
 @Injectable()
 export class InventoryService {
@@ -11,6 +12,45 @@ export class InventoryService {
     private readonly cloudinary: CloudinaryService,
     private readonly prisma: PrismaService,
   ) {}
+
+  async inventoryFilter(
+    query: FetchInventoryQueryDto,
+  ): Promise<Prisma.InventoryWhereInput> {
+    const {
+      search,
+      inventoryCategoryId,
+      inventorySubCategoryId,
+      createdAt,
+      updatedAt,
+      class: inventoryClass,
+    } = query;
+
+    const filterConditions: Prisma.InventoryWhereInput = {
+      AND: [
+        search
+          ? {
+              OR: [
+                { name: { contains: search, mode: 'insensitive' } },
+                { manufacturerName: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {},
+        inventoryCategoryId ? { inventoryCategoryId } : {},
+        inventorySubCategoryId ? { inventorySubCategoryId } : {},
+        createdAt ? { createdAt: new Date(createdAt) } : {},
+        updatedAt ? { updatedAt: new Date(updatedAt) } : {},
+        inventoryClass
+          ? {
+              batches: {
+                some: { class: inventoryClass as InventoryClass },
+              },
+            }
+          : {},
+      ],
+    };
+
+    return filterConditions;
+  }
 
   async uploadInventoryImage(file: Express.Multer.File) {
     return await this.cloudinary.uploadFile(file).catch((e) => {
@@ -95,6 +135,76 @@ export class InventoryService {
 
     return {
       message: MESSAGES.INVENTORY_CREATED,
+    };
+  }
+
+  async getInventories(query: FetchInventoryQueryDto) {
+    const {
+      page = 1,
+      limit = 100,
+      sortField,
+      sortOrder,
+      inventoryCategoryId,
+      inventorySubCategoryId,
+    } = query;
+
+    if (inventoryCategoryId || inventorySubCategoryId) {
+      const categoryIds = [inventoryCategoryId, inventorySubCategoryId].filter(
+        Boolean,
+      );
+
+      const isCategoryValid = await this.prisma.category.findFirst({
+        where: {
+          id: {
+            in: categoryIds,
+          },
+          type: CategoryTypes.INVENTORY,
+        },
+      });
+
+      if (!isCategoryValid) {
+        throw new BadRequestException(
+          'Invalid inventorySubCategoryId or inventoryCategoryId',
+        );
+      }
+    }
+
+    const filterConditions = await this.inventoryFilter(query);
+
+    const pageNumber = parseInt(String(page), 10);
+    const limitNumber = parseInt(String(limit), 10);
+
+    const skip = (pageNumber - 1) * limitNumber;
+    const take = limitNumber;
+
+    const orderBy = sortField
+      ? {
+          [sortField]: sortOrder || 'asc',
+        }
+      : undefined;
+
+    const result = await this.prisma.inventory.findMany({
+      skip,
+      take,
+      where: filterConditions,
+      orderBy,
+      include: {
+        batches: true,
+        inventoryCategory: true,
+        inventorySubCategory: true,
+      },
+    });
+
+    const totalCount = await this.prisma.inventory.count({
+      where: filterConditions,
+    });
+
+    return {
+      inventories: result,
+      total: totalCount,
+      page,
+      limit,
+      totalPages: limitNumber === 0 ? 0 : Math.ceil(totalCount / limitNumber),
     };
   }
 
