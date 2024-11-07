@@ -15,7 +15,11 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import { RolesAndPermissionsGuard } from '../src/auth/guards/roles.guard';
 import { JwtAuthGuard } from '../src/auth/guards/jwt.guard';
 import { CloudinaryService } from '../src/cloudinary/cloudinary.service';
-import { mockInventoryResponse } from '../test/mockData/inventory';
+import {
+  mockInventoryBatchResponse,
+  mockInventoryResponse,
+} from '../test/mockData/inventory';
+import { MESSAGES } from '../src/constants';
 
 describe('InventoryController (e2e)', () => {
   let app: INestApplication;
@@ -182,13 +186,42 @@ describe('InventoryController (e2e)', () => {
       prisma.inventory.count.mockResolvedValueOnce(1);
 
       const response = await request(app.getHttpServer())
-        .get('/inventory/fetch-inventory?page=1&limit=10')
+        .get('/inventory?page=1&limit=10')
         .expect(200);
 
       expect(response.body.inventories.length).toBeGreaterThan(0);
       expect(response.body.total).toBeTruthy();
       expect(response.body.page).toBeTruthy();
       expect(response.body.limit).toBeTruthy();
+    });
+  });
+
+  describe('Fetch Inventory Batch Details', () => {
+    it('/Inventory Batch details (GET)', async () => {
+      prisma.inventoryBatch.findUnique.mockResolvedValue(
+        mockInventoryBatchResponse,
+      );
+      prisma.inventory.count.mockResolvedValueOnce(1);
+
+      const response = await request(app.getHttpServer())
+        .get('/inventory/batch/672a7e32493902cd46999f69')
+        .expect(200);
+
+      expect(response.status).toBe(HttpStatus.OK);
+      expect(response.body).toHaveProperty('id');
+    });
+
+    it('should throw NotFoundException if Inventory Batch Details does not exist', async () => {
+      prisma.inventoryBatch.findUnique.mockResolvedValue(null);
+
+      const response = await request(app.getHttpServer())
+        .get('/inventory/batch/nonexistent-id')
+        .expect(200);
+
+      expect(response.status).toBe(HttpStatus.BAD_REQUEST);
+      expect(response.body.message).toContain({
+        message: MESSAGES.BATCH_NOT_FOUND,
+      });
     });
   });
 });

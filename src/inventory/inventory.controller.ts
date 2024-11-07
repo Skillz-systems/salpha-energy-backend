@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   ParseFilePipeBuilder,
   Post,
   Query,
@@ -25,6 +26,8 @@ import {
   ApiExtraModels,
   ApiHeader,
   ApiOkResponse,
+  ApiOperation,
+  ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
@@ -89,7 +92,7 @@ export class InventoryController {
       example: 'Bearer <token>',
     },
   })
-  @Get('fetch-inventory')
+  @Get('')
   @ApiOkResponse({
     description: 'Fetch all inventory with pagination',
     isArray: true,
@@ -99,5 +102,36 @@ export class InventoryController {
   @HttpCode(HttpStatus.OK)
   async getInventories(@Query() query: FetchInventoryQueryDto) {
     return await this.inventoryService.getInventories(query);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Inventory}`],
+  })
+  @ApiBearerAuth('access_token')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'JWT token used for authentication',
+    required: true,
+    schema: {
+      type: 'string',
+      example: 'Bearer <token>',
+    },
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'InventoryBatch id to fetch details',
+  })
+  @Get('batch/:id')
+  @ApiOperation({
+    summary: 'Fetch Inventory Batch details',
+    description:
+      'This endpoint allows a permitted user fetch an inventory batch details.',
+  })
+  @ApiBearerAuth('access_token')
+  @ApiOkResponse({})
+  @HttpCode(HttpStatus.OK)
+  async getInventoryBatchDetails(@Param('id') id: string) {
+    return await this.inventoryService.fetchInventoryBatchDetails(id);
   }
 }

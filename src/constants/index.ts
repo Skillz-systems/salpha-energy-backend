@@ -18,6 +18,7 @@ export const MESSAGES = {
   PASSWORD_TOO_WEAK: 'Password is too weak',
   PWD_SIMILAR_TO_OLD: 'New password should not be the same as old password',
   USER_NOT_FOUND: 'User not found',
+  BATCH_NOT_FOUND: 'Batch not found',
   INVALID_TOKEN: 'Invalid or expired token',
   NOT_PERMITTED:
     "You don't have sufficient permissions to perform the necessary action",

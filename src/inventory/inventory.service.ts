@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -206,6 +206,21 @@ export class InventoryService {
       limit,
       totalPages: limitNumber === 0 ? 0 : Math.ceil(totalCount / limitNumber),
     };
+  }
+
+  async fetchInventoryBatchDetails(id: string) {
+    const inventoryBatch = await this.prisma.inventoryBatch.findUnique({
+      where: { id },
+      include: {
+        inventory: true,
+      },
+    });
+
+    if (!inventoryBatch) {
+      throw new NotFoundException(MESSAGES.BATCH_NOT_FOUND);
+    }
+
+    return inventoryBatch;
   }
 
   private generateBatchNumber(): number {
