@@ -9,11 +9,14 @@ import {
   PrismaClient,
 } from '@prisma/client';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { MESSAGES } from '../constants';
 import { FetchInventoryQueryDto } from './dto/fetch-inventory.dto';
-import { mockInventoryResponse } from '../../test/mockData/inventory';
+import {
+  mockInventoryBatchResponse,
+  mockInventoryResponse,
+} from '../../test/mockData/inventory';
 
 describe('InventoryService', () => {
   let service: InventoryService;
@@ -130,7 +133,9 @@ describe('InventoryService', () => {
 
   describe('Get Inventories', () => {
     it('should return paginated users', async () => {
-      mockPrismaService.inventory.findMany.mockResolvedValueOnce(mockInventoryResponse);
+      mockPrismaService.inventory.findMany.mockResolvedValueOnce(
+        mockInventoryResponse,
+      );
       mockPrismaService.inventory.count.mockResolvedValueOnce(1);
 
       const paginatedInventory = {
@@ -151,6 +156,29 @@ describe('InventoryService', () => {
           take: 10,
         }),
       );
+    });
+  });
+
+  describe('Fetch Inventory Batch Details', () => {
+    it('should return an Inventory Batch Details', async () => {
+      mockPrismaService.inventoryBatch.findUnique.mockResolvedValue(
+        mockInventoryBatchResponse,
+      );
+
+      const result = await service.fetchInventoryBatchDetails(
+        mockInventoryBatchResponse.id,
+      );
+
+      expect(result).toHaveProperty('id');
+      expect(mockPrismaService.inventoryBatch.findUnique).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException if Inventory Batch Details does not exist', async () => {
+      mockPrismaService.inventoryBatch.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.fetchInventoryBatchDetails('nonexistent-id'),
+      ).rejects.toThrow(new NotFoundException(MESSAGES.BATCH_NOT_FOUND));
     });
   });
 });
