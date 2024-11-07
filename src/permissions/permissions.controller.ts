@@ -6,8 +6,8 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiBearerAuth } 
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { RolesAndPermissions } from '../auth/decorators/roles.decorator';
 import { ActionEnum, SubjectEnum } from '@prisma/client';
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
-import { RolesAndPermissionsGuard } from 'src/auth/guards/roles.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt.guard';
+import { RolesAndPermissionsGuard } from '../auth/guards/roles.guard';
 
 @ApiTags('permissions')
 @Controller('permissions')

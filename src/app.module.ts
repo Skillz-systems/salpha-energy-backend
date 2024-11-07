@@ -9,6 +9,7 @@ import { PermissionsModule } from './permissions/permissions.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { EmailModule } from './mailer/email.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { InventoryModule } from './inventory/inventory.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
     RolesModule,
     UsersModule,
     PermissionsModule,
+    InventoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
