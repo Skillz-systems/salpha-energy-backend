@@ -65,7 +65,7 @@ Once your MongoDB instance is ready, make sure you have your connection string.
 
    Edit the .env file with your MongoDB connection string and other configurations
 
-5. **Run the Application**
+5. **Run the Application** 
    ```bash
     npm run start:dev
    ```
