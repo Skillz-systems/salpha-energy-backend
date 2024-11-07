@@ -7,12 +7,13 @@ model Product {
     currency     String? @default("NGN")
     paymentModes String?
 
-    productCategories ProductCategory[]
+    productCategoryId String          @unique @db.ObjectId
+    productCategory   ProductCategory @relation(fields: [productCategoryId], references: [id], onDelete: Cascade)
 
     customers CustomerProducts[]
 
-    inventoryId String    @db.ObjectId
-    Inventory   Inventory @relation(fields: [inventoryId], references: [id])
+    inventoryBatchId String         @db.ObjectId
+    InventoryBatch   InventoryBatch @relation(fields: [inventoryBatchId], references: [id], onDelete: Cascade)
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt

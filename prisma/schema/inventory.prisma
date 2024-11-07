@@ -1,10 +1,13 @@
 model Inventory {
-    id String @id @default(auto()) @map("_id") @db.ObjectId
+    id               String @id @default(auto()) @map("_id") @db.ObjectId
+    name             String
+    manufacturerName String
 
-    inventoryCategories InventoryCategory[]
+    inventoryCategoryId String?   @unique @db.ObjectId
+    inventoryCategory   Category? @relation(name: "InventoryToCategory", fields: [inventoryCategoryId], references: [id])
 
-    productId String    @db.ObjectId
-    product   Product[]
+    inventorySubCategoryId String?   @unique @db.ObjectId
+    inventorySubCategory   Category? @relation(name: "InventoryToSubCategory", fields: [inventorySubCategoryId], references: [id])
 
     batches InventoryBatch[] // Relation to batch records
 
@@ -16,20 +19,28 @@ model Inventory {
 }
 
 model InventoryBatch {
-    id                String @id @default(auto()) @map("_id") @db.ObjectId
-    inventoryId       String @db.ObjectId
+    id                String  @id @default(auto()) @map("_id") @db.ObjectId
+    name              String
+    dateOfManufacture String?
+    sku               String?
+    image             String?
     batchNumber       Int // Unique identifier for each batch of a product
+    costOfItem        Float? // Price specific to this batch
     price             Float // Price specific to this batch
-    initialQuantity   Int // Original quantity in this batch
+    numberOfStock     Int // Original quantity in this batch
     remainingQuantity Int // Current remaining quantity in this batch
 
     status InventoryStatus @default(IN_STOCK)
+    class  InventoryClass
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @updatedAt
     deletedAt DateTime?
 
-    inventory Inventory @relation(fields: [inventoryId], references: [id])
+    products Product[]
+
+    inventoryId String     @db.ObjectId
+    inventory   Inventory? @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
 
     @@unique([inventoryId, batchNumber]) // Ensures batchNumber is unique within a product's inventory
     @@map("inventory_batches")
@@ -39,4 +50,10 @@ enum InventoryStatus {
     IN_STOCK
     OUT_OF_STOCK
     DISCONTINUED
+}
+
+enum InventoryClass {
+    REGULAR
+    RETURNED
+    REFURBISHED
 }

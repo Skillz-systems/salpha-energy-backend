@@ -2,8 +2,8 @@ model ProductCategory {
     id   String @id @default(auto()) @map("_id") @db.ObjectId
     name String
 
-    productId String  @db.ObjectId
-    product   Product @relation(fields: [productId], references: [id])
+    productId String   @unique @db.ObjectId
+    product   Product?
 
     categoryId String   @db.ObjectId
     category   Category @relation(fields: [categoryId], references: [id])

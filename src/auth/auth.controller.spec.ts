@@ -11,7 +11,6 @@ import {
 import { MESSAGES } from '../constants';
 import { PasswordResetDTO } from './dto/password-reset.dto';
 import { LoginUserDTO } from './dto/login-user.dto';
-import { JwtService } from '@nestjs/jwt';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateSuperUserDto } from './dto/create-super-user.dto';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
@@ -37,10 +36,6 @@ describe('AuthController', () => {
     createSuperuser: jest.fn(),
     createUserPassword: jest.fn(),
     changePassword: jest.fn(),
-  };
-
-  const mockJwtService = {
-    sign: jest.fn(),
   };
 
   let mockPrismaService: DeepMockProxy<PrismaClient>;
@@ -76,10 +71,7 @@ describe('AuthController', () => {
           provide: AuthService,
           useValue: mockAuthService,
         },
-        { provide: JwtService, useValue: mockJwtService },
         { provide: PrismaService, useValue: mockPrismaService },
-        // { provide: RolesAndPermissionsGuard, useValue: {} },
-        // RolesAndPermissionsGuard,
       ],
     }).compile();
 
