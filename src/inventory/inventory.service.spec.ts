@@ -181,4 +181,57 @@ describe('InventoryService', () => {
       ).rejects.toThrow(new NotFoundException(MESSAGES.BATCH_NOT_FOUND));
     });
   });
+
+  describe('createInventoryCategory', () => {
+    it('should create a new category when no conflicts exist', async () => {
+      mockPrismaService.category.findUnique.mockResolvedValueOnce(null);
+
+      mockPrismaService.category.findFirst.mockResolvedValueOnce({
+        id: 'cat123',
+        parentId: null,
+        type: CategoryTypes.INVENTORY,
+        name: 'Electronics',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      mockPrismaService.category.create.mockResolvedValueOnce({
+        id: 'cat123',
+        parentId: null,
+        type: CategoryTypes.INVENTORY,
+        name: 'Electronics',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const categories = [
+        {
+          name: 'Electronics',
+          parentId: 'valid-parent-id',
+          subCategories: [{ name: 'Battery Charger' }],
+        },
+      ];
+
+      const result = await service.createInventoryCategory(categories);
+
+      expect(result.message).toBe(MESSAGES.CREATED);
+      expect(mockPrismaService.category.create).toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException if parentId is invalid', async () => {
+      mockPrismaService.category.findFirst.mockResolvedValueOnce(null);
+      mockPrismaService.category.findFirst.mockRejectedValue(null);
+      const categories = [
+        {
+          name: 'Invalid Category',
+          parentId: 'nonexistent-id',
+          subCategories: [],
+        },
+      ];
+
+      await expect(service.createInventoryCategory(categories)).rejects.toThrow(
+        new BadRequestException('Invalid Parent Id'),
+      );
+    });
+  });
 });

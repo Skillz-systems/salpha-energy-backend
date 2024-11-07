@@ -1,10 +1,15 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { MESSAGES } from '../constants';
 import { CategoryTypes, InventoryClass, Prisma } from '@prisma/client';
 import { FetchInventoryQueryDto } from './dto/fetch-inventory.dto';
+import { CreateCategoryDto } from './dto/create-category.dto';
 
 @Injectable()
 export class InventoryService {
@@ -221,6 +226,49 @@ export class InventoryService {
     }
 
     return inventoryBatch;
+  }
+
+  async createInventoryCategory(categories: CreateCategoryDto[]) {
+    const existingCategoryNames = [];
+
+    for (const category of categories) {
+      const { name, subCategories, parentId } = category;
+
+      const existingCategory = await this.prisma.category.findUnique({
+        where: { name },
+      });
+
+      if (existingCategory) {
+        existingCategoryNames.push(name);
+        continue;
+      }
+
+      if (parentId) {
+        const existingParentCategory = await this.prisma.category.findFirst({
+          where: { id: parentId },
+        });
+
+        if (!existingParentCategory) {
+          throw new BadRequestException('Invalid Parent Id');
+        }
+      }
+
+      await this.prisma.category.create({
+        data: {
+          name,
+          ...(parentId ? { parentId } : {}),
+          type: CategoryTypes.INVENTORY,
+          children: {
+            create: subCategories?.map((subCat) => ({
+              name: subCat.name,
+              type: CategoryTypes.INVENTORY,
+            })),
+          },
+        },
+      });
+    }
+
+    return { message: MESSAGES.CREATED };
   }
 
   private generateBatchNumber(): number {

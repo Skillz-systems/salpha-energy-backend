@@ -10,7 +10,7 @@ model Category {
 
     products ProductCategory[]
 
-    inventory Inventory[] @relation("InventoryToCategory")
+    inventory              Inventory[] @relation("InventoryToCategory")
     subCategoriesInventory Inventory[] @relation("InventoryToSubCategory")
 
     createdAt DateTime @default(now())

@@ -4,6 +4,7 @@ import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import {
+  CategoryTypes,
   //   CategoryTypes,
   InventoryClass,
   //   InventoryStatus,
@@ -215,13 +216,63 @@ describe('InventoryController (e2e)', () => {
       prisma.inventoryBatch.findUnique.mockResolvedValue(null);
 
       const response = await request(app.getHttpServer())
-        .get('/inventory/batch/nonexistent-id')
-        .expect(200);
+        .get('/inventory/batch/672a7e32493902cd46999f69')
+        .expect(404);
 
-      expect(response.status).toBe(HttpStatus.BAD_REQUEST);
-      expect(response.body.message).toContain({
-        message: MESSAGES.BATCH_NOT_FOUND,
+      expect(response.status).toBe(HttpStatus.NOT_FOUND);
+      expect(response.body.message).toContain(MESSAGES.BATCH_NOT_FOUND);
+    });
+  });
+
+  describe('Create Inventory Category (e2e)', () => {
+    it('should create a new inventory category with subcategories', async () => {
+      const createCategoryDto = {
+        categories: [
+          {
+            name: 'Electronics',
+            parentId: null,
+            subCategories: [{ name: 'Battery Charger' }],
+          },
+        ],
+      };
+
+      prisma.category.findUnique.mockResolvedValueOnce(null);
+      prisma.category.create.mockResolvedValueOnce({
+        id: 'cat123',
+        parentId: null,
+        type: CategoryTypes.INVENTORY,
+        name: 'Electronics',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
+
+      const response = await request(app.getHttpServer())
+        .post('/inventory/category/create')
+        .send(createCategoryDto)
+        .expect(HttpStatus.CREATED);
+
+      expect(response.body.message).toBe(MESSAGES.CREATED);
+    });
+
+    it('should return an error when parentId is invalid', async () => {
+      const createCategoryDto = {
+        categories: [
+          {
+            name: 'Invalid Category',
+            parentId: 'nonexistent-id',
+            subCategories: [],
+          },
+        ],
+      };
+      prisma.category.findUnique.mockResolvedValueOnce(null);
+      prisma.category.findFirst.mockResolvedValueOnce(null);
+
+      const response = await request(app.getHttpServer())
+        .post('/inventory/category/create')
+        .send(createCategoryDto)
+        .expect(HttpStatus.BAD_REQUEST);
+
+      expect(response.body.message).toBe('Invalid Parent Id');
     });
   });
 });
