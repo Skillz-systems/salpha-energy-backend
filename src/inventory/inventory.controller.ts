@@ -195,4 +195,29 @@ export class InventoryController {
   async getInventoryCategories() {
     return await this.inventoryService.getInventoryCategories();
   }
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Inventory}`],
+  })
+  @ApiBearerAuth('access_token')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'JWT token used for authentication',
+    required: true,
+    schema: {
+      type: 'string',
+      example: 'Bearer <token>',
+    },
+  })
+  @Get('stats')
+  @ApiOkResponse({
+    description: 'Fetch Inventory Statistics',
+    isArray: true,
+  })
+  @ApiBadRequestResponse({})
+  @HttpCode(HttpStatus.OK)
+  async getInventoryStats() {
+    return await this.inventoryService.getInventoryStats();
+  }
 }
