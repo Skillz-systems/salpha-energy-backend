@@ -102,14 +102,6 @@ describe('InventoryController', () => {
 
   describe('Get Inventories', () => {
     it('should return a list of paginated inventories', async () => {
-      // const paginatedInventory = {
-      //   inventories: mockInventoryResponse,
-      //   total: 1,
-      //   page: '1',
-      //   limit: '10',
-      //   totalPages: 1,
-      // };
-
       const query: FetchInventoryQueryDto = { page: '1', limit: '10' };
       mockInventoryService.getInventories.mockResolvedValueOnce(
         mockInventoryResponse,

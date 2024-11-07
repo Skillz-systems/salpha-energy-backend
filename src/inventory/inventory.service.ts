@@ -271,6 +271,18 @@ export class InventoryService {
     return { message: MESSAGES.CREATED };
   }
 
+  async getInventoryCategories() {
+    return await this.prisma.category.findMany({
+      where: {
+        type: CategoryTypes.INVENTORY,
+        parent: null
+      },
+      include: {
+        children: true
+      }
+    });
+  }
+
   private generateBatchNumber(): number {
     return Math.floor(10000000 + Math.random() * 90000000);
   }
