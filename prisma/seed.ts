@@ -107,11 +107,38 @@ async function main() {
   const users = await prisma.user.findMany();
   const userIds = users.map((user) => user.id);
 
+  async function generateUniqueAgentId(): Promise<number> {
+    let agentId: number;
+    let isUnique = false;
+  
+    while (!isUnique) {
+      agentId = Math.floor(Math.random() * 90000000) + 10000000;
+  
+      // Check if the agentId already exists in the database
+      const existingAgent = await prisma.agent.findUnique({
+        where: { agentId },
+      });
+  
+      if (!existingAgent) {
+        isUnique = true;
+      }
+    }
+  
+    return agentId;
+  }
+  
+  const agentId = await generateUniqueAgentId();
+
   // Seed Agents
   await prisma.agent.createMany({
     data: Array.from({ length: 10 }).map(() => ({
+      firstname: faker.name.firstName(),
+      lastname: faker.name.lastName(),
       email: faker.internet.email(),
       password: faker.internet.password(),
+      addressType: faker.helpers.arrayElement(['home', 'work']),
+      address: faker.address.streetAddress(),
+      agentId: agentId,  
     })),
   });
 

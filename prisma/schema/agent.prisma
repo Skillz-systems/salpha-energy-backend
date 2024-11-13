@@ -1,7 +1,13 @@
 model Agent {
     id            String     @id @default(auto()) @map("_id") @db.ObjectId
+    firstname     String
+    lastname      String
     email         String     @unique
     password      String?
+    addressType   String
+    address       String
+    agentId       Int       @unique
+
     status        UserStatus @default(active)
     emailVerified Boolean    @default(false)
 

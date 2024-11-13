@@ -11,6 +11,7 @@ import { EmailModule } from './mailer/email.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { ProductsModule } from './products/products.module';
+import { AgentsModule } from './agents/agents.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ProductsModule } from './products/products.module';
     PermissionsModule,
     InventoryModule,
     ProductsModule,
+    AgentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
