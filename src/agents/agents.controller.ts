@@ -22,12 +22,14 @@ import {
   ApiHeader,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
+  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { RolesAndPermissions } from 'src/auth/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { RolesAndPermissionsGuard } from 'src/auth/guards/roles.guard';
-import { ActionEnum, SubjectEnum } from '@prisma/client';
+import { ActionEnum, Agent, SubjectEnum } from '@prisma/client';
 import { GetAgentsDto } from './dto/get-agent.dto';
 
 @ApiTags('Agents')
@@ -90,9 +92,42 @@ export class AgentsController {
     return this.agentsService.getAll(GetAgentsDto);
   }
 
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Agents}`],
+  })
+  @ApiBearerAuth('access_token')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'JWT token used for authentication',
+    required: true,
+    schema: {
+      type: 'string',
+      example: 'Bearer <token>',
+    },
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID of the agent to fetch',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'The details of the agent.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Agent not found.',
+  })
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.agentsService.findOne(+id);
+  @ApiOperation({
+    summary: 'Fetch agent details',
+    description:
+      'This endpoint allows a permitted user fetch a agent details.',
+  })
+  async getAgent(@Param('id') id: string): Promise<Agent> {
+    const agent = await this.agentsService.findOne(id);
+   
+    return agent;
   }
 
   @Patch(':id')

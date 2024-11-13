@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateAgentDto } from './dto/create-agent.dto';
 import { UpdateAgentDto } from './dto/update-agent.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -6,6 +6,8 @@ import { generateRandomPassword } from 'src/utils/generate-pwd';
 import * as argon from 'argon2';
 import { hashPassword } from 'src/utils/helpers.util';
 import { GetAgentsDto } from './dto/get-agent.dto';
+import { MESSAGES } from 'src/constants';
+import { ObjectId } from 'mongodb';
 
 @Injectable()
 export class AgentsService {
@@ -34,7 +36,7 @@ export class AgentsService {
       },
     });
 
-    if (existingAgent) {
+    if (existingAgentId) {
       throw new ConflictException('Agent with the agent ID already exists');
     }
 
@@ -98,8 +100,22 @@ export class AgentsService {
     };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} agent`;
+  async findOne(id: string) {
+
+    if (!this.isValidObjectId(id)) {
+      throw new BadRequestException(`Invalid permission ID: ${id}`);
+    }
+
+
+    const agent = await this.prisma.agent.findUnique({
+      where: { id },
+    });
+
+    if (!agent) {
+      throw new NotFoundException(MESSAGES.AGENT_NOT_FOUND);
+    }
+
+    return agent;
   }
 
   update(id: number, updateAgentDto: UpdateAgentDto) {
@@ -113,4 +129,9 @@ export class AgentsService {
   private generateAgentNumber(): number {
     return Math.floor(10000000 + Math.random() * 90000000);
   }
+
+    // Helper function to validate MongoDB ObjectId
+    private isValidObjectId(id: string): boolean {
+      return ObjectId.isValid(id);
+    }
 }

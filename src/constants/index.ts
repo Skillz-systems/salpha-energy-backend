@@ -29,6 +29,7 @@ export const MESSAGES = {
 
 
  PRODUCT_NOT_FOUND: 'Product not found',
+ AGENT_NOT_FOUND: 'Agent not found',
 
   /**
    *
