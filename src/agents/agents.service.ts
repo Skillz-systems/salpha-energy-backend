@@ -5,6 +5,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { generateRandomPassword } from 'src/utils/generate-pwd';
 import * as argon from 'argon2';
 import { hashPassword } from 'src/utils/helpers.util';
+import { GetAgentsDto } from './dto/get-agent.dto';
 
 @Injectable()
 export class AgentsService {
@@ -27,6 +28,16 @@ export class AgentsService {
       throw new ConflictException('Agent with the provided email already exists');
     }
 
+    const existingAgentId = await this.prisma.agent.findFirst({
+      where: {
+        agentId 
+      },
+    });
+
+    if (existingAgent) {
+      throw new ConflictException('Agent with the agent ID already exists');
+    }
+
     const password = generateRandomPassword(30);
 
     const hashedPassword = await hashPassword(password);
@@ -44,8 +55,47 @@ export class AgentsService {
     return result;
   }
 
-  findAll() {
-    return `This action returns all agents`;
+  async getAll(getProductsDto: GetAgentsDto) {
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      createdAt,
+      updatedAt,
+    } = getProductsDto;
+
+    const whereConditions: any = {};
+
+    // Apply filtering conditions
+    if (status) whereConditions.status = status;
+    if (createdAt) whereConditions.createdAt = { gte: new Date(createdAt) };
+    if (updatedAt) whereConditions.updatedAt = { gte: new Date(updatedAt) };
+
+    const skip = (page - 1) * limit;
+
+    // Fetch products with pagination and filters
+    const agents = await this.prisma.agent.findMany({
+      where: whereConditions,
+      skip,
+      take: limit,
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    const total = await this.prisma.agent.count({
+      where: whereConditions,
+    });
+
+    return {
+      data: agents,
+      meta: {
+        total,
+        page,
+        lastPage: Math.ceil(total / limit),
+        limit,
+      },
+    };
   }
 
   findOne(id: number) {
