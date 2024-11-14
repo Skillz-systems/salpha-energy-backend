@@ -8,6 +8,7 @@ import { hashPassword } from 'src/utils/helpers.util';
 import { GetAgentsDto } from './dto/get-agent.dto';
 import { MESSAGES } from 'src/constants';
 import { ObjectId } from 'mongodb';
+import { UserStatus } from '@prisma/client';
 
 @Injectable()
 export class AgentsService {
@@ -117,13 +118,32 @@ export class AgentsService {
 
     return agent;
   }
+  
+  async getAgentsStatistics() {
+    const allAgents = await this.prisma.agent.count();
 
-  update(id: number, updateAgentDto: UpdateAgentDto) {
-    return `This action updates a #${id} agent`;
-  }
+    const activeAgentsCount = await this.prisma.agent.count({
+      where: {
+        status: UserStatus.active,
+      },
+    });
 
-  remove(id: number) {
-    return `This action removes a #${id} agent`;
+    const barredAgentsCount = await this.prisma.agent.count({
+      where: {
+        status: UserStatus.barred,
+      },
+    });
+    
+
+    if (!allAgents) {
+      throw new NotFoundException(MESSAGES.AGENT_NOT_FOUND);
+    }
+
+    return {
+      total: allAgents,
+      active: activeAgentsCount,
+      barred: barredAgentsCount
+    }
   }
 
   private generateAgentNumber(): number {

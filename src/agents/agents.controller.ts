@@ -130,13 +130,31 @@ export class AgentsController {
     return agent;
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAgentDto: UpdateAgentDto) {
-    return this.agentsService.update(+id, updateAgentDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.agentsService.remove(+id);
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Agents}`],
+  })
+  @ApiBearerAuth('access_token')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'JWT token used for authentication',
+    required: true,
+    schema: {
+      type: 'string',
+      example: 'Bearer <token>',
+    },
+  })
+  @ApiOkResponse({
+    description: 'Fetch Agent statistics',
+  })
+  @ApiOperation({
+    summary: 'Fetch Agent statistics',
+    description: 'Fetch Agent statistics',
+  })
+  @ApiBadRequestResponse({})
+  @HttpCode(HttpStatus.OK)
+  @Get('/statistics/view')
+  async getAgentsStatistics() {
+    return this.agentsService.getAgentsStatistics();
   }
 }
