@@ -118,7 +118,7 @@ export class AgentsService {
 
     return agent;
   }
-  
+
   async getAgentsStatistics() {
     const allAgents = await this.prisma.agent.count();
 
@@ -144,6 +144,65 @@ export class AgentsService {
       active: activeAgentsCount,
       barred: barredAgentsCount
     }
+  }
+
+  async getAgentTabs(agentId: string) {
+    if (!this.isValidObjectId(agentId)) {
+      throw new BadRequestException(`Invalid permission ID: ${agentId}`);
+    }
+
+
+    const agent = await this.prisma.agent.findUnique({
+      where: { id: agentId },
+      select: {
+        _count: {
+          select: { createdCustomers: true },
+        },
+      },
+    });
+
+    if (!agent) {
+      throw new NotFoundException(MESSAGES.AGENT_NOT_FOUND);
+    }
+
+    const tabs = [
+      {
+        name: 'Agents Details',
+        url: `/agent/${agentId}/details`,
+      },
+      {
+        name: 'Customers',
+        url: `/agent/${agentId}/customers`,
+        count: agent._count.createdCustomers,
+      },
+      {
+        name: 'Inventory',
+        url: `/agent/${agentId}/inventory`,
+        count: 0,
+      },
+      {
+        name: 'Transactions',
+        url: `/agent/${agentId}/transactions`,
+        count: 0,
+      },
+      {
+        name: 'Stats',
+        url: `/agent/${agentId}/stats`,
+      },
+      {
+        name: 'Sales',
+        url: `/agent/${agentId}/sales`,
+        count: 0,
+      },
+      {
+        name: 'Tickets',
+        url: `/agent/${agentId}/tickets`,
+        count: 0,
+      },
+      
+    ];
+
+    return tabs;
   }
 
   private generateAgentNumber(): number {

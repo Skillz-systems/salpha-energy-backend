@@ -157,4 +157,37 @@ export class AgentsController {
   async getAgentsStatistics() {
     return this.agentsService.getAgentsStatistics();
   }
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Agents}`],
+  })
+  @ApiBearerAuth('access_token')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'JWT token used for authentication',
+    required: true,
+    schema: {
+      type: 'string',
+      example: 'Bearer <token>',
+    },
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Agent id to fetch tabs',
+  })
+  @ApiOkResponse({
+    description: 'Fetch Agent Tabs',
+    isArray: true,
+  })
+  @ApiOperation({
+    summary: 'Fetch Agent Tabs for a particular agent',
+    description: 'Fetch Agent Tabs for a particular agent',
+  })
+  @ApiBadRequestResponse({})
+  @HttpCode(HttpStatus.OK)
+  @Get(':id/tabs')
+  async getInventoryTabs(@Param('id') agentId: string) {
+    return this.agentsService.getAgentTabs(agentId);
+  }
 }
