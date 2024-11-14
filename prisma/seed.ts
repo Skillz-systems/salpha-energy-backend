@@ -23,7 +23,7 @@ async function main() {
   //           subject: SubjectEnum.all,
   //         },
   //       ],
-  //     },
+  //     },'
   //   },
   // });
 

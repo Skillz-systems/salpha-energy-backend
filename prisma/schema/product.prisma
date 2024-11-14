@@ -1,32 +1,32 @@
 model Product {
-    id           String  @id @default(auto()) @map("_id") @db.ObjectId
-    name         String
-    description  String?
-    image        String?
-    price        String
-    currency     String? @default("NGN")
-    paymentModes String?
+  id           String  @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  description  String?
+  image        String?
+  price        String
+  currency     String? @default("NGN")
+  paymentModes String?
 
-    categoryId String   @unique @db.ObjectId
-    category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String   @unique @db.ObjectId
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
-    customers CustomerProducts[]
+  customers CustomerProducts[]
 
-    inventoryBatches ProductInventoryBatch[]
+  inventoryBatches ProductInventoryBatch[]
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    @@map("products")
+  @@map("products")
 }
 
 model ProductInventoryBatch {
-  id              String           @id @default(auto()) @map("_id") @db.ObjectId
-  productId       String           @db.ObjectId
-  product         Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  productId String  @db.ObjectId
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  inventoryBatchId String          @db.ObjectId
-  inventoryBatch   InventoryBatch  @relation(fields: [inventoryBatchId], references: [id], onDelete: Cascade)
+  inventoryBatchId String         @db.ObjectId
+  inventoryBatch   InventoryBatch @relation(fields: [inventoryBatchId], references: [id], onDelete: Cascade)
 
   @@unique([productId, inventoryBatchId]) // ensures unique combinations
 }
