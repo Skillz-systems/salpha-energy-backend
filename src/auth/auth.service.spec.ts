@@ -1,4 +1,4 @@
-import { PrismaClient, TokenType, User, UserStatus } from '@prisma/client';
+import { PrismaClient, TokenType} from '@prisma/client';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -12,6 +12,7 @@ import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { ForgotPasswordDTO } from './dto/forgot-password.dto';
 import { MESSAGES } from '../constants';
 import * as argon from 'argon2';
+import { fakeData } from '../../src/../test/mockData/user';
 
 jest.mock('argon2', () => ({
   verify: jest.fn(),
@@ -43,26 +44,6 @@ describe('AuthService', () => {
     phone: '09062736182',
     role: '66dce4173c5d3b2fd5f5728',
     location: 'Abuja',
-  };
-
-  const fakeData: User = {
-    id: 'user-id',
-    firstname: 'John',
-    lastname: 'Doe',
-    username: 'johndoe',
-    password:
-      '$argon2id$v=19$m=65536,t=3,p=4$f+0kBa9fD6cExuwn/+Obug$C8I/ylTXWI7EzgrABXiVclIkJsbDu/jCEJ0LuwzqAzY',
-    email: 'john.doe@example.com',
-    phone: '1234567890',
-    location: 'Some Location',
-    staffId: 'staff-id',
-    roleId: 'role-id',
-    status: UserStatus.active,
-    isBlocked: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    deletedAt: null,
-    lastLogin: new Date(),
   };
 
   const tokenData = {

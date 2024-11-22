@@ -1,15 +1,8 @@
 model Agent {
-    id            String     @id @default(auto()) @map("_id") @db.ObjectId
-    email         String     @unique
-    password      String?
-    status        UserStatus @default(active)
-    emailVerified Boolean    @default(false)
+    id String @id @default(auto()) @map("_id") @db.ObjectId
 
-    createdAt DateTime  @default(now())
-    updatedAt DateTime  @updatedAt
-    deletedAt DateTime?
-    
-    lastLogin DateTime?
-
-    createdCustomers Customer[] @relation("CustomerCreator")
+    customers Customer[] 
+   
+    user   User   @relation(fields: [userId], references: [id])
+    userId String @unique @db.ObjectId
 }

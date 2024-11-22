@@ -1,36 +1,19 @@
 model Customer {
-    id        String  @id @default(auto()) @map("_id") @db.ObjectId
-    fullname  String
-    longitude Float?
-    latitude  Float?
-    location  String?
+    id        String             @id @default(auto()) @map("_id") @db.ObjectId
+    type      CustomerType       @default(lead) // Defaults to LEAD until purchase
+    createdBy String
+    products  CustomerProducts[]
 
-    type CustomerType @default(lead) // Defaults to LEAD until purchase
+    creatorId      String? @db.ObjectId
+    creatorDetails User?   @relation(fields: [creatorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-    status UserStatus @default(active)
+    agentId String? @db.ObjectId
+    agent   Agent?  @relation(fields: [agentId], references: [id])
 
-    createdBy WhoCreatedCustomer // Enum to store who created the customer, e.g., "USER" or "AGENT"
+    user   User   @relation("CustomerDetails", fields: [userId], references: [id])
+    userId String @unique @db.ObjectId
 
-    createdByUserId  String? @db.ObjectId // Link to User if created by a User
-    createdByAgentId String? @db.ObjectId // Link to Agent if created by an Agent
-
-    createdAt DateTime  @default(now())
-    updatedAt DateTime  @updatedAt
-    deletedAt DateTime?
-
-    lastLogin DateTime?
-
-    products CustomerProducts[]
-
-    user  User?  @relation("CustomerCreator", fields: [createdByUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-    agent Agent? @relation("CustomerCreator", fields: [createdByAgentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-    @@map("customers")
-}
-
-enum WhoCreatedCustomer {
-    user
-    agent
+    @@map("customer")
 }
 
 enum CustomerType {

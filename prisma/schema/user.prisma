@@ -1,27 +1,33 @@
 model User {
-  id        String  @id @default(auto()) @map("_id") @db.ObjectId
-  firstname String?
-  lastname  String?
-  username  String?
-  password  String
-  email     String  @unique
-  phone     String?
-  location  String?
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  firstname   String?
+  lastname    String?
+  username    String?
+  password    String
+  email       String       @unique
+  phone       String?
+  location    String?
+  addressType AddressType?
+  staffId     String?
 
-  staffId String?
+  longitude String?
+  latitude  String?
+
+  emailVerified Boolean @default(false)
+  isBlocked     Boolean @default(false)
 
   status UserStatus @default(active)
 
-  isBlocked Boolean @default(false)
-
   tempToken TempToken[]
 
-  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  roleId String @db.ObjectId
-
+  role         Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId       String @db.ObjectId
   createdRoles Role[] @relation("RoleCreator")
 
-  createdCustomers Customer[] @relation("CustomerCreator")
+  agentDetails    Agent?
+  customerDetails Customer? @relation("CustomerDetails")
+
+  createdCustomers Customer[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -36,4 +42,9 @@ enum UserStatus {
   active
   inactive
   barred
+}
+
+enum AddressType {
+  HOME
+  WORK
 }

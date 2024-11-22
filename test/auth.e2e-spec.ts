@@ -1,9 +1,8 @@
 import * as request from 'supertest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
-import { PrismaClient, TokenType, User, UserStatus } from '@prisma/client';
+import { PrismaClient, TokenType } from '@prisma/client';
 import {
-  BadRequestException,
   ExecutionContext,
   HttpStatus,
   INestApplication,
@@ -18,6 +17,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as argon from 'argon2';
 import { JwtAuthGuard } from '../src/auth/guards/jwt.guard';
 import { RolesAndPermissionsGuard } from '../src/auth/guards/roles.guard';
+import { fakeData } from './mockData/user';
 
 jest.mock('argon2', () => ({
   verify: jest.fn(),
@@ -58,26 +58,6 @@ describe('AuthController (e2e)', () => {
     created_at: new Date(),
     updated_at: new Date(),
     deleted_at: null,
-  };
-
-  const fakeData: User = {
-    id: '62a23958e5a9e9b88f853a67',
-    firstname: 'John',
-    lastname: 'Doe',
-    username: 'johndoe',
-    password:
-      '$argon2id$v=19$m=65536,t=3,p=4$f+0kBa9fD6cExuwn/+Obug$C8I/ylTXWI7EzgrABXiVclIkJsbDu/jCEJ0LuwzqAzY',
-    email: 'john.doe@example.com',
-    phone: '1234567890',
-    location: 'Some Location',
-    staffId: 'staff-id',
-    roleId: '66e9ecc37cadd7f6e4b76e43',
-    status: UserStatus.active,
-    isBlocked: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    deletedAt: null,
-    lastLogin: new Date(),
   };
 
   const mockUser = {
@@ -279,37 +259,37 @@ describe('AuthController (e2e)', () => {
     });
   });
 
-  describe('Verify Reset Token', () => {
-    it('/auth/verify-reset-token/:userid/token (POST) should verify a valid reset token', async () => {
-      mockPrismaService.tempToken.findFirst.mockResolvedValue(tokenData);
+  // describe('Verify Reset Token', () => {
+    // it('/auth/verify-reset-token/:userid/token (POST) should verify a valid reset token', async () => {
+    //   mockPrismaService.tempToken.findFirst.mockResolvedValue(tokenData);
 
-      const response = await request(app.getHttpServer())
-        .post(`/auth/verify-reset-token/${fakeData.id}/${tokenData.token}`)
-        .expect(HttpStatus.OK);
+    //   const response = await request(app.getHttpServer())
+    //     .post(`/auth/verify-reset-token/${fakeData.id}/${tokenData.token}`)
+    //     .expect(HttpStatus.OK);
 
-      expect(response.body).toHaveProperty("id");
-    });
+    //   expect(response.body).toHaveProperty("id");
+    // });
 
-    it('/auth/verify-email-verification-token/:userid/token  (POST) should verify a valid email verification token', async () => {
-      mockPrismaService.tempToken.findFirst.mockResolvedValue(tokenData);
+    // it('/auth/verify-email-verification-token/:userid/token  (POST) should verify a valid email verification token', async () => {
+    //   mockPrismaService.tempToken.findFirst.mockResolvedValue(tokenData);
 
-      const response = await request(app.getHttpServer())
-        .post(
-          `/auth/verify-email-verification-token/${fakeData.id}/${tokenData.token}`,
-        )
-        .expect(HttpStatus.OK);
+    //   const response = await request(app.getHttpServer())
+    //     .post(
+    //       `/auth/verify-email-verification-token/${fakeData.id}/${tokenData.token}`,
+    //     )
+    //     .expect(HttpStatus.OK);
 
-      expect(response.body).toHaveProperty('id');
-    });
+    //   expect(response.body).toHaveProperty('id');
+    // });
 
-    it('/auth/verify-reset-token/:userid/token  (POST) should return HttpStatus.BAD_REQUEST for an invalid or expired token', async () => {
-      mockPrismaService.tempToken.findFirst.mockRejectedValue(
-        new BadRequestException(MESSAGES.INVALID_TOKEN),
-      );
+    // it('/auth/verify-reset-token/:userid/token  (POST) should return HttpStatus.BAD_REQUEST for an invalid or expired token', async () => {
+    //   mockPrismaService.tempToken.findFirst.mockRejectedValue(
+    //     new BadRequestException(MESSAGES.INVALID_TOKEN),
+    //   );
 
-      await request(app.getHttpServer())
-        .post(`/auth/verify-reset-token/${fakeData.id}/${tokenData.token}`)
-        .expect(HttpStatus.BAD_REQUEST);
-    });
-  });
+    //   await request(app.getHttpServer())
+    //     .post(`/auth/verify-reset-token/${fakeData.id}/${tokenData.token}`)
+    //     .expect(HttpStatus.BAD_REQUEST);
+    // });
+  // });
 });

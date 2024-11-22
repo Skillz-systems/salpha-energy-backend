@@ -23,7 +23,7 @@ async function main() {
   //           subject: SubjectEnum.all,
   //         },
   //       ],
-  //     },
+  //     },'
   //   },
   // });
 
@@ -46,6 +46,10 @@ async function main() {
   // console.log({ adminRole, customerRole });
 
   // Seed Category
+
+  await prisma.category.deleteMany();
+
+  
   await prisma.category.createMany({
     data: Array.from({ length: 10 }).map(() => ({
       name: faker.commerce.department(),
@@ -106,8 +110,7 @@ async function main() {
   // Seed Agents
   await prisma.agent.createMany({
     data: Array.from({ length: 10 }).map(() => ({
-      email: faker.internet.email(),
-      password: faker.internet.password(),
+      userId: faker.helpers.arrayElement(userIds),
     })),
   });
 
@@ -119,13 +122,11 @@ async function main() {
   await prisma.customer.deleteMany();
   await prisma.customer.createMany({
     data: Array.from({ length: 10 }).map(() => ({
-      fullname: faker.person.fullName(),
-      longitude: faker.location.longitude(),
-      latitude: faker.location.latitude(),
-      location: faker.location.streetAddress(),
       createdBy: faker.helpers.arrayElement(['user', 'agent']),
-      createdByUserId: faker.helpers.arrayElement(userIds),
-      createdByAgentId: faker.helpers.arrayElement(agentIds),
+      creatorId: faker.helpers.arrayElement(userIds),
+      userId: faker.helpers.arrayElement(userIds),
+      agentId: faker.helpers.arrayElement(agentIds),
+      type: 'lead',
     })),
   });
 

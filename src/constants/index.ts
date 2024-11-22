@@ -27,6 +27,10 @@ export const MESSAGES = {
   PERMISSIONS_METADATA_INVALID: 'Permissions metadata is invalid or missing',
   EMPTY_OBJECT: 'At least one field must be provided to update',
 
+
+ PRODUCT_NOT_FOUND: 'Product not found',
+ AGENT_NOT_FOUND: 'Agent not found',
+
   /**
    *
    * @param field
