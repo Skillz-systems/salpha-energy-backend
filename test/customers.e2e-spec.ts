@@ -9,6 +9,7 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import { AppModule } from '../src/app.module';
 import { fakeData } from './mockData/user';
 import { MESSAGES } from '../src/constants';
+import { mockUsersResponseData } from './mockData/user';
 
 describe('CustomersController (e2e)', () => {
   let app: INestApplication;
@@ -91,4 +92,22 @@ describe('CustomersController (e2e)', () => {
     });
 
   });
+
+   describe('List Customers', () => {
+     it('/customers (GET)', async () => {
+       mockPrismaService.user.findMany.mockResolvedValueOnce(
+         mockUsersResponseData,
+       );
+       mockPrismaService.user.count.mockResolvedValueOnce(1);
+
+       const response = await request(app.getHttpServer())
+         .get('/customers?page=1&limit=10')
+         .expect(200);
+
+       expect(response.body.customers.length).toBeGreaterThan(0);
+       expect(response.body.total).toBeTruthy();
+       expect(response.body.page).toBeTruthy();
+       expect(response.body.limit).toBeTruthy();
+     });
+   });
 });

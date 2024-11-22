@@ -7,6 +7,10 @@ import { CreateCustomerDto } from './dto/create-customer.dto';
 import { fakeData } from '../../src/../test/mockData/user';
 import { MESSAGES } from '../constants';
 import { BadRequestException } from '@nestjs/common';
+import { mockUsersResponseData } from '../../src/../test/mockData/user';
+import { plainToInstance } from 'class-transformer';
+import { UserEntity } from '../users/entity/user.entity';
+import { ListUsersQueryDto } from '../users/dto/list-users.dto';
 
 describe('CustomersService', () => {
   let service: CustomersService;
@@ -78,7 +82,6 @@ describe('CustomersService', () => {
     });
 
     it('should throw error if email already exists', async () => {
-
       (prisma.user.findFirst as jest.Mock).mockResolvedValue({
         id: 'existing-id',
       });
@@ -90,6 +93,34 @@ describe('CustomersService', () => {
       expect(prisma.user.findFirst).toHaveBeenCalledWith({
         where: { email: mockDto.email },
       });
+    });
+  });
+
+  describe('List Customers', () => {
+    it('should return paginated customers', async () => {
+      mockPrismaService.user.findMany.mockResolvedValueOnce(
+        mockUsersResponseData,
+      );
+      mockPrismaService.user.count.mockResolvedValueOnce(1);
+
+      const paginatedUsers = {
+        customers: plainToInstance(UserEntity, mockUsersResponseData),
+        total: 1,
+        page: '1',
+        limit: '10',
+        totalPages: 1,
+      };
+
+      const query: ListUsersQueryDto = { page: '1', limit: '10' };
+
+      const result = await service.getUsers(query);
+      expect(result).toEqual(paginatedUsers);
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 0,
+          take: 10,
+        }),
+      );
     });
   });
 });
