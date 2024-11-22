@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, INestApplication } from '@nestjs/common';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client'; 
 import { PrismaService } from '../src/prisma/prisma.service';
 // import { CreateRoleDto } from '../src/roles/dto/create-role.dto';
 // import { UpdateRoleDto } from '../src/roles/dto/update-role.dto';
