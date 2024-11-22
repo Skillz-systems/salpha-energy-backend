@@ -150,6 +150,7 @@ export class RolesService {
           throw new NotFoundException(`Role with id ${id} not found`);
         }
       }
+      console.log({error})
       throw new InternalServerErrorException('An unexpected error occurred');
     }
   }

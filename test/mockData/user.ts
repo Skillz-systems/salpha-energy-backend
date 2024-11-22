@@ -1,4 +1,10 @@
-import { AddressType, User, UserStatus } from "@prisma/client";
+import {
+  ActionEnum,
+  AddressType,
+  SubjectEnum,
+  User,
+  UserStatus,
+} from '@prisma/client';
 
 export const fakeData: User = {
   id: 'user-id',
@@ -23,3 +29,47 @@ export const fakeData: User = {
   deletedAt: null,
   lastLogin: new Date(),
 };
+
+export const mockUsersResponseData = [
+  {
+    id: '66e9fe02014ca14746800d33',
+    firstname: 'john',
+    lastname: 'okor@gmail',
+    username: null,
+    password: 'wrehiohjorwerw',
+    email: 'francisalexander000@gmail.com',
+    phone: '09062736182',
+    addressType: AddressType.HOME,
+    longitude: '',
+    latitude: '',
+    emailVerified: false,
+    location: 'Abuja',
+    staffId: null,
+    status: UserStatus.active,
+    isBlocked: false,
+    roleId: '66e9ecc37cadd7f6e4b76e42',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    deletedAt: null,
+    lastLogin: null,
+    role: {
+      id: '66e9ecc37cadd7f6e4b76e42',
+      role: 'admin',
+      active: true,
+      created_at: new Date(),
+      updated_at: new Date(),
+      deleted_at: null,
+      permissions: [
+        {
+          id: '66e9ecc37cadd7f6e4b76e43',
+          action: ActionEnum.manage,
+          subject: SubjectEnum.all,
+          roleId: '66e9ecc37cadd7f6e4b76e42',
+          created_at: new Date(),
+          updated_at: new Date(),
+          deleted_at: null,
+        },
+      ],
+    },
+  },
+];

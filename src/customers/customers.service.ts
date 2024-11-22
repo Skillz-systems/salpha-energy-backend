@@ -19,8 +19,6 @@ export class CustomersService {
       },
     });
 
-    console.log({ emailExists, id, createCustomerDto });
-
     if (emailExists) {
       throw new BadRequestException(MESSAGES.EMAIL_EXISTS);
     }

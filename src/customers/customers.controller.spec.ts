@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CustomersController } from './customers.controller';
 import { CustomersService } from './customers.service';
-import { DeepMockProxy } from 'jest-mock-extended';
+import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { PrismaClient } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
@@ -17,6 +17,8 @@ describe('CustomersController', () => {
   };
 
   beforeEach(async () => {
+    mockPrismaService = mockDeep<PrismaClient>();
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CustomersController],
       providers: [
@@ -49,7 +51,7 @@ describe('CustomersController', () => {
 
     it('should create a customer with credentials', async () => {
       const mockUserId = 'user-id';
-      
+
       mockCustomerService.createCustomer.mockResolvedValue({
         message: MESSAGES.CREATED,
       });

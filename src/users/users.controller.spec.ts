@@ -2,12 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import {
-  ActionEnum,
-  PrismaClient,
-  SubjectEnum,
-  UserStatus,
-} from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { UserEntity } from './entity/user.entity';
@@ -15,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MESSAGES } from '../constants';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ListUsersQueryDto } from './dto/list-users.dto';
+import { mockUsersResponseData } from '../../src/../test/mockData/user';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -27,46 +23,6 @@ describe('UsersController', () => {
     fetchUser: jest.fn(),
     deleteUser: jest.fn(),
   };
-
-  const mockUsers = [
-    {
-      id: '66e9fe02014ca14746800d33',
-      firstname: 'john',
-      lastname: 'okor@gmail',
-      username: null,
-      password: 'wrehiohjorwerw',
-      email: 'francisalexander000@gmail.com',
-      phone: '09062736182',
-      location: 'Abuja',
-      staffId: null,
-      status: UserStatus.active,
-      isBlocked: false,
-      roleId: '66e9ecc37cadd7f6e4b76e42',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      deletedAt: null,
-      lastLogin: null,
-      role: {
-        id: '66e9ecc37cadd7f6e4b76e42',
-        role: 'admin',
-        active: true,
-        created_at: new Date(),
-        updated_at: new Date(),
-        deleted_at: null,
-        permissions: [
-          {
-            id: '66e9ecc37cadd7f6e4b76e43',
-            action: ActionEnum.manage,
-            subject: SubjectEnum.all,
-            roleId: '66e9ecc37cadd7f6e4b76e42',
-            created_at: new Date(),
-            updated_at: new Date(),
-            deleted_at: null,
-          },
-        ],
-      },
-    },
-  ];
 
   beforeEach(async () => {
     mockPrismaService = mockDeep<PrismaClient>();
@@ -93,7 +49,7 @@ describe('UsersController', () => {
   describe('List User', () => {
     it('should return a list of paginated users', async () => {
       const paginatedUsers = {
-        users: plainToInstance(UserEntity, mockUsers),
+        users: plainToInstance(UserEntity, mockUsersResponseData),
         total: 1,
         page: '1',
         limit: '10',
@@ -133,7 +89,7 @@ describe('UsersController', () => {
 
   describe('Fetch User', () => {
     it('should return a user if found', async () => {
-      const userEntity = plainToInstance(UserEntity, mockUsers[0]);
+      const userEntity = plainToInstance(UserEntity, mockUsersResponseData[0]);
       mockUsersService.fetchUser.mockResolvedValueOnce(userEntity);
 
       const result = await controller.fetchUser('66e9fe02014ca14746800d33');
