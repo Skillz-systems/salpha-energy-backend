@@ -1,24 +1,19 @@
 model Customer {
     id        String             @id @default(auto()) @map("_id") @db.ObjectId
     type      CustomerType       @default(lead) // Defaults to LEAD until purchase
-    createdBy WhoCreatedCustomer // Enum to store who created the customer, e.g., "USER" or "AGENT"
+    createdBy String
     products  CustomerProducts[]
 
     creatorId      String? @db.ObjectId
     creatorDetails User?   @relation(fields: [creatorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-    agentId String @db.ObjectId
-    agent   Agent  @relation(fields: [agentId], references: [id])
+    agentId String? @db.ObjectId
+    agent   Agent?  @relation(fields: [agentId], references: [id])
 
     user   User   @relation("CustomerDetails", fields: [userId], references: [id])
     userId String @unique @db.ObjectId
 
     @@map("customer")
-}
-
-enum WhoCreatedCustomer {
-    user
-    agent
 }
 
 enum CustomerType {

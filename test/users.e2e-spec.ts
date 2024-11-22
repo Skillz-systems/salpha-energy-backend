@@ -3,6 +3,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import {
   ActionEnum,
+  AddressType,
   PrismaClient,
   SubjectEnum,
   UserStatus,
@@ -26,6 +27,10 @@ describe('UsersController (e2e)', () => {
       password: 'wrehiohjorwerw',
       email: 'francisalexander000@gmail.com',
       phone: '09062736182',
+      addressType: AddressType.HOME,
+      longitude: '',
+      latitude: '',
+      emailVerified: false,
       location: 'Abuja',
       staffId: null,
       status: UserStatus.active,

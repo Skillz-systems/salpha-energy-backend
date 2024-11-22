@@ -8,11 +8,10 @@ model User {
   phone       String?
   location    String?
   addressType AddressType?
-  address     String?
   staffId     String?
 
-  longitude Float?
-  latitude  Float?
+  longitude String?
+  latitude  String?
 
   emailVerified Boolean @default(false)
   isBlocked     Boolean @default(false)

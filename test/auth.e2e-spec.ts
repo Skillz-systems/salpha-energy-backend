@@ -1,7 +1,7 @@
 import * as request from 'supertest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
-import { PrismaClient, TokenType, User, UserStatus } from '@prisma/client';
+import { PrismaClient, TokenType } from '@prisma/client';
 import {
   BadRequestException,
   ExecutionContext,
@@ -18,6 +18,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as argon from 'argon2';
 import { JwtAuthGuard } from '../src/auth/guards/jwt.guard';
 import { RolesAndPermissionsGuard } from '../src/auth/guards/roles.guard';
+import { fakeData } from './mockData/user';
 
 jest.mock('argon2', () => ({
   verify: jest.fn(),
@@ -58,26 +59,6 @@ describe('AuthController (e2e)', () => {
     created_at: new Date(),
     updated_at: new Date(),
     deleted_at: null,
-  };
-
-  const fakeData: User = {
-    id: '62a23958e5a9e9b88f853a67',
-    firstname: 'John',
-    lastname: 'Doe',
-    username: 'johndoe',
-    password:
-      '$argon2id$v=19$m=65536,t=3,p=4$f+0kBa9fD6cExuwn/+Obug$C8I/ylTXWI7EzgrABXiVclIkJsbDu/jCEJ0LuwzqAzY',
-    email: 'john.doe@example.com',
-    phone: '1234567890',
-    location: 'Some Location',
-    staffId: 'staff-id',
-    roleId: '66e9ecc37cadd7f6e4b76e43',
-    status: UserStatus.active,
-    isBlocked: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    deletedAt: null,
-    lastLogin: new Date(),
   };
 
   const mockUser = {

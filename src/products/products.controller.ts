@@ -2,10 +2,10 @@ import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, ParseFilePipeB
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiConsumes, ApiCreatedResponse, ApiExtraModels, ApiHeader, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { RolesAndPermissions } from 'src/auth/decorators/roles.decorator';
+import { RolesAndPermissions } from '../auth/decorators/roles.decorator';
 import { ActionEnum, Product, SubjectEnum } from '@prisma/client';
-import { RolesAndPermissionsGuard } from 'src/auth/guards/roles.guard';
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+import { RolesAndPermissionsGuard } from '../auth/guards/roles.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { GetProductsDto } from './dto/get-products.dto';
 import { CreateProductCategoryDto } from './dto/create-category.dto';

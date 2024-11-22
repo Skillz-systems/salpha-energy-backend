@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { GetProductsDto } from './dto/get-products.dto';
-import { MESSAGES } from 'src/constants';
+import { MESSAGES } from '../constants';
 import { CreateProductCategoryDto } from './dto/create-category.dto';
 
 @Injectable()
