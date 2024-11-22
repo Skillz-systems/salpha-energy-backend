@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { MESSAGES } from '../constants';
 import { PrismaService } from '../prisma/prisma.service';
@@ -206,6 +206,58 @@ export class CustomersService {
       page,
       limit,
       totalPages: limitNumber === 0 ? 0 : Math.ceil(totalCount / limitNumber),
+    };
+  }
+
+  async fetchUser(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id,
+        customerDetails: {
+          isNot: null,
+        },
+      },
+      include: {
+        role: {
+          include: {
+            permissions: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(MESSAGES.USER_NOT_FOUND);
+    }
+
+    const serialisedData = plainToInstance(UserEntity, user);
+
+    return serialisedData;
+  }
+
+  async deleteUser(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id,
+        customerDetails: {
+          isNot: null,
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(MESSAGES.USER_NOT_FOUND);
+    }
+
+    await this.prisma.customer.delete({
+      where: { userId: id },
+    });
+    await this.prisma.user.delete({
+      where: { id },
+    });
+
+    return {
+      message: MESSAGES.DELETED,
     };
   }
 }

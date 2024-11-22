@@ -5,7 +5,7 @@ import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { PrismaClient } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { MESSAGES } from '../constants';
 import { mockUsersResponseData } from '../../src/../test/mockData/user';
 import { plainToInstance } from 'class-transformer';
@@ -19,6 +19,8 @@ describe('CustomersController', () => {
   const mockCustomerService = {
     createCustomer: jest.fn(),
     getUsers: jest.fn(),
+    fetchUser: jest.fn(),
+    deleteUser: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -103,4 +105,60 @@ describe('CustomersController', () => {
        expect(mockCustomerService.getUsers).toHaveBeenCalledWith(query);
      });
    });
+
+    describe('Fetch Customer', () => {
+      it('should return a customer if found', async () => {
+        const userEntity = plainToInstance(
+          UserEntity,
+          mockUsersResponseData[0],
+        );
+        mockCustomerService.fetchUser.mockResolvedValueOnce(userEntity);
+
+        const result = await controller.fetchCustomer('66e9fe02014ca14746800d33');
+        expect(result).toEqual(userEntity);
+        expect(mockCustomerService.fetchUser).toHaveBeenCalledWith(
+          '66e9fe02014ca14746800d33',
+        );
+      });
+
+      it('should throw NotFoundException if customer is not found', async () => {
+        mockCustomerService.fetchUser.mockRejectedValueOnce(
+          new NotFoundException(MESSAGES.USER_NOT_FOUND),
+        );
+
+        await expect(controller.fetchCustomer('nonexistent-id')).rejects.toThrow(
+          new NotFoundException(MESSAGES.USER_NOT_FOUND),
+        );
+        expect(mockCustomerService.fetchUser).toHaveBeenCalledWith(
+          'nonexistent-id',
+        );
+      });
+    });
+
+    describe('Delete Customerr', () => {
+      it('should call deleteUser service method and return success message', async () => {
+        mockCustomerService.deleteUser.mockResolvedValueOnce({
+          message: MESSAGES.DELETED,
+        });
+
+        const result = await controller.deleteUser('66e9fe02014ca14746800d33');
+        expect(result).toEqual({ message: MESSAGES.DELETED });
+        expect(mockCustomerService.deleteUser).toHaveBeenCalledWith(
+          '66e9fe02014ca14746800d33',
+        );
+      });
+
+      it('should throw NotFoundException if user to delete is not found', async () => {
+        mockCustomerService.deleteUser.mockRejectedValueOnce(
+          new NotFoundException(MESSAGES.USER_NOT_FOUND),
+        );
+
+        await expect(controller.deleteUser('nonexistent-id')).rejects.toThrow(
+          new NotFoundException(MESSAGES.USER_NOT_FOUND),
+        );
+        expect(mockCustomerService.deleteUser).toHaveBeenCalledWith(
+          'nonexistent-id',
+        );
+      });
+    });
 });
