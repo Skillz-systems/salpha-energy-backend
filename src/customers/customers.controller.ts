@@ -5,6 +5,8 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Get,
+  Query,
 } from '@nestjs/common';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
@@ -17,10 +19,14 @@ import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
+  ApiExtraModels,
   ApiHeader,
+  ApiOkResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { GetUser } from '../auth/decorators/getUser';
+import { UserEntity } from '../users/entity/user.entity';
+import { ListUsersQueryDto } from '../users/dto/list-users.dto';
 
 @SkipThrottle()
 @ApiTags('Customers')
@@ -59,5 +65,33 @@ export class CustomersController {
     return await this.customersService.createCustomer(id, createCustomersDto);
   }
 
-  
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [
+      `${ActionEnum.manage}:${SubjectEnum.Agents}`,
+      `${ActionEnum.manage}:${SubjectEnum.Customers}`,
+    ],
+  })
+  @Get()
+  @ApiBearerAuth('access_token')
+  @ApiOkResponse({
+    description: 'List all customers with pagination',
+    type: UserEntity,
+    isArray: true,
+  })
+  @ApiBadRequestResponse({})
+  @ApiExtraModels(ListUsersQueryDto)
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'JWT token used for authentication',
+    required: true,
+    schema: {
+      type: 'string',
+      example: 'Bearer <token>',
+    },
+  })
+  @HttpCode(HttpStatus.OK)
+  async listCustomers(@Query() query: ListUsersQueryDto) {
+    return await this.customersService.getUsers(query);
+  }
 }

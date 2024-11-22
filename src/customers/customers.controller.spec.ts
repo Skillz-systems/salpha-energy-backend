@@ -7,6 +7,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { BadRequestException } from '@nestjs/common';
 import { MESSAGES } from '../constants';
+import { mockUsersResponseData } from '../../src/../test/mockData/user';
+import { plainToInstance } from 'class-transformer';
+import { UserEntity } from '../users/entity/user.entity';
+import { ListUsersQueryDto } from '../users/dto/list-users.dto';
 
 describe('CustomersController', () => {
   let controller: CustomersController;
@@ -14,6 +18,7 @@ describe('CustomersController', () => {
 
   const mockCustomerService = {
     createCustomer: jest.fn(),
+    getUsers: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -79,4 +84,23 @@ describe('CustomersController', () => {
       );
     });
   });
+
+   describe('List Customers', () => {
+     it('should return a list of paginated customerss', async () => {
+       const paginatedUsers = {
+         users: plainToInstance(UserEntity, mockUsersResponseData),
+         total: 1,
+         page: '1',
+         limit: '10',
+         totalPages: 1,
+       };
+
+       const query: ListUsersQueryDto = { page: '1', limit: '10' };
+       mockCustomerService.getUsers.mockResolvedValueOnce(paginatedUsers);
+
+       const result = await controller.listCustomers(query);
+       expect(result).toMatchObject(paginatedUsers);
+       expect(mockCustomerService.getUsers).toHaveBeenCalledWith(query);
+     });
+   });
 });

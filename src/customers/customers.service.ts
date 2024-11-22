@@ -4,7 +4,10 @@ import { MESSAGES } from '../constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { generateRandomPassword } from '../utils/generate-pwd';
 import { hashPassword } from '../utils/helpers.util';
-import { ActionEnum, SubjectEnum } from '@prisma/client';
+import { ActionEnum, Prisma, SubjectEnum } from '@prisma/client';
+import { ListUsersQueryDto } from '../users/dto/list-users.dto';
+import { plainToInstance } from 'class-transformer';
+import { UserEntity } from '../users/entity/user.entity';
 
 @Injectable()
 export class CustomersService {
@@ -101,19 +104,108 @@ export class CustomersService {
     return { message: MESSAGES.CREATED };
   }
 
-  findAll() {
-    return `This action returns all customers`;
+  async userFilter(query: ListUsersQueryDto): Promise<Prisma.UserWhereInput> {
+    const {
+      search,
+      firstname,
+      lastname,
+      username,
+      email,
+      phone,
+      location,
+      status,
+      isBlocked,
+      roleId,
+      createdAt,
+      updatedAt,
+    } = query;
+
+    const filterConditions: Prisma.UserWhereInput = {
+      AND: [
+        search
+          ? {
+              OR: [
+                { firstname: { contains: search, mode: 'insensitive' } },
+                { lastname: { contains: search, mode: 'insensitive' } },
+                { email: { contains: search, mode: 'insensitive' } },
+                { username: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {},
+        firstname
+          ? { firstname: { contains: firstname, mode: 'insensitive' } }
+          : {},
+        lastname
+          ? { lastname: { contains: lastname, mode: 'insensitive' } }
+          : {},
+        username
+          ? { username: { contains: username, mode: 'insensitive' } }
+          : {},
+        email ? { email: { contains: email, mode: 'insensitive' } } : {},
+        phone ? { phone: { contains: phone, mode: 'insensitive' } } : {},
+        location
+          ? { location: { contains: location, mode: 'insensitive' } }
+          : {},
+        status ? { status } : {},
+        isBlocked !== undefined ? { isBlocked } : {},
+        roleId ? { roleId } : {},
+        createdAt ? { createdAt: new Date(createdAt) } : {},
+        updatedAt ? { updatedAt: new Date(updatedAt) } : {},
+      ],
+    };
+
+    return filterConditions;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} customer`;
-  }
+  async getUsers(query: ListUsersQueryDto) {
+    const { page = 1, limit = 100, sortField, sortOrder } = query;
 
-  update(id: number) {
-    return `This action updates a #${id} customer`;
-  }
+    const filterConditions = await this.userFilter(query);
 
-  remove(id: number) {
-    return `This action removes a #${id} customer`;
+    const pageNumber = parseInt(String(page), 10);
+    const limitNumber = parseInt(String(limit), 10);
+
+    const skip = (pageNumber - 1) * limitNumber;
+    const take = limitNumber;
+
+    const orderBy = sortField
+      ? {
+          [sortField]: sortOrder || 'asc',
+        }
+      : undefined;
+
+    const result = await this.prisma.user.findMany({
+      skip,
+      take,
+      where: {
+        ...filterConditions,
+        customerDetails: {
+          isNot: null,
+        },
+      },
+      orderBy,
+      include: {
+        customerDetails: true,
+        role: {
+          include: {
+            permissions: true,
+          },
+        },
+      },
+    });
+
+    const customers = plainToInstance(UserEntity, result);
+
+    const totalCount = await this.prisma.user.count({
+      where: filterConditions,
+    });
+
+    return {
+      customers,
+      total: totalCount,
+      page,
+      limit,
+      totalPages: limitNumber === 0 ? 0 : Math.ceil(totalCount / limitNumber),
+    };
   }
 }
