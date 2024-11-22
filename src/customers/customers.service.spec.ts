@@ -6,7 +6,7 @@ import { ActionEnum, PrismaClient, SubjectEnum } from '@prisma/client';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { fakeData } from '../../src/../test/mockData/user';
 import { MESSAGES } from '../constants';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { mockUsersResponseData } from '../../src/../test/mockData/user';
 import { plainToInstance } from 'class-transformer';
 import { UserEntity } from '../users/entity/user.entity';
@@ -120,6 +120,62 @@ describe('CustomersService', () => {
           skip: 0,
           take: 10,
         }),
+      );
+    });
+  });
+
+  describe('fetchCustomer', () => {
+    it('should return a customer', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(
+        mockUsersResponseData[0],
+      );
+
+      const result = await service.fetchUser('66e9fe02014ca14746800d33');
+
+      expect(result).toEqual(
+        plainToInstance(UserEntity, mockUsersResponseData[0]),
+      );
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: {
+          id: '66e9fe02014ca14746800d33',
+          customerDetails: {
+            isNot: null,
+          },
+        },
+        include: { role: { include: { permissions: true } } },
+      });
+    });
+
+    it('should throw NotFoundException if customer does not exist', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.fetchUser('nonexistent-id')).rejects.toThrow(
+        new NotFoundException(MESSAGES.USER_NOT_FOUND),
+      );
+    });
+  });
+
+  describe('deleteCustomer', () => {
+    it('should delete a customer successfully', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(
+        mockUsersResponseData[0],
+      );
+      mockPrismaService.customer.delete.mockResolvedValue({} as any);
+      mockPrismaService.user.delete.mockResolvedValue({} as any);
+
+      const result = await service.deleteUser('66e9fe02014ca14746800d33');
+
+      expect(result).toEqual({ message: MESSAGES.DELETED });
+      expect(prisma.user.delete).toHaveBeenCalledWith({
+        where: { id: '66e9fe02014ca14746800d33' },
+      });
+    });
+
+    it('should throw NotFoundException if customer does not exist', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.deleteUser('nonexistent-id')).rejects.toThrow(
+        new NotFoundException(MESSAGES.USER_NOT_FOUND),
       );
     });
   });

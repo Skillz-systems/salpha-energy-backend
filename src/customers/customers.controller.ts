@@ -7,6 +7,8 @@ import {
   HttpStatus,
   Get,
   Query,
+  Param,
+  Delete,
 } from '@nestjs/common';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
@@ -14,7 +16,7 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { RolesAndPermissions } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { RolesAndPermissionsGuard } from '../auth/guards/roles.guard';
-import { ActionEnum, SubjectEnum } from '@prisma/client';
+import { ActionEnum, SubjectEnum, User } from '@prisma/client';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -22,6 +24,8 @@ import {
   ApiExtraModels,
   ApiHeader,
   ApiOkResponse,
+  ApiOperation,
+  ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
 import { GetUser } from '../auth/decorators/getUser';
@@ -93,5 +97,69 @@ export class CustomersController {
   @HttpCode(HttpStatus.OK)
   async listCustomers(@Query() query: ListUsersQueryDto) {
     return await this.customersService.getUsers(query);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.read}:${SubjectEnum.Customers}`],
+  })
+  @Get('/single')
+  @ApiOperation({
+    summary: 'Fetch customer details',
+    description:
+      'This endpoint allows an authenticated customer to fetch their details.',
+  })
+  @ApiBearerAuth('access_token')
+  @ApiOkResponse({
+    type: UserEntity,
+  })
+  async fetchCustomer(@GetUser('id') id: string): Promise<User> {
+    return new UserEntity(await this.customersService.fetchUser(id));
+  }
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [
+      `${ActionEnum.manage}:${SubjectEnum.Agents}`,
+      `${ActionEnum.manage}:${SubjectEnum.Customers}`,
+    ],
+  })
+  @ApiParam({
+    name: 'id',
+    description: "Customer's id to fetch details",
+  })
+  @Get('single/:id')
+  @ApiOperation({
+    summary: 'Fetch customer details by superuser',
+    description:
+      'This endpoint allows a permitted customer fetch a user details.',
+  })
+  @ApiBearerAuth('access_token')
+  @ApiOkResponse({
+    type: UserEntity,
+  })
+  async superUserFetchUser(@Param('id') id: string): Promise<User> {
+    return new UserEntity(await this.customersService.fetchUser(id));
+  }
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Customers}`],
+  })
+  @ApiParam({
+    name: 'id',
+    description: "Customer's id",
+  })
+  @ApiOperation({
+    summary: 'Delete customer by superuser',
+    description: 'This endpoint allows a permitted customer to delete a user.',
+  })
+  @ApiBearerAuth('access_token')
+  @ApiOkResponse({
+    type: UserEntity,
+  })
+  @Delete(':id')
+  async deleteUser(@Param('id') id: string) {
+    return await this.customersService.deleteUser(id);
   }
 }
