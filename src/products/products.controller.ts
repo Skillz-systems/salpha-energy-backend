@@ -9,6 +9,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { GetProductsDto } from './dto/get-products.dto';
 import { CreateProductCategoryDto } from './dto/create-category.dto';
+import { GetUser } from 'src/auth/decorators/getUser';
 
 @ApiTags('Products')
 @Controller('products')
@@ -41,7 +42,6 @@ export class ProductsController {
   @ApiConsumes('multipart/form-data')
   @HttpCode(HttpStatus.CREATED)
   @Post()
-
   @UseInterceptors(FileInterceptor('productImage'))
   async create(
     @Body() CreateProductDto: CreateProductDto,
@@ -51,11 +51,9 @@ export class ProductsController {
         .build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }),
     )
     file: Express.Multer.File,
+    @GetUser('id') id: string,
   ) {
-    return await this.productsService.create(
-      CreateProductDto,
-      file,
-    );
+    return await this.productsService.create(CreateProductDto, file, id);
   }
 
   @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
@@ -122,7 +120,7 @@ export class ProductsController {
   })
   async getProduct(@Param('id') id: string): Promise<Product> {
     const product = await this.productsService.findOne(id);
-   
+
     return product;
   }
 
@@ -148,7 +146,9 @@ export class ProductsController {
   })
   @HttpCode(HttpStatus.CREATED)
   @ApiCreatedResponse({ description: 'Product category created successfully' })
-  @ApiBadRequestResponse({ description: 'Invalid product category creation data' })
+  @ApiBadRequestResponse({
+    description: 'Invalid product category creation data',
+  })
   async createCategory(@Body() createCategoryDto: CreateProductCategoryDto) {
     return this.productsService.createProductCategory(createCategoryDto);
   }
@@ -210,7 +210,6 @@ export class ProductsController {
     return this.productsService.getProductTabs(productId);
   }
 
-
   @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
   @RolesAndPermissions({
     permissions: [`${ActionEnum.manage}:${SubjectEnum.Products}`],
@@ -233,7 +232,6 @@ export class ProductsController {
     description: 'Fetch Product Inventory',
     isArray: true,
   })
-
   @ApiOperation({
     summary: 'Fetch product inventory for a particular product',
     description: 'Fetch product inventory for a particular product',

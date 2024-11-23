@@ -1,9 +1,10 @@
-import { IsString, IsOptional, IsArray } from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsOptional, IsNotEmpty, ValidateIf } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateProductDto {
   @IsString()
-  @ApiPropertyOptional({ description: 'Name of the product' })
+  @IsNotEmpty()
+  @ApiProperty({ description: 'Name of the product' })
   name: string;
 
   @IsOptional()
@@ -11,34 +12,51 @@ export class CreateProductDto {
   @ApiPropertyOptional({ description: 'Optional description of the product' })
   description?: string;
 
-  @IsOptional()
-  @IsString()
-  @ApiPropertyOptional({ description: 'Optional URL for the product image', type: 'file' })
-  productImage?: string;
+  // @IsOptional()
+  // @IsString()
+  // @ApiPropertyOptional({
+  //   description: 'Optional URL for the product image',
+  //   type: 'file',
+  // })
+  // productImage?: string;
 
   @IsString()
-  @ApiPropertyOptional({ description: 'Price of the product' })
+  @IsNotEmpty()
+  @ApiProperty({ description: 'Price of the product' })
   price: string;
 
   @IsOptional()
   @IsString()
-  @ApiPropertyOptional({ default: 'NGN', description: 'Currency of the product' })
+  @ApiPropertyOptional({
+    default: 'NGN',
+    description: 'Currency of the product',
+  })
   currency?: string;
 
-  @IsOptional()
   @IsString()
-  @ApiPropertyOptional({ description: 'Optional payment modes for the product' })
+  @IsNotEmpty()
+  @ApiProperty({
+    description:
+      'Payment modes for the product. The distinct payment modes should be concatenated together and separated by comma',
+  })
   paymentModes?: string;
 
   @IsString()
-  @ApiPropertyOptional({ description: 'Product category Id of the product' })
+  @IsNotEmpty()
+  @ApiProperty({ description: 'Product category Id of the product' })
   categoryId: string;
 
-  @IsString()
-  @IsOptional()
-  @ApiPropertyOptional({
-    description: 'An array of inventory batch IDs associated with the product',
-    type: String,
+  @ValidateIf((obj) => typeof obj.inventoryBatchId === 'string')
+  // @IsString()
+  @IsNotEmpty()
+  @ApiProperty({
+    description:
+      'The Inventory IDs associated with the product. Can be a single string or an array of inventoryBatchId strings.',
+    oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }],
+    example: '12345,67890', // Example of string format
   })
-  inventoryBatchIds: string;
+  inventoryBatchId: string | string[];
+
+  @ApiProperty({ type: 'file' })
+  productImage: Express.Multer.File;
 }

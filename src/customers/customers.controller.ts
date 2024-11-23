@@ -190,4 +190,36 @@ export class CustomersController {
   async getCustomerStats() {
     return await this.customersService.getCustomerStats();
   }
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [
+      `${ActionEnum.manage}:${SubjectEnum.Agents}`,
+      `${ActionEnum.manage}:${SubjectEnum.Customers}`,
+    ],
+  })
+  @ApiBearerAuth('access_token')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'JWT token used for authentication',
+    required: true,
+    schema: {
+      type: 'string',
+      example: 'Bearer <token>',
+    },
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Customer id to fetch tabs',
+  })
+  @ApiOkResponse({
+    description: 'Fetch Customer Details Tabs',
+    isArray: true,
+  })
+  @ApiBadRequestResponse({})
+  @HttpCode(HttpStatus.OK)
+  @Get(':id/tabs')
+  async getCustomerTabs(@Param('id') customerId: string) {
+    return this.customersService.getCustomerTabs(customerId);
+  }
 }

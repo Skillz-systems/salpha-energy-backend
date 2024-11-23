@@ -27,6 +27,7 @@ model User {
   agentDetails    Agent?
   customerDetails Customer? @relation("CustomerDetails")
 
+  createdProducts  Product[]
   createdCustomers Customer[]
 
   createdAt DateTime  @default(now())
