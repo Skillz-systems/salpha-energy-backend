@@ -162,4 +162,32 @@ export class CustomersController {
   async deleteUser(@Param('id') id: string) {
     return await this.customersService.deleteUser(id);
   }
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [
+      `${ActionEnum.manage}:${SubjectEnum.Agents}`,
+      `${ActionEnum.manage}:${SubjectEnum.Customers}`,
+    ],
+  })
+  @ApiBearerAuth('access_token')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'JWT token used for authentication',
+    required: true,
+    schema: {
+      type: 'string',
+      example: 'Bearer <token>',
+    },
+  })
+  @Get('stats')
+  @ApiOkResponse({
+    description: 'Fetch Customer Statistics',
+    isArray: true,
+  })
+  @ApiBadRequestResponse({})
+  @HttpCode(HttpStatus.OK)
+  async getCustomerStats() {
+    return await this.customersService.getCustomerStats();
+  }
 }
