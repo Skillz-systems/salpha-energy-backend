@@ -1,10 +1,14 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { MESSAGES } from '../constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { generateRandomPassword } from '../utils/generate-pwd';
 import { hashPassword } from '../utils/helpers.util';
-import { ActionEnum, Prisma, SubjectEnum } from '@prisma/client';
+import { ActionEnum, Prisma, SubjectEnum, UserStatus } from '@prisma/client';
 import { ListUsersQueryDto } from '../users/dto/list-users.dto';
 import { plainToInstance } from 'class-transformer';
 import { UserEntity } from '../users/entity/user.entity';
@@ -260,4 +264,53 @@ export class CustomersService {
       message: MESSAGES.DELETED,
     };
   }
+
+  async getCustomerStats() {
+   const now = new Date();
+  const sevenDaysAgo = new Date(now);
+  sevenDaysAgo.setDate(now.getDate() - 7);
+
+  const barredCustomerCount = await this.prisma.user.count({
+    where: {
+      status: UserStatus.barred,
+      customerDetails: {
+        isNot: null,
+      },
+    },
+  });
+
+  const newCustomerCount = await this.prisma.user.count({
+    where: {
+      customerDetails: {
+        isNot: null,
+      },
+      createdAt: {
+        gte: sevenDaysAgo,
+      },
+    },
+  });
+
+  const activeCustomerCount = await this.prisma.user.count({
+    where: {
+      status: UserStatus.active,
+      customerDetails: {
+        isNot: null,
+      },
+    },
+  });
+
+  const totalCustomerCount = await this.prisma.user.count({
+    where: {
+      customerDetails: {
+        isNot: null,
+      },
+    },
+  });
+
+  return {
+    barredCustomerCount,
+    newCustomerCount,
+    activeCustomerCount,
+    totalCustomerCount,
+  };}
 }
