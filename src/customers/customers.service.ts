@@ -266,51 +266,93 @@ export class CustomersService {
   }
 
   async getCustomerStats() {
-   const now = new Date();
-  const sevenDaysAgo = new Date(now);
-  sevenDaysAgo.setDate(now.getDate() - 7);
+    const now = new Date();
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(now.getDate() - 7);
 
-  const barredCustomerCount = await this.prisma.user.count({
-    where: {
-      status: UserStatus.barred,
-      customerDetails: {
-        isNot: null,
+    const barredCustomerCount = await this.prisma.user.count({
+      where: {
+        status: UserStatus.barred,
+        customerDetails: {
+          isNot: null,
+        },
       },
-    },
-  });
+    });
 
-  const newCustomerCount = await this.prisma.user.count({
-    where: {
-      customerDetails: {
-        isNot: null,
+    const newCustomerCount = await this.prisma.user.count({
+      where: {
+        customerDetails: {
+          isNot: null,
+        },
+        createdAt: {
+          gte: sevenDaysAgo,
+        },
       },
-      createdAt: {
-        gte: sevenDaysAgo,
-      },
-    },
-  });
+    });
 
-  const activeCustomerCount = await this.prisma.user.count({
-    where: {
-      status: UserStatus.active,
-      customerDetails: {
-        isNot: null,
+    const activeCustomerCount = await this.prisma.user.count({
+      where: {
+        status: UserStatus.active,
+        customerDetails: {
+          isNot: null,
+        },
       },
-    },
-  });
+    });
 
-  const totalCustomerCount = await this.prisma.user.count({
-    where: {
-      customerDetails: {
-        isNot: null,
+    const totalCustomerCount = await this.prisma.user.count({
+      where: {
+        customerDetails: {
+          isNot: null,
+        },
       },
-    },
-  });
+    });
 
-  return {
-    barredCustomerCount,
-    newCustomerCount,
-    activeCustomerCount,
-    totalCustomerCount,
-  };}
+    return {
+      barredCustomerCount,
+      newCustomerCount,
+      activeCustomerCount,
+      totalCustomerCount,
+    };
+  }
+
+  async getCustomerTabs(customerId: string) {
+    const customer = await this.prisma.customer.findUnique({
+      where: {
+        userId: customerId,
+      },
+    });
+
+    if (!customer) {
+      throw new NotFoundException(MESSAGES.USER_NOT_FOUND);
+    }
+
+    const tabs = [
+      {
+        name: 'Customer Details',
+        url: `/customers/single/${customerId}`,
+      },
+      {
+        name: 'RgistrationHistory',
+        url: `/customers/${customerId}/registration-history`,
+      },
+      {
+        name: 'Products',
+        url: `/customers/${customerId}/products`,
+      },
+      {
+        name: 'Contracts',
+        url: `/customers/${customerId}/contracts`,
+      },
+      {
+        name: 'Transactions',
+        url: `/customers/${customerId}/transactions`,
+      },
+      {
+        name: 'Tickets',
+        url: `/customers/${customerId}/tickets`,
+      },
+    ];
+
+    return tabs;
+  }
 }

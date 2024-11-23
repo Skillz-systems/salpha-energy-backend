@@ -110,4 +110,35 @@ describe('CustomersController (e2e)', () => {
        expect(response.body.limit).toBeTruthy();
      });
    });
+
+    describe('Fetch Customer Tabs', () => {
+      it('/Customer Tabs (GET)', async () => {
+        mockPrismaService.customer.findUnique.mockResolvedValue({
+          id: '6740a7bfb60744d3c6e298b1',
+          type: 'lead',
+          createdBy: 'submarine',
+          creatorId: '66e9fe02014ca14746800d33',
+          agentId: null,
+          userId: '6740a7bfb60744d3c6e298b0',
+        });
+
+        const response = await request(app.getHttpServer())
+          .get('/customers/672a7e32493902cd46999f69/tabs')
+          .expect(200);
+
+        expect(response.status).toBe(HttpStatus.OK);
+        expect(response.body.length).toBeGreaterThan(1);
+      });
+
+      it('should throw NotFoundException if Customer ID is not found', async () => {
+        mockPrismaService.customer.findUnique.mockResolvedValue(null);
+
+        const response = await request(app.getHttpServer())
+          .get('/customers/672a7e32493902cd46999f69/tabs')
+          .expect(404);
+
+        expect(response.status).toBe(HttpStatus.NOT_FOUND);
+        expect(response.body.message).toContain(MESSAGES.USER_NOT_FOUND);
+      });
+    });
 });

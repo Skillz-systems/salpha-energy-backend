@@ -179,4 +179,32 @@ describe('CustomersService', () => {
       );
     });
   });
+
+  describe('Fetch Customer Tabs', () => {
+        const customerId = '672a7ded6e6ef96f18f3646c';
+
+    it('should return customer Tabs if ID valid', async () => {
+      mockPrismaService.customer.findUnique.mockResolvedValue({
+        id: '6740a7bfb60744d3c6e298b1',
+        type: 'lead',
+        createdBy: 'submarine',
+        creatorId: '66e9fe02014ca14746800d33',
+        agentId: null,
+        userId: '6740a7bfb60744d3c6e298b0',
+      });
+
+      const result = await service.getCustomerTabs(customerId);
+
+      expect(result.length).toBeGreaterThan(1);
+      expect(prisma.customer.findUnique).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException if Inventory Batch ID is not found', async () => {
+      mockPrismaService.inventoryBatch.findUnique.mockResolvedValue(null);
+
+      await expect(service.getCustomerTabs('nonexistent-id')).rejects.toThrow(
+        new NotFoundException(MESSAGES.USER_NOT_FOUND),
+      );
+    });
+  });
 });

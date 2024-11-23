@@ -1,10 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { GetProductsDto } from './dto/get-products.dto';
 import { MESSAGES } from '../constants';
 import { CreateProductCategoryDto } from './dto/create-category.dto';
+import { CategoryTypes } from '@prisma/client';
+import { ObjectId } from 'mongodb';
 
 @Injectable()
 export class ProductsService {
@@ -19,17 +25,52 @@ export class ProductsService {
     });
   }
 
-  async create(createProductDto: CreateProductDto, file: Express.Multer.File) {
+  async create(
+    createProductDto: CreateProductDto,
+    file: Express.Multer.File,
+    creatorId: string,
+  ) {
     const { name, description, price, currency, paymentModes, categoryId } =
       createProductDto;
 
-    const inventoryBatchIds: string | string[] =
-      createProductDto.inventoryBatchIds;
+    if (!ObjectId.isValid(categoryId))
+      throw new BadRequestException('Invalid Product Category');
 
+    const isCategoryValid = await this.prisma.category.findFirst({
+      where: {
+        id: categoryId,
+        type: CategoryTypes.PRODUCT,
+      },
+    });
+
+    if (!isCategoryValid) {
+      throw new BadRequestException('Invalid Product Category');
+    }
+
+    let batchIds: string[] = [];
+
+    const inventoryBatchId: string | string[] =
+      createProductDto.inventoryBatchId;
+
+    if (typeof inventoryBatchId === 'string') {
+      batchIds = inventoryBatchId.split(',').map((id) => id.trim());
+    } else if (Array.isArray(inventoryBatchId)) {
+      batchIds = inventoryBatchId;
+    }
+
+    for (let i = 0; i < batchIds.length; i++) {
+      if (!ObjectId.isValid(batchIds[i]))
+        throw new BadRequestException(`Invalid Inventory Batch ID - ${batchIds[i]}`);
+    }
+    // if (typeof JSON.parse(inventoryBatchId) === 'string') {
+    //   batchIds = inventoryBatchId.split(',').map((id) => id.trim());
+    // } else if (Array.isArray(JSON.parse(inventoryBatchId))) {
+    //   batchIds = JSON.parse(inventoryBatchId);
+    // }
     // Ensure inventoryBatchIds is an array
-    const batchIds = Array.isArray(inventoryBatchIds)
-      ? inventoryBatchIds
-      : inventoryBatchIds.split(',').map((id) => id.trim());
+    // const batchIds = Array.isArray(inventoryBatchIds)
+    //   ? inventoryBatchIds
+    //   : inventoryBatchIds.split(',').map((id) => id.trim());
 
     const image = (await this.uploadInventoryImage(file)).secure_url;
 
@@ -42,13 +83,14 @@ export class ProductsService {
         currency,
         paymentModes,
         categoryId,
+        creatorId,
       },
     });
 
-    if (inventoryBatchIds?.length) {
+    if (inventoryBatchId?.length) {
       // Create many-to-many links in the ProductInventoryBatch table
       await this.prisma.productInventoryBatch.createMany({
-        data: batchIds.map((inventoryBatchId) => ({
+        data: batchIds?.map((inventoryBatchId) => ({
           productId: product.id,
           inventoryBatchId,
         })),
@@ -91,6 +133,7 @@ export class ProductsService {
         //   },
         // },
         category: true,
+        creatorDetails: true,
       },
     });
 
@@ -114,6 +157,12 @@ export class ProductsService {
       where: { id },
       include: {
         category: true,
+        creatorDetails: {
+          select: {
+            firstname: true, 
+            lastname: true, 
+          }
+        },
       },
     });
 
@@ -225,7 +274,7 @@ export class ProductsService {
     }
 
     return {
-      allProducts
-    }
+      allProducts,
+    };
   }
 }
