@@ -83,7 +83,7 @@ export class ProductsService {
         currency,
         paymentModes,
         categoryId,
-        creatorId,
+        
       },
     });
 

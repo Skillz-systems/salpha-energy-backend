@@ -111,6 +111,7 @@ async function main() {
   await prisma.agent.createMany({
     data: Array.from({ length: 10 }).map(() => ({
       userId: faker.helpers.arrayElement(userIds),
+      agentId: (Math.floor(Math.random() * 900000) + 100000)
     })),
   });
 
