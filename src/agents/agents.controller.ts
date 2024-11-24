@@ -63,20 +63,20 @@ export class AgentsController {
     return await this.agentsService.create(CreateAgentDto, id);
   }
 
-  // @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
-  // @RolesAndPermissions({
-  //   permissions: [`${ActionEnum.manage}:${SubjectEnum.Agents}`],
-  // })
-  // @ApiBearerAuth('access_token')
-  // @ApiHeader({
-  //   name: 'Authorization',
-  //   description: 'JWT token used for authentication',
-  //   required: true,
-  //   schema: {
-  //     type: 'string',
-  //     example: 'Bearer <token>',
-  //   },
-  // })
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Agents}`],
+  })
+  @ApiBearerAuth('access_token')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'JWT token used for authentication',
+    required: true,
+    schema: {
+      type: 'string',
+      example: 'Bearer <token>',
+    },
+  })
   @Get()
   @ApiOkResponse({
     description: 'Fetch all agents with pagination',
@@ -93,20 +93,20 @@ export class AgentsController {
     return this.agentsService.getAll(GetAgentsDto);
   }
 
-  // @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
-  // @RolesAndPermissions({
-  //   permissions: [`${ActionEnum.manage}:${SubjectEnum.Agents}`],
-  // })
-  // @ApiBearerAuth('access_token')
-  // @ApiHeader({
-  //   name: 'Authorization',
-  //   description: 'JWT token used for authentication',
-  //   required: true,
-  //   schema: {
-  //     type: 'string',
-  //     example: 'Bearer <token>',
-  //   },
-  // })
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Agents}`],
+  })
+  @ApiBearerAuth('access_token')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'JWT token used for authentication',
+    required: true,
+    schema: {
+      type: 'string',
+      example: 'Bearer <token>',
+    },
+  })
   @ApiParam({
     name: 'id',
     description: 'ID of the agent to fetch',
@@ -131,20 +131,20 @@ export class AgentsController {
     return agent;
   }
 
-  // @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
-  // @RolesAndPermissions({
-  //   permissions: [`${ActionEnum.manage}:${SubjectEnum.Agents}`],
-  // })
-  // @ApiBearerAuth('access_token')
-  // @ApiHeader({
-  //   name: 'Authorization',
-  //   description: 'JWT token used for authentication',
-  //   required: true,
-  //   schema: {
-  //     type: 'string',
-  //     example: 'Bearer <token>',
-  //   },
-  // })
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Agents}`],
+  })
+  @ApiBearerAuth('access_token')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'JWT token used for authentication',
+    required: true,
+    schema: {
+      type: 'string',
+      example: 'Bearer <token>',
+    },
+  })
   @ApiOkResponse({
     description: 'Fetch Agent statistics',
   })
@@ -159,20 +159,20 @@ export class AgentsController {
     return this.agentsService.getAgentsStatistics();
   }
 
-  // @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
-  // @RolesAndPermissions({
-  //   permissions: [`${ActionEnum.manage}:${SubjectEnum.Agents}`],
-  // })
-  // @ApiBearerAuth('access_token')
-  // @ApiHeader({
-  //   name: 'Authorization',
-  //   description: 'JWT token used for authentication',
-  //   required: true,
-  //   schema: {
-  //     type: 'string',
-  //     example: 'Bearer <token>',
-  //   },
-  // })
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Agents}`],
+  })
+  @ApiBearerAuth('access_token')
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'JWT token used for authentication',
+    required: true,
+    schema: {
+      type: 'string',
+      example: 'Bearer <token>',
+    },
+  })
   @ApiParam({
     name: 'id',
     description: 'Agent id to fetch tabs',
