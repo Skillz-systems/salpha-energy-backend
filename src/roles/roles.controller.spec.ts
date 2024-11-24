@@ -1,4 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
+import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import { RolesController } from './roles.controller';
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -21,11 +24,17 @@ const mockRolesService = {
 
 describe('RolesController', () => {
   let controller: RolesController;
+  let mockPrismaService: DeepMockProxy<PrismaClient>;
 
   beforeEach(async () => {
+    mockPrismaService = mockDeep<PrismaClient>();
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [RolesController],
-      providers: [{ provide: RolesService, useValue: mockRolesService }],
+      providers: [
+        { provide: RolesService, useValue: mockRolesService },
+        { provide: PrismaService, useValue: mockPrismaService },
+      ],
     }).compile();
 
     controller = module.get<RolesController>(RolesController);
@@ -36,8 +45,12 @@ describe('RolesController', () => {
   });
 
   it('should create a new role', async () => {
-    const createRoleDto: CreateRoleDto = { role: 'admin123', created_by: '60d0fe4f5311236168a109cb', active: true, permissionIds: [] };
-    const result = await controller.create(createRoleDto);
+    const createRoleDto: CreateRoleDto = {
+      role: 'admin123',
+      active: true,
+      permissionIds: [],
+    };
+    const result = await controller.create(createRoleDto, 'user-id');
     expect(result).toEqual(mockRole);
   });
 
@@ -53,20 +66,29 @@ describe('RolesController', () => {
 
   it('should throw NotFoundException if role not found', async () => {
     mockRolesService.findOne = jest.fn().mockResolvedValue(null);
-    
-    await expect(controller.findOne('66f42a3166aaf6fbb2a643bf')).rejects.toThrow(NotFoundException);
+
+    await expect(
+      controller.findOne('66f42a3166aaf6fbb2a643bf'),
+    ).rejects.toThrow(NotFoundException);
   });
 
   it('should update a role', async () => {
     const updateData = { role: 'user', active: false, permissionIds: [] };
-    const updatedRole = await controller.update('66f4237486d300545d3b1f10', updateData);
+    const updatedRole = await controller.update(
+      '66f4237486d300545d3b1f10',
+      updateData,
+    );
     expect(updatedRole).toEqual(mockRole);
   });
 
   it('should throw NotFoundException on update if role not found', async () => {
-    mockRolesService.update = jest.fn().mockRejectedValue(new NotFoundException());
-    
-    await expect(controller.update('66f42a3166aaf6fbb2a643bf', {})).rejects.toThrow(NotFoundException);
+    mockRolesService.update = jest
+      .fn()
+      .mockRejectedValue(new NotFoundException());
+
+    await expect(
+      controller.update('66f42a3166aaf6fbb2a643bf', {}),
+    ).rejects.toThrow(NotFoundException);
   });
 
   it('should delete a role', async () => {
@@ -75,9 +97,12 @@ describe('RolesController', () => {
   });
 
   it('should throw NotFoundException on delete if role not found', async () => {
-    mockRolesService.remove = jest.fn().mockRejectedValue(new NotFoundException());
+    mockRolesService.remove = jest
+      .fn()
+      .mockRejectedValue(new NotFoundException());
 
-    
-    await expect(controller.remove('66f42a3166aaf6fbb2a643bf')).rejects.toThrow(NotFoundException);
+    await expect(controller.remove('66f42a3166aaf6fbb2a643bf')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

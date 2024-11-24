@@ -40,7 +40,6 @@ import {
 } from './dto/create-user-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { GetUser } from './decorators/getUser';
-import { User as AuthUser } from './interface/user.interface';
 
 @SkipThrottle()
 @ApiTags('Auth')
@@ -136,6 +135,28 @@ export class AuthController {
     );
   }
 
+  @Post('verify-email-verification-token/:userid/:token')
+  @ApiParam({
+    name: 'userid',
+    description: 'userid of user',
+  })
+  @ApiParam({
+    name: 'token',
+    description: 'The token used for email verification',
+    type: String,
+  })
+  @ApiOkResponse({})
+  @ApiBadRequestResponse({})
+  @ApiInternalServerErrorResponse({})
+  @HttpCode(HttpStatus.OK)
+  async verifyEmailVerficationToken(@Param() params: CreateUserPasswordParamsDto) {
+    return await this.authService.verifyToken(
+      params.token,
+      TokenType.email_verification,
+      params.userid,
+    );
+  }
+
   @Post('create-user-password/:userid/:token')
   @ApiParam({
     name: 'userid',
@@ -156,15 +177,15 @@ export class AuthController {
     return this.authService.createUserPassword(body, params);
   }
 
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @Post('change-password')
   @ApiBearerAuth('access_token')
   @ApiOkResponse({})
   @ApiBadRequestResponse({})
   @ApiInternalServerErrorResponse({})
   @HttpCode(HttpStatus.OK)
-  changePassword(@Body() body: ChangePasswordDto, @GetUser() user: AuthUser) {
-    return this.authService.changePassword(body, user);
+  changePassword(@Body() body: ChangePasswordDto, @GetUser("id") userId: string) {
+    return this.authService.changePassword(body, userId);
   }
 
   @Post('reset-password')

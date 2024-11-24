@@ -1,5 +1,5 @@
 model TempToken {
-  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  id    String  @id @default(auto()) @map("_id") @db.ObjectId
   token String?
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
