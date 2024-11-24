@@ -38,7 +38,7 @@ import { GetUser } from 'src/auth/decorators/getUser';
 export class AgentsController {
   constructor(private readonly agentsService: AgentsService) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
   @RolesAndPermissions({
     permissions: [`${ActionEnum.manage}:${SubjectEnum.Agents}`],
   })

@@ -31,4 +31,30 @@ export class GetProductsDto {
   @IsOptional()
   @IsDateString()
   updatedAt?: string;
+
+  @ApiPropertyOptional({
+    description: 'Search inventory by name, manufacturerName',
+    type: String,
+    example: '',
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
+ @ApiPropertyOptional({
+    description: 'Field to sort by',
+    type: String,
+    example: '',
+  })
+  @IsOptional()
+  @IsString()
+  sortField?: string;
+
+  @ApiPropertyOptional({
+    description: 'Sort order (asc or desc)',
+    enum: ['asc', 'desc'],
+    example: '',
+  })
+  @IsOptional()
+  @IsString()
+  sortOrder?: 'asc' | 'desc';
 }

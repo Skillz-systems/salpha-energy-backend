@@ -8,13 +8,8 @@ export class CreateProductCategoryDto {
   @IsString()
   name: string;
 
-  @ApiPropertyOptional({ description: 'ID of the parent category' })
-  @IsString()
-  @IsOptional()
-  parentId?: string;
-
-  @ApiProperty({ description: 'Type of the category', enum: CategoryTypes })
-  @IsOptional()
-  @IsEnum(CategoryTypes)
-  type?: CategoryTypes;
+  // @ApiPropertyOptional({ description: 'ID of the parent category' })
+  // @IsString()
+  // @IsOptional()
+  // parentId?: string;
 }
