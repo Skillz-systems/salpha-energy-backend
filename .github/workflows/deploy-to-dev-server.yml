@@ -59,6 +59,16 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+        # Ensure that Prisma generates the client
+      - name: Run Prisma Generate
+        run: npx prisma generate
+        env:
+          DATABASE_URL: "mongodb+srv://admin:Ubuxa%23%2399@a4t.ldexs.mongodb.net/testdb?retryWrites=true&w=majority&appName=A4t"  # Make sure your database URL is provided in secrets
+          # DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Run build
+        run: npm run build
+
       - name: Run build
         run: npm run build
       - name: Update apt repositories
