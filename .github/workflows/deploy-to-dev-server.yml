@@ -81,6 +81,7 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           rsync -av \
           --delete \
+          --include='dist/***' \
           --include='package.json' \
           --exclude='*' \
           -e 'ssh -p 7822 -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no' \
