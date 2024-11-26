@@ -79,7 +79,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{secrets.SSH_PRIVATE_KEY}}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          rsync -av --dry-run \
+          rsync -av \
           --delete \
           --include='dist/' \
           --include='package.json' \
