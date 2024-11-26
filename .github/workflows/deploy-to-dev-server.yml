@@ -84,6 +84,8 @@ jobs:
           --include='dist/' \
           --include='package.json' \
           --include='node_modules/' \
+          --include='dist/prisma/schema/' \
+          --delete \
           -e 'ssh -p 7822 -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no' \
           dist/ package.json node_modules skillz@103.72.76.68:energy/api
            
