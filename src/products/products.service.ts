@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -60,7 +61,9 @@ export class ProductsService {
 
     for (let i = 0; i < batchIds.length; i++) {
       if (!ObjectId.isValid(batchIds[i]))
-        throw new BadRequestException(`Invalid Inventory Batch ID - ${batchIds[i]}`);
+        throw new BadRequestException(
+          `Invalid Inventory Batch ID - ${batchIds[i]}`,
+        );
     }
     // if (typeof JSON.parse(inventoryBatchId) === 'string') {
     //   batchIds = inventoryBatchId.split(',').map((id) => id.trim());
@@ -79,7 +82,7 @@ export class ProductsService {
         name,
         description,
         image,
-        price,
+        price: parseInt(price),
         currency,
         paymentModes,
         categoryId,
@@ -107,6 +110,9 @@ export class ProductsService {
       categoryId,
       createdAt,
       updatedAt,
+      sortField,
+      sortOrder,
+      search,
     } = getProductsDto;
 
     const whereConditions: any = {};
@@ -116,16 +122,46 @@ export class ProductsService {
     if (createdAt) whereConditions.createdAt = { gte: new Date(createdAt) };
     if (updatedAt) whereConditions.updatedAt = { gte: new Date(updatedAt) };
 
+    if (search) {
+      whereConditions.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        // { price: { equals: parseFloat(search) } },
+        // Add any other fields you want to search against
+      ];
+    }
+
+    // if (search) {
+    //   // Check if the search term is a valid number (to search price)
+    //   const isNumber = !isNaN(parseFloat(search));
+  
+    //   whereConditions.OR = [
+    //     {
+    //       name: { contains: search, mode: 'insensitive' }, // Searching for product name
+    //     },
+    //     ...(isNumber
+    //       ? [
+    //           {
+    //             price: { equals: parseFloat(search) }, // Search by price if it's a number
+    //           },
+    //         ]
+    //       : []),
+    //   ];
+    // }
+
     const skip = (page - 1) * limit;
+
+    const orderBy = sortField
+      ? {
+          [sortField]: sortOrder || 'asc',
+        }
+      : undefined;
 
     // Fetch products with pagination and filters
     const products = await this.prisma.product.findMany({
       where: whereConditions,
       skip,
       take: limit,
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy,
       include: {
         // inventoryBatches: {
         //   include: {
@@ -142,13 +178,11 @@ export class ProductsService {
     });
 
     return {
-      data: products,
-      meta: {
-        total,
-        page,
-        lastPage: Math.ceil(total / limit),
-        limit,
-      },
+      products,
+      total,
+      page,
+      totalPages: limit === 0 ? 0 : Math.ceil(total / limit),
+      limit,
     };
   }
 
@@ -159,9 +193,9 @@ export class ProductsService {
         category: true,
         creatorDetails: {
           select: {
-            firstname: true, 
-            lastname: true, 
-          }
+            firstname: true,
+            lastname: true,
+          },
         },
       },
     });
@@ -176,24 +210,23 @@ export class ProductsService {
   async createProductCategory(
     createProductCategoryDto: CreateProductCategoryDto,
   ) {
-    const { name, parentId } = createProductCategoryDto;
+    const { name } = createProductCategoryDto;
 
-    // Check if the parent category exists if parentId is provided
-    if (parentId) {
-      const parentCategory = await this.prisma.category.findUnique({
-        where: { id: parentId },
-      });
 
-      if (!parentCategory) {
-        throw new NotFoundException('Parent category not found');
-      }
+    const categoryExists = await this.prisma.category.findFirst({
+      where: {
+        name
+      },
+    });
+
+    if (categoryExists) {
+      throw new ConflictException('A category with this name already exists');
     }
 
     return this.prisma.category.create({
       data: {
         name,
-        parentId,
-        type: 'PRODUCT',
+        type: CategoryTypes.PRODUCT,
       },
     });
   }
@@ -201,7 +234,7 @@ export class ProductsService {
   async getAllCategories() {
     return await this.prisma.category.findMany({
       where: {
-        type: 'PRODUCT',
+        type: CategoryTypes.PRODUCT,
       },
       include: {
         parent: true,

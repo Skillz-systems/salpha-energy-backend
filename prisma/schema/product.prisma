@@ -3,7 +3,7 @@ model Product {
   name         String
   description  String?
   image        String?
-  price        String
+  price        Float
   currency     String? @default("NGN")
   paymentModes String?
 
