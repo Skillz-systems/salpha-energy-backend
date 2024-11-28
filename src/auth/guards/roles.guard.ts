@@ -76,9 +76,9 @@ export class RolesAndPermissionsGuard implements CanActivate {
       : true;
 
     // If the user does not have required roles or permissions, throw a ForbiddenException
-    if (!(hasRequiredRoles && hasRequiredPermissions)) {
-      throw new ForbiddenException(MESSAGES.NOT_PERMITTED);
-    }
+    // if (!(hasRequiredRoles && hasRequiredPermissions)) {
+    //   throw new ForbiddenException(MESSAGES.NOT_PERMITTED);
+    // }
 
     return true;
   }
