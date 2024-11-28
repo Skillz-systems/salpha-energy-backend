@@ -13,7 +13,6 @@ import {
 } from '@nestjs/common';
 import { AgentsService } from './agents.service';
 import { CreateAgentDto } from './dto/create-agent.dto';
-import { UpdateAgentDto } from './dto/update-agent.dto';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -26,12 +25,12 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { RolesAndPermissions } from 'src/auth/decorators/roles.decorator';
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
-import { RolesAndPermissionsGuard } from 'src/auth/guards/roles.guard';
+import { RolesAndPermissions } from '../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt.guard';
+import { RolesAndPermissionsGuard } from '../auth/guards/roles.guard';
 import { ActionEnum, Agent, SubjectEnum } from '@prisma/client';
 import { GetAgentsDto } from './dto/get-agent.dto';
-import { GetUser } from 'src/auth/decorators/getUser';
+import { GetUser } from '../auth/decorators/getUser';
 
 @ApiTags('Agents')
 @Controller('agents')

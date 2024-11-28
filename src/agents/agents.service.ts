@@ -6,12 +6,12 @@ import {
 } from '@nestjs/common';
 import { CreateAgentDto } from './dto/create-agent.dto';
 import { UpdateAgentDto } from './dto/update-agent.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { generateRandomPassword } from 'src/utils/generate-pwd';
+import { PrismaService } from '../prisma/prisma.service';
+import { generateRandomPassword } from '../utils/generate-pwd';
 import * as argon from 'argon2';
-import { hashPassword } from 'src/utils/helpers.util';
+import { hashPassword } from '../utils/helpers.util';
 import { GetAgentsDto } from './dto/get-agent.dto';
-import { MESSAGES } from 'src/constants';
+import { MESSAGES } from '../constants';
 import { ObjectId } from 'mongodb';
 import { AddressType, UserStatus } from '@prisma/client';
 
