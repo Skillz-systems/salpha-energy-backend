@@ -9,7 +9,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { GetProductsDto } from './dto/get-products.dto';
 import { CreateProductCategoryDto } from './dto/create-category.dto';
-import { GetUser } from 'src/auth/decorators/getUser';
+import { GetUser } from '../auth/decorators/getUser';
 
 @ApiTags('Products')
 @Controller('products')
