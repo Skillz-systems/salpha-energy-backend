@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AgentsService } from './agents.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 import { ActionEnum, PrismaClient, SubjectEnum } from '@prisma/client';
 import { fakeData } from '../../test/mockData/user';
@@ -129,4 +129,71 @@ describe('AgentsService', () => {
       );
     });
   });
+
+
+  describe('getAgentsStatistics', () => {
+    it('should return agents statistics', async () => {
+      prisma.agent.count
+        .mockResolvedValueOnce(10) // Total agents
+        .mockResolvedValueOnce(6) // Active agents
+        .mockResolvedValueOnce(4); // Barred agents
+  
+      const result = await service.getAgentsStatistics();
+  
+      expect(result).toEqual({
+        total: 10,
+        active: 6,
+        barred: 4,
+      });
+    });
+  
+    it('should throw NotFoundException if no agents are found', async () => {
+      prisma.agent.count.mockResolvedValue(0);
+  
+      await expect(service.getAgentsStatistics()).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('getAgentTabs', () => {
+    it('should return agent tabs', async () => {
+      prisma.agent.findUnique.mockResolvedValue({
+        id: '6721acb96be4e1c85a8e294f',
+        user: {
+          _count: { createdCustomers: 5 },
+        },
+      } as any);
+  
+      const result = await service.getAgentTabs('6721acb96be4e1c85a8e294f');
+  
+      expect(result).toEqual([
+        { name: 'Agents Details', url: '/agent/6721acb96be4e1c85a8e294f/details' },
+        { name: 'Customers', url: '/agent/6721acb96be4e1c85a8e294f/customers', count: 5 },
+        { name: 'Inventory', url: '/agent/6721acb96be4e1c85a8e294f/inventory', count: 0 },
+        { name: 'Transactions', url: '/agent/6721acb96be4e1c85a8e294f/transactions', count: 0 },
+        { name: 'Stats', url: '/agent/6721acb96be4e1c85a8e294f/stats' },
+        { name: 'Sales', url: '/agent/6721acb96be4e1c85a8e294f/sales', count: 0 },
+        { name: 'Tickets', url: '/agent/6721acb96be4e1c85a8e294f/tickets', count: 0 },
+      ]);
+    });
+  
+    it('should throw BadRequestException for invalid ObjectId', async () => {
+      const invalidId = 'invalidId';
+  
+      await expect(service.getAgentTabs(invalidId)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  
+    it('should throw NotFoundException if agent is not found', async () => {
+      prisma.agent.findUnique.mockResolvedValue(null);
+  
+      await expect(service.getAgentTabs('6721acb96be4e1c85a8e294f')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+  
+  
 });
