@@ -217,7 +217,15 @@ export class InventoryService {
     const inventoryBatch = await this.prisma.inventoryBatch.findUnique({
       where: { id },
       include: {
-        inventory: true,
+        inventory: {
+          include: {
+            inventoryCategory: {
+              include: {
+                children: true
+              }
+            }
+          }
+        },
       },
     });
 

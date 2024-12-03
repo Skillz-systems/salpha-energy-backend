@@ -54,22 +54,30 @@ describe('CustomersService', () => {
         ...fakeData,
         role: { id: 'role-id', role: 'customerUser' },
       });
-      (prisma.role.findFirst as jest.Mock).mockResolvedValue({
+      (prisma.role.upsert as jest.Mock).mockResolvedValue({
         id: 'role-id',
         role: 'customerUser',
       });
-      (prisma.permission.findFirst as jest.Mock).mockResolvedValue([
-        {
-          id: '66f4237486d300545d3b1f10',
-          action: ActionEnum.read,
-          subject: SubjectEnum.Customers,
-        },
-        {
-          id: '66f42a3166aaf6fbb2a643bf',
-          action: ActionEnum.write,
-          subject: SubjectEnum.Customers,
-        },
-      ]);
+        (prisma.permission.findFirst as jest.Mock)
+          .mockImplementationOnce(() => Promise.resolve(null)) // First call (for read permission)
+          .mockImplementationOnce(() => Promise.resolve(null));
+
+        (prisma.permission.create as jest.Mock)
+          .mockResolvedValueOnce({
+            id: 'permission-read-id',
+            action: ActionEnum.read,
+            subject: SubjectEnum.Customers,
+          })
+          .mockResolvedValueOnce({
+            id: 'permission-write-id',
+            action: ActionEnum.write,
+            subject: SubjectEnum.Customers,
+          });
+
+        (prisma.role.update as jest.Mock).mockResolvedValue({
+          id: 'role-id',
+          role: 'customerUser',
+        });
 
       (prisma.user.create as jest.Mock).mockResolvedValue({
         id: 'user-id',

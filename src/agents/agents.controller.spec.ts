@@ -6,7 +6,7 @@ import { RolesAndPermissionsGuard } from '../auth/guards/roles.guard';
 
 describe('AgentsController', () => {
   let controller: AgentsController;
-  let service: AgentsService;
+  // let service: AgentsService;
 
   const mockAgentsService = {
     create: jest.fn(),
@@ -28,7 +28,7 @@ describe('AgentsController', () => {
       .compile();
 
     controller = module.get<AgentsController>(AgentsController);
-    service = module.get<AgentsService>(AgentsService);
+    // service = module.get<AgentsService>(AgentsService);
   });
 
   it('should be defined', () => {

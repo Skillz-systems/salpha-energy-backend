@@ -3,7 +3,7 @@ import { AgentsService } from './agents.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
-import { ActionEnum, PrismaClient, SubjectEnum } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { fakeData } from '../../test/mockData/user';
 
 describe('AgentsService', () => {

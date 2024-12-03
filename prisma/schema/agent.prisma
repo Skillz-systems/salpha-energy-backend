@@ -5,7 +5,7 @@ model Agent {
 
     agentId   Int
    
-    user   User   @relation(fields: [userId], references: [id])
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId String @unique @db.ObjectId
 
     createdAt DateTime  @default(now())

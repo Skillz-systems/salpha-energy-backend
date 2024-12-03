@@ -10,7 +10,7 @@ model Customer {
     agentId String? @db.ObjectId
     agent   Agent?  @relation(fields: [agentId], references: [id])
 
-    user   User   @relation("CustomerDetails", fields: [userId], references: [id])
+    user   User   @relation("CustomerDetails", fields: [userId], references: [id], onDelete: Cascade)
     userId String @unique @db.ObjectId
 
     @@map("customer")

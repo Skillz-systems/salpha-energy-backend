@@ -40,20 +40,14 @@ export class CustomersService {
     const newPwd = generateRandomPassword(30);
     const hashedPwd = await hashPassword(newPwd);
 
-    let role = await this.prisma.role.findFirst({
-      where: {
+    const role = await this.prisma.role.upsert({
+      where: { role: 'customerUser' },
+      create: {
         role: 'customerUser',
+        created_by: creator.id,
       },
+      update: {},
     });
-
-    if (!role) {
-      role = await this.prisma.role.create({
-        data: {
-          role: 'customerUser',
-          created_by: creator.id,
-        },
-      });
-    }
 
     const permissions = [
       {
@@ -66,28 +60,37 @@ export class CustomersService {
       },
     ];
 
-    const existingCustomerPermissions = await this.prisma.permission.findFirst({
-      where: {
-        AND: permissions,
+    const permissionIds = await Promise.all(
+      permissions.map(async (permission) => {
+        const existingPermission = await this.prisma.permission.findFirst({
+          where: {
+            action: permission.action,
+            subject: permission.subject,
+          },
+        });
+
+        if (existingPermission) {
+          return existingPermission.id;
+        }
+
+        const newPermission = await this.prisma.permission.create({
+          data: {
+            ...permission,
+          },
+        });
+
+        return newPermission.id;
+      }),
+    );
+
+    await this.prisma.role.update({
+      where: { id: role.id },
+      data: {
+        permissionIds: {
+          set: permissionIds,
+        },
       },
     });
-
-    if (!existingCustomerPermissions) {
-      await Promise.all(
-        permissions.map((permission) =>
-          this.prisma.permission.create({
-            data: {
-              ...permission,
-              roles: {
-                connect: {
-                  id: role.id,
-                },
-              },
-            },
-          }),
-        ),
-      );
-    }
 
     await this.prisma.user.create({
       data: {
@@ -253,9 +256,6 @@ export class CustomersService {
       throw new NotFoundException(MESSAGES.USER_NOT_FOUND);
     }
 
-    await this.prisma.customer.delete({
-      where: { userId: id },
-    });
     await this.prisma.user.delete({
       where: { id },
     });
