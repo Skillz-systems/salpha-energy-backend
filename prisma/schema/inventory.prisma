@@ -33,7 +33,7 @@ model InventoryBatch {
   price       Float
   batchNumber Int
 
-  numberOfStock     Int // Original quantity in this batch
+  numberOfStock     Int // Original quantity in this batch.
   remainingQuantity Int // Current remaining quantity in this batch
 
   createdAt DateTime  @default(now())
