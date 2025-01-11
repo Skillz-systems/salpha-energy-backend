@@ -81,10 +81,12 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           rsync -av \
           --include='dist/***' \
+          --include='dist/prisma/schema/***' \
           --include='package.json' \
           --exclude='*' \
           -e 'ssh -p 7822 -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no' \
           dist/ package.json skillz@103.72.76.68:energy/api
+
 
         # --include='dist/' \
         # --include='dist/***' \
