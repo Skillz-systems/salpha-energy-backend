@@ -102,7 +102,7 @@ jobs:
           --include='package.json' \
           --exclude='*' \
           -e 'ssh -p 7822 -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no' \
-          dist/ package.json skillz@103.72.76.68:energy/api
+          dist/ package.json .env skillz@103.72.76.68:energy/api
 
       - name: SSH and effect migration
         run: |
