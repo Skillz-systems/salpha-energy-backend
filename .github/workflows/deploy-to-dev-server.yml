@@ -86,7 +86,7 @@ jobs:
       - name: Copy Prisma Schema folder
         run: cp -r prisma/schema dist/prisma/schema
 
-      - name: Update apt repositories
+      - name: Update apt repositories 
         run: sudo apt update
 
       - name: Install rsync
