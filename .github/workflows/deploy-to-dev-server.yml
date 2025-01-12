@@ -4,10 +4,10 @@ on:
   push:
     # branches:
     #   - main
-  # pull_request:
-  #   branches:
-  #     - dev
-  #   types: [closed]
+  pull_request:
+    branches:
+      - dev
+    types: [closed]
 
 jobs:
   # deploy-test:
@@ -61,15 +61,33 @@ jobs:
 
       - name: Run build
         run: npm run build
+
+      - name: rename env.example to .env
+        run: mv .env.example .env
+
+      - name: Replace environment variables in .env
+        run: |
+          sed -i -e "s|DATABASE_URL=.*|DB_HOST=${{ secrets.DB_HOST }}|" .env
+          sed -i -e "s|ALLOWED_ORIGIN=.*|DB_PORT=${{ secrets.DB_PORT }}|" .env
+          sed -i -e "s|PORT=.*|DB_USER=${{ secrets.DB_USER }}|" .env
+          sed -i -e "s|APP_NAME=.*|APP_NAME='${{ secrets.APP_NAME }}'|" .env
+          sed -i -e "s|CLIENT_URL=.*|CLIENT_URL=${{ secrets.CLIENT_URL }}|" .env
+          sed -i -e "s|JWT_SECRET_KEY=.*|JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}|" .env
+          sed -i -e "s|EMAIL_USER=.*|EMAIL_USER=${{ secrets.EMAIL_USER }}|" .env
+          sed -i -e "s|EMAIL_PWD=.*|EMAIL_PWD='${{ secrets.EMAIL_PWD }}'|" .env
+          sed -i -e "s|EMAIL_PORT=.*|EMAIL_PORT=${{ secrets.EMAIL_PORT }}|" .env
+          sed -i -e "s|EMAIL_HOST=.*|EMAIL_HOST=${{ secrets.EMAIL_HOST }}|" .env
+          sed -i -e "s|MAIL_FROM=.*|MAIL_FROM=${{ secrets.MAIL_FROM }}|" .env
+          sed -i -e "s|MONGO_PORT=.*|MONGO_PORT=${{ secrets.MONGO_PORT }}|" .env
+          sed -i -e "s|CLOUDINARY_API_KEY=.*|CLOUDINARY_API_KEY='${{ secrets.CLOUDINARY_API_KEY }}'|" .env
+          sed -i -e "s|CLOUDINARY_API_SECRET=.*|CLOUDINARY_API_SECRET='${{ secrets.CLOUDINARY_API_SECRET }}'|" .env
+          sed -i -e "s|CLOUDINARY_CLOUD_NAME=.*|CLOUDINARY_CLOUD_NAME='${{ secrets.CLOUDINARY_CLOUD_NAME }}'|" .env
       
       - name: Copy Prisma Schema folder
         run: cp -r prisma/schema dist/prisma/schema
 
       - name: Update apt repositories
         run: sudo apt update
-
-      # - name: rename env.example to .env
-      #   run: mv .env.example .env 
 
       - name: Install rsync
         run: sudo apt-get install -y rsync
@@ -86,9 +104,6 @@ jobs:
           -e 'ssh -p 7822 -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no' \
           dist/ package.json skillz@103.72.76.68:energy/api
 
-        # --include='dist/' \
-        # --include='dist/***' \
-  
-        # rsync --delete -va -e 'ssh -p 7822 -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no' \
-        #   dist/ package.json node_modules skillz@103.72.76.68:energy/api
-        # dist/ package.json node_modules .env skillz@103.72.76.68:energy/api
+      - name: SSH and effect migration
+        run: |
+          ssh -p 7822 -i ~/.ssh/id_rsa -t skillz@103.72.76.68 "cd energy/api && npm i && cloudlinux-selector stop --json --interpreter nodejs --app-root energy/api && cloudlinux-selector start --json --interpreter nodejs --app-root energy/api"
