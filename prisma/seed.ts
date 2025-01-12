@@ -47,9 +47,8 @@ async function main() {
 
   // Seed Category
 
-  await prisma.category.deleteMany();
-
-  
+  // await prisma.category.deleteMany();
+await prisma.inventory.deleteMany();
   await prisma.category.createMany({
     data: Array.from({ length: 10 }).map(() => ({
       name: faker.commerce.department(),
@@ -63,13 +62,25 @@ async function main() {
   );
 
   // Seed Inventories
-  await prisma.inventory.deleteMany();
+  // await prisma.inventory.deleteMany();
+  await prisma.inventoryBatch.deleteMany();
   await prisma.inventory.createMany({
     data: Array.from({ length: 10 }).map(() => ({
       name: faker.commerce.productName(),
       manufacturerName: faker.person.fullName(),
+      sku: faker.lorem.word(10),
+      image: faker.image.url(),
+      status: faker.helpers.arrayElement([
+        'IN_STOCK',
+        'OUT_OF_STOCK',
+        'DISCONTINUED',
+      ]), // Random inventory status
+      class: faker.helpers.arrayElement(['REGULAR', 'RETURNED', 'REFURBISHED']), // Random inventory class
       inventoryCategoryId: faker.helpers.arrayElement(inventoryCategoryIds),
       inventorySubCategoryId: faker.helpers.arrayElement(inventoryCategoryIds),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null, // If not deleted, set as null
     })),
   });
 
@@ -88,6 +99,9 @@ async function main() {
       },
     },
   });
+
+  await prisma.agent.deleteMany();
+  // await prisma.user.deleteMany()
 
   // Seed Users
   await prisma.user.createMany({
@@ -111,7 +125,7 @@ async function main() {
   await prisma.agent.createMany({
     data: Array.from({ length: 10 }).map(() => ({
       userId: faker.helpers.arrayElement(userIds),
-      agentId: (Math.floor(Math.random() * 900000) + 100000)
+      agentId: Math.floor(Math.random() * 900000) + 100000,
     })),
   });
 
@@ -123,9 +137,13 @@ async function main() {
   await prisma.customer.deleteMany();
   await prisma.customer.createMany({
     data: Array.from({ length: 10 }).map(() => ({
-      createdBy: faker.helpers.arrayElement(['user', 'agent']),
+      firstname: faker.person.firstName(),
+      lastname: faker.person.lastName(),
+      email: faker.internet.email(),
+      phone: faker.phone.number(),
+      location: faker.location.city(),
+      addressType: 'HOME',
       creatorId: faker.helpers.arrayElement(userIds),
-      userId: faker.helpers.arrayElement(userIds),
       agentId: faker.helpers.arrayElement(agentIds),
       type: 'lead',
     })),
@@ -135,17 +153,11 @@ async function main() {
   await prisma.inventoryBatch.deleteMany();
   await prisma.inventoryBatch.createMany({
     data: Array.from({ length: 10 }).map(() => ({
-      name: faker.commerce.productName(),
-      dateOfManufacture: faker.date.past().toISOString().split('T')[0], // Format as YYYY-MM-DD
-      sku: '813h3b89b9u2',
-      image: faker.image.url(),
-      batchNumber: Math.floor(10000000 + Math.random() * 90000000), // Random batch number
+      batchNumber: Math.floor(Math.random() * 10000), // Generate a random batch number
       costOfItem: parseFloat(faker.commerce.price()), // Random cost of item
       price: parseFloat(faker.commerce.price()), // Random price
       numberOfStock: faker.number.int({ min: 1, max: 100 }), // Random stock number
       remainingQuantity: faker.number.int({ min: 1, max: 100 }), // Random remaining quantity
-      status: InventoryStatus.IN_STOCK, // Default status
-      class: InventoryClass.REFURBISHED, // Set according to your class enum or data
       inventoryId: faker.helpers.arrayElement(inventoryCategoryIds), // Set the inventory ID
     })),
   });

@@ -29,7 +29,8 @@ model ProductInventoryBatch {
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   inventoryBatchId String         @db.ObjectId
-  inventoryBatch   InventoryBatch @relation(fields: [inventoryBatchId], references: [id], onDelete: Cascade)
+  inventoryBatch   Inventory      @relation(fields: [inventoryBatchId], references: [id], onDelete: Cascade)
+  InventoryBatch   InventoryBatch @relation(fields: [inventoryBatchId], references: [id])
 
   @@unique([productId, inventoryBatchId]) // ensures unique combinations
 }
