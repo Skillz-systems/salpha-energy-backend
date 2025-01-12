@@ -69,7 +69,7 @@ jobs:
         run: |
           sed -i -e "s|DATABASE_URL=.*|DB_HOST=${{ secrets.DB_HOST }}|" .env
           sed -i -e "s|ALLOWED_ORIGIN=.*|DB_PORT=${{ secrets.DB_PORT }}|" .env
-          sed -i -e "s|PORT=.*|DB_USER=${{ secrets.DB_USER }}|" .env
+          sed -i -e "s|PORT=.*|PORT=${{ secrets.PORT }}|" .env
           sed -i -e "s|APP_NAME=.*|APP_NAME='${{ secrets.APP_NAME }}'|" .env
           sed -i -e "s|CLIENT_URL=.*|CLIENT_URL=${{ secrets.CLIENT_URL }}|" .env
           sed -i -e "s|JWT_SECRET_KEY=.*|JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}|" .env
@@ -92,6 +92,20 @@ jobs:
       - name: Install rsync
         run: sudo apt-get install -y rsync
 
+      # - name: SSH login and deploy
+      #   run: |
+      #     mkdir -p ~/.ssh
+      #     echo "${{secrets.SSH_PRIVATE_KEY}}" > ~/.ssh/id_rsa
+      #     chmod 600 ~/.ssh/id_rsa
+      #     rsync -av \
+      #     --include='dist/***' \
+      #     --include='package.json' \
+      #     --exclude='*' \
+      #     -e 'ssh -p 7822 -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no' \
+      #     dist/ package.json .env skillz@103.72.76.68:energy/api
+      - name: Install rsync
+        run: sudo apt-get install -y rsync
+
       - name: SSH login and deploy
         run: |
           mkdir -p ~/.ssh
@@ -99,6 +113,7 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           rsync --delete -va -e 'ssh -p 7822 -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no' \
             dist/ package.json  .env .htaccess skillz@103.72.76.68:energy/api
+
       - name: SSH and effect migration
         run: |
           ssh -p 7822 -i ~/.ssh/id_rsa -t skillz@103.72.76.68 "cd energy/api && npm i && cloudlinux-selector stop --json --interpreter nodejs --app-root energy/api && cloudlinux-selector start --json --interpreter nodejs --app-root energy/api"
