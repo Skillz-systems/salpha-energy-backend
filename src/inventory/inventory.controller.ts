@@ -137,7 +137,6 @@ export class InventoryController {
   @RolesAndPermissions({
     permissions: [`${ActionEnum.manage}:${SubjectEnum.Inventory}`],
   })
-  @ApiBearerAuth('access_token')
   @ApiHeader({
     name: 'Authorization',
     description: 'JWT token used for authentication',
@@ -244,7 +243,7 @@ export class InventoryController {
       example: 'Bearer <token>',
     },
   })
-  @Get('categories')
+  @Get('/categories/all')
   @ApiOkResponse({
     description: 'Fetch all inventory categories',
     isArray: true,
@@ -269,7 +268,7 @@ export class InventoryController {
       example: 'Bearer <token>',
     },
   })
-  @Get('stats')
+  @Get('stats/all')
   @ApiOkResponse({
     description: 'Fetch Inventory Statistics',
     isArray: true,

@@ -48,6 +48,7 @@ async function main() {
   // Seed Category
 
   // await prisma.category.deleteMany();
+await prisma.productInventoryBatch.deleteMany();
 await prisma.inventory.deleteMany();
   await prisma.category.createMany({
     data: Array.from({ length: 10 }).map(() => ({
