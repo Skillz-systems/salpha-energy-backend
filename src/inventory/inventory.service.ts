@@ -205,7 +205,6 @@ export class InventoryService {
     const updatedResults = result.map(
       ({ batches, inventoryCategory, inventorySubCategory, ...rest }) => {
         // Calculate salePrice
-        const batchPrices = batches.map((batch) => batch.price);
         let salePrice = '';
         if (batches.length) {
           const batchPrices = batches.map((batch) => batch.price);

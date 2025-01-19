@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNotEmpty, ValidateIf } from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty, ValidateIf, IsBoolean } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class CreateProductDto {
   @IsString()
@@ -10,11 +10,6 @@ export class CreateProductDto {
   @IsString()
   @ApiPropertyOptional({ description: 'Optional description of the product' })
   description?: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @ApiProperty({ description: 'Price of the product' })
-  price: string;
 
   @IsOptional()
   @IsString()
@@ -47,6 +42,14 @@ export class CreateProductDto {
     example: '12345,67890', // Example of string format
   })
   inventoryBatchId: string | string[];
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiPropertyOptional({
+    description: 'Whether the product is tokenable or not',
+    example: true,
+  })
+  isTokenable?: boolean;
 
   // @ApiProperty({
   //   description:
