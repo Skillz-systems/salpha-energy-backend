@@ -3,9 +3,10 @@ model Product {
   name         String
   description  String?
   image        String?
-  price        Float
   currency     String? @default("NGN")
   paymentModes String?
+
+  isTokenable Boolean @default(false)
 
   creatorId      String? @db.ObjectId
   creatorDetails User?   @relation(fields: [creatorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -15,7 +16,9 @@ model Product {
 
   customers CustomerProducts[]
 
-  inventoryBatches ProductInventoryBatch[]
+  saleItems SaleItem[]
+
+  inventories ProductInventory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -23,14 +26,13 @@ model Product {
   @@map("products")
 }
 
-model ProductInventoryBatch {
+model ProductInventory {
   id        String  @id @default(auto()) @map("_id") @db.ObjectId
   productId String  @db.ObjectId
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  inventoryBatchId String         @db.ObjectId
-  inventoryBatch   Inventory      @relation(fields: [inventoryBatchId], references: [id], onDelete: Cascade)
-  InventoryBatch   InventoryBatch @relation(fields: [inventoryBatchId], references: [id])
+  inventoryId String    @db.ObjectId
+  inventory   Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
 
-  @@unique([productId, inventoryBatchId]) // ensures unique combinations
+  @@unique([productId, inventoryId])
 }

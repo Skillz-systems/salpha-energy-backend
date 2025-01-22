@@ -9,7 +9,7 @@ model Inventory {
   status InventoryStatus @default(IN_STOCK)
   class  InventoryClass
 
-  products ProductInventoryBatch[]
+  products ProductInventory[]
 
   inventoryCategoryId String?   @unique @db.ObjectId
   inventoryCategory   Category? @relation(name: "InventoryToCategory", fields: [inventoryCategoryId], references: [id])
@@ -40,9 +40,8 @@ model InventoryBatch {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  inventoryId           String                  @db.ObjectId
-  inventory             Inventory?              @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
-  ProductInventoryBatch ProductInventoryBatch[]
+  inventoryId String     @db.ObjectId
+  inventory   Inventory? @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
 
   @@map("inventory_batches")
 }
