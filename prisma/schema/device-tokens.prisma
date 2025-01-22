@@ -1,0 +1,20 @@
+model Device {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    serialNumber        String  @unique
+    key                 String
+    startingCode        String?
+    count               String?
+    timeDivider         String?
+    restrictedDigitMode Boolean @default(false)
+    hardwareModel       String?
+    firmwareVersion     String?
+
+    saleItemId String?   @db.ObjectId
+    saleItem   SaleItem? @relation(fields: [saleItemId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("devices")
+}

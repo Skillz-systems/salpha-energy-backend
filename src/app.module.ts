@@ -13,9 +13,25 @@ import { InventoryModule } from './inventory/inventory.module';
 import { ProductsModule } from './products/products.module';
 import { AgentsModule } from './agents/agents.module';
 import { CustomersModule } from './customers/customers.module';
+import { SalesModule } from './sales/sales.module';
+import { PaymentModule } from './payment/payment.module';
+import { DeviceModule } from './device/device.module';
+import { ContractModule } from './contract/contract.module';
+import { OpenpaygoModule } from './openpaygo/openpaygo.module';
+import { FlutterwaveModule } from './flutterwave/flutterwave.module';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([
+      {
+        ttl: 10000, // 15 minutes
+        limit: 6,
+        blockDuration: 120000, // 2 mins
+      },
+    ]),
+    
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -30,8 +46,20 @@ import { CustomersModule } from './customers/customers.module';
     ProductsModule,
     AgentsModule,
     CustomersModule,
+    SalesModule,
+    PaymentModule,
+    DeviceModule,
+    ContractModule,
+    OpenpaygoModule,
+    FlutterwaveModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

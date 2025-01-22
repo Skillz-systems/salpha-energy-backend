@@ -31,7 +31,7 @@ export class ProductsService {
     file: Express.Multer.File,
     creatorId: string,
   ) {
-    const { name, description, price, currency, paymentModes, categoryId } =
+    const { name, description, currency, paymentModes, isTokenable, categoryId } =
       createProductDto;
 
     if (!ObjectId.isValid(categoryId))
@@ -82,20 +82,20 @@ export class ProductsService {
         name,
         description,
         image,
-        price: parseInt(price),
         currency,
         paymentModes,
         categoryId,
         creatorId,
+        isTokenable
       },
     });
 
     if (inventoryBatchId?.length) {
       // Create many-to-many links in the ProductInventoryBatch table
-      await this.prisma.productInventoryBatch.createMany({
-        data: batchIds?.map((inventoryBatchId) => ({
+      await this.prisma.productInventory.createMany({
+        data: batchIds?.map((inventoryId) => ({
           productId: product.id,
-          inventoryBatchId,
+          inventoryId,
         })),
       });
     }
@@ -284,9 +284,9 @@ export class ProductsService {
     const inventoryBatch = await this.prisma.product.findUnique({
       where: { id: productId },
       include: {
-        inventoryBatches: {
+        inventories: {
           include: {
-            inventoryBatch: true,
+            inventory: true,
           },
         },
       },

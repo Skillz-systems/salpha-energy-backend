@@ -1,7 +1,13 @@
 import { BadRequestException } from '@nestjs/common';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsOptional, IsString, IsNumber } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsNumber,
+  Min,
+} from 'class-validator';
 
 export class CreateInventoryBatchDto {
   @ApiPropertyOptional({
@@ -46,6 +52,7 @@ export class CreateInventoryBatchDto {
     }
     return parsedValue;
   })
+  @Min(1)
   @IsNotEmpty()
   numberOfStock: string;
 
