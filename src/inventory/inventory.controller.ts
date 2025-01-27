@@ -184,7 +184,7 @@ export class InventoryController {
   @RolesAndPermissions({
     permissions: [`${ActionEnum.manage}:${SubjectEnum.Inventory}`],
   })
-  @Get('categories')
+  @Get('categories/all')
   @ApiOkResponse({
     description: 'Fetch all inventory categories',
     isArray: true,
