@@ -90,7 +90,7 @@ export class DeviceController {
   })
   @ApiOperation({ summary: 'Create a single device' })
   @HttpCode(HttpStatus.CREATED)
-  @Post("create")
+  @Post()
   async createDevice(@Body() createDeviceDto: CreateDeviceDto) {
     return await this.deviceService.createDevice(createDeviceDto);
   }

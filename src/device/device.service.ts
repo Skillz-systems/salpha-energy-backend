@@ -23,7 +23,7 @@ export class DeviceService {
   }
 
   async createDevice(createDeviceDto: CreateDeviceDto) {
-    const device = await this.validateDeviceExistsAndReturn({
+    const device = await this.fetchDevice({
       serialNumber: createDeviceDto.serialNumber,
     });
 
