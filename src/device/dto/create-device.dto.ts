@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsBoolean } from 'class-validator';
 
 export class CreateDeviceDto {
@@ -39,4 +39,12 @@ export class CreateDeviceDto {
   @IsString()
   @IsOptional()
   firmwareVersion?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiPropertyOptional({
+    description: 'Whether the device is tokenable or not',
+    example: true,
+  })
+  isTokenable?: boolean;
 }

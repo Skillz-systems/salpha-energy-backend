@@ -31,7 +31,7 @@ export class ProductsService {
     file: Express.Multer.File,
     creatorId: string,
   ) {
-    const { name, description, currency, paymentModes, isTokenable, categoryId } =
+    const { name, description, currency, paymentModes, categoryId } =
       createProductDto;
 
     if (!ObjectId.isValid(categoryId))
@@ -86,7 +86,6 @@ export class ProductsService {
         paymentModes,
         categoryId,
         creatorId,
-        isTokenable
       },
     });
 

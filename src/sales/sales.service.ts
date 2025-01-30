@@ -87,22 +87,6 @@ export class SalesService {
         },
       });
 
-      if (hasInstallmentItems) {
-        const totalInitialPayment = processedItems
-          .filter((item) => item.paymentMode === PaymentMode.INSTALLMENT)
-          .reduce((sum, item) => sum + item.installmentStartingPrice, 0);
-
-        const contract = await this.contractService.createContract(
-          dto,
-          totalInitialPayment,
-        );
-
-        await prisma.sales.update({
-          where: { id: sale.id },
-          data: { contractId: contract.id },
-        });
-      }
-
       for (const item of processedItems) {
         await prisma.saleItem.create({
           data: {
@@ -135,9 +119,22 @@ export class SalesService {
         });
       }
 
-      let tempAccountDetails;
       if (hasInstallmentItems) {
-        tempAccountDetails = await this.paymentService.generateStaticAccount(
+        const totalInitialPayment = processedItems
+          .filter((item) => item.paymentMode === PaymentMode.INSTALLMENT)
+          .reduce((sum, item) => sum + item.installmentStartingPrice, 0);
+
+        const contract = await this.contractService.createContract(
+          dto,
+          totalInitialPayment,
+        );
+
+        await prisma.sales.update({
+          where: { id: sale.id },
+          data: { contractId: contract.id },
+        });
+
+        const tempAccountDetails = await this.paymentService.generateStaticAccount(
           sale.id,
           5000,
           sale.customer.email,
@@ -161,17 +158,13 @@ export class SalesService {
             amount: tempAccountDetails.amount,
           },
         });
-
-        // Send Email here with static account number
       }
 
-      const paymentResponse = await this.paymentService.generatePaymentLink(
+      return await this.paymentService.generatePaymentPayload(
         sale.id,
         totalAmount,
         sale.customer.email,
       );
-
-      return paymentResponse;
     });
   }
 
@@ -225,7 +218,7 @@ export class SalesService {
             },
           },
         },
-        SaleRecipient: true
+        SaleRecipient: true,
       },
     });
 
@@ -234,8 +227,8 @@ export class SalesService {
     return saleItem;
   }
 
-  async getMargins(){
-    return await this.prisma.financialSettings.findFirst()
+  async getMargins() {
+    return await this.prisma.financialSettings.findFirst();
   }
 
   private async calculateItemPrice(

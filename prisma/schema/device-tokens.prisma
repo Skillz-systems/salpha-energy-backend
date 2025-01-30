@@ -10,6 +10,8 @@ model Device {
     hardwareModel       String?
     firmwareVersion     String?
 
+    isTokenable Boolean @default(false)
+
     saleItemId String?   @db.ObjectId
     saleItem   SaleItem? @relation(fields: [saleItemId], references: [id])
 

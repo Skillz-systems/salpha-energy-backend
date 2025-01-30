@@ -101,6 +101,7 @@ export class DeviceService {
       hardwareModel: row['Hardware_Model'],
       startingCode: row['Starting_Code'],
       restrictedDigitMode: row['Restricted_Digit_Mode'] == '1',
+      isTokenable: row['Tokenable'] == '1',
     }));
 
     for (const device of data) {

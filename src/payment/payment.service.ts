@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentMode, PaymentStatus } from '@prisma/client';
 import { EmailService } from '../mailer/email.service';
@@ -24,6 +28,37 @@ export class PaymentService {
     });
   }
 
+  async generatePaymentPayload(saleId: string, amount: number, email: string) {
+    const transactionRef = `sale-${saleId}-${Date.now()}`;
+
+    await this.prisma.payment.create({
+      data: {
+        saleId,
+        amount,
+        transactionRef,
+        paymentDate: new Date(),
+      },
+    });
+
+    return {
+      amount,
+      tx_ref: transactionRef,
+      currency: 'NGN',
+      customer: {
+        email,
+      },
+      payment_options: 'card,mobilemoney,ussd',
+      customizations: {
+        title: 'Product Purchase',
+        description: `Payment for sale ${saleId}`,
+        logo: this.config.get<string>('COMPANY_LOGO_URL'),
+      },
+      meta: {
+        saleId,
+      },
+    };
+  }
+
   async generateStaticAccount(
     saleId: string,
     monthlyPayment: number,
@@ -40,8 +75,17 @@ export class PaymentService {
     );
   }
 
-  async verifyPayment(ref: number) {
-    const res = await this.flutterwaveService.verifyTransaction(ref);
+  async verifyPayment(ref: string | number, transaction_id: number) {
+    const paymentExist = await this.prisma.payment.findUnique({
+      where: {
+        transactionRef: ref as string,
+      },
+    });
+
+    if (paymentExist)
+      throw new BadRequestException(`Payment with ref: ${ref} does not exist.`);
+
+    const res = await this.flutterwaveService.verifyTransaction(transaction_id);
     const paymentData = await this.prisma.payment.update({
       where: { transactionRef: res.tx_ref },
       data: {
@@ -51,6 +95,7 @@ export class PaymentService {
     });
 
     await this.handlePostPayment(paymentData);
+    return 'success';
   }
 
   private async handlePostPayment(paymentData: any) {
@@ -85,7 +130,11 @@ export class PaymentService {
     // Process tokenable devices
     const deviceTokens = [];
     for (const saleItem of sale.saleItems) {
-      if (saleItem.product.isTokenable) {
+      const saleDevices = saleItem.devices;
+      const tokenableDevices = saleDevices.filter(
+        (device) => device.isTokenable,
+      );
+      if (tokenableDevices.length) {
         let tokenDuration: number;
         if (saleItem.paymentMode === PaymentMode.ONE_OFF) {
           // Generate forever token
@@ -99,22 +148,11 @@ export class PaymentService {
           tokenDuration = monthsCovered * 30; // Convert months to days
         }
 
-        // Generate and send token
-        for (const device of saleItem.devices) {
-          const { count: lastDeviceCount } = await this.prisma.device.findFirst(
-            {
-              where: {
-                id: device.id,
-              },
-              select: {
-                count: true,
-              },
-            },
-          );
+        for (const device of tokenableDevices) {
           const token = await this.openPayGo.generateToken(
             device,
             tokenDuration,
-            Number(lastDeviceCount),
+            Number(device.count),
           );
 
           deviceTokens.push({
@@ -152,7 +190,7 @@ export class PaymentService {
         to: sale.customer.email,
         from: this.config.get<string>('EMAIL_USER'),
         subject: `Here is your account details for installment payments`,
-        template: './device-tokens',
+        template: './installment-account-details',
         context: {
           details: JSON.stringify(sale.installmentAccountDetails),
         },
@@ -160,10 +198,10 @@ export class PaymentService {
 
       await this.prisma.sales.update({
         where: {
-          id: sale.id
+          id: sale.id,
         },
         data: {
-          deliveredAccountDetails: true
+          deliveredAccountDetails: true,
         },
       });
     }
