@@ -116,7 +116,7 @@ export class FlutterwaveService {
       const payload = {
         //   amount: monthlyPayment,
         // frequency: installmentDuration,
-          bvn,
+        bvn,
         is_permanent: true,
         narration: `Please make a bank transfer for the installment payment of sale ${saleId}`,
         email,
@@ -143,7 +143,7 @@ export class FlutterwaveService {
     try {
       const response = await this.flw.Transaction.verify({ id: transactionId });
 
-      if (response.status !== 'success') {
+      if (response.status !== 'success' || response.status !== 'completed') {
         throw new HttpException(
           response.message || 'Failed to verify transaction',
           400,

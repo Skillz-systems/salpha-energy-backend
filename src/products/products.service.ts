@@ -10,7 +10,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { GetProductsDto } from './dto/get-products.dto';
 import { MESSAGES } from '../constants';
 import { CreateProductCategoryDto } from './dto/create-category.dto';
-import { CategoryTypes } from '@prisma/client';
+import { CategoryTypes, Prisma } from '@prisma/client';
 import { ObjectId } from 'mongodb';
 
 @Injectable()
@@ -31,7 +31,7 @@ export class ProductsService {
     file: Express.Multer.File,
     creatorId: string,
   ) {
-    const { name, description, currency, paymentModes, isTokenable, categoryId } =
+    const { name, description, currency, paymentModes, categoryId } =
       createProductDto;
 
     if (!ObjectId.isValid(categoryId))
@@ -86,7 +86,6 @@ export class ProductsService {
         paymentModes,
         categoryId,
         creatorId,
-        isTokenable
       },
     });
 
@@ -115,10 +114,10 @@ export class ProductsService {
       search,
     } = getProductsDto;
 
-    const whereConditions: any = {};
+    const whereConditions: Prisma.ProductWhereInput = {};
 
     // Apply filtering conditions
-    if (categoryId) whereConditions.productCategoryId = categoryId;
+    if (categoryId) whereConditions.categoryId = categoryId;
     if (createdAt) whereConditions.createdAt = { gte: new Date(createdAt) };
     if (updatedAt) whereConditions.updatedAt = { gte: new Date(updatedAt) };
 

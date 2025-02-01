@@ -12,6 +12,7 @@ import {
   ParseFilePipeBuilder,
   HttpCode,
   UseInterceptors,
+  Query,
 } from '@nestjs/common';
 import { DeviceService } from './device.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
@@ -20,6 +21,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiConsumes,
+  ApiExtraModels,
   ApiHeader,
   ApiOperation,
   ApiParam,
@@ -32,13 +34,10 @@ import { RolesAndPermissions } from '../auth/decorators/roles.decorator';
 import { unlinkSync } from 'fs';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import { ListDevicesQueryDto } from './dto/list-devices.dto';
 
 @ApiTags('Devices')
 @Controller('device')
-@UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
-@RolesAndPermissions({
-  permissions: [`${ActionEnum.manage}:${SubjectEnum.Sales}`],
-})
 @ApiBearerAuth('access_token')
 @ApiHeader({
   name: 'Authorization',
@@ -101,9 +100,10 @@ export class DeviceController {
   })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Fetch all devices' })
+  @ApiExtraModels(ListDevicesQueryDto)
   @Get()
-  async fetchDevices() {
-    return await this.deviceService.fetchDevices();
+  async fetchDevices(@Query() query: ListDevicesQueryDto) {
+    return await this.deviceService.fetchDevices(query);
   }
 
   @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)

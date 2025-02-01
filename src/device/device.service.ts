@@ -6,6 +6,7 @@ import { createReadStream } from 'fs';
 import * as csvParser from 'csv-parser';
 import { MESSAGES } from '../constants';
 import { Prisma } from '@prisma/client';
+import { ListDevicesQueryDto } from './dto/list-devices.dto';
 
 @Injectable()
 export class DeviceService {
@@ -23,7 +24,7 @@ export class DeviceService {
   }
 
   async createDevice(createDeviceDto: CreateDeviceDto) {
-    const device = await this.validateDeviceExistsAndReturn({
+    const device = await this.fetchDevice({
       serialNumber: createDeviceDto.serialNumber,
     });
 
@@ -34,8 +35,92 @@ export class DeviceService {
     });
   }
 
-  async fetchDevices() {
-    return await this.prisma.device.findMany();
+  async devicesFilter(
+    query: ListDevicesQueryDto,
+  ): Promise<Prisma.DeviceWhereInput> {
+    const {
+      search,
+      serialNumber,
+      startingCode,
+      key,
+      hardwareModel,
+      isTokenable,
+      createdAt,
+      updatedAt,
+    } = query;
+
+    const filterConditions: Prisma.DeviceWhereInput = {
+      AND: [
+        search
+          ? {
+              OR: [
+                { serialNumber: { contains: search, mode: 'insensitive' } },
+                { startingCode: { contains: search, mode: 'insensitive' } },
+                { key: { contains: search, mode: 'insensitive' } },
+                { hardwareModel: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {},
+        serialNumber
+          ? { serialNumber: { contains: serialNumber, mode: 'insensitive' } }
+          : {},
+        startingCode
+          ? { startingCode: { contains: startingCode, mode: 'insensitive' } }
+          : {},
+        key ? { key: { contains: key, mode: 'insensitive' } } : {},
+        hardwareModel
+          ? { hardwareModel: { contains: hardwareModel, mode: 'insensitive' } }
+          : {},
+        isTokenable
+          ? {
+              isTokenable,
+            }
+          : {},
+        createdAt ? { createdAt: new Date(createdAt) } : {},
+        updatedAt ? { updatedAt: new Date(updatedAt) } : {},
+      ],
+    };
+
+    return filterConditions;
+  }
+
+  async fetchDevices(query: ListDevicesQueryDto) {
+    const { page = 1, limit = 100, sortField, sortOrder } = query;
+
+    const filterConditions = await this.devicesFilter(query);
+
+    const pageNumber = parseInt(String(page), 10);
+    const limitNumber = parseInt(String(limit), 10);
+
+    const skip = (pageNumber - 1) * limitNumber;
+    const take = limitNumber;
+
+    const orderBy = sortField
+      ? {
+          [sortField]: sortOrder || 'asc',
+        }
+      : undefined;
+
+    const totalCount = await this.prisma.device.count({
+      where: filterConditions,
+    });
+
+    const result = await this.prisma.device.findMany({
+      skip,
+      take,
+      where: {
+        ...filterConditions,
+      },
+      orderBy,
+    });
+
+    return {
+      devices: result,
+      total: totalCount,
+      page,
+      limit,
+      totalPages: limitNumber === 0 ? 0 : Math.ceil(totalCount / limitNumber),
+    };
   }
 
   async fetchDevice(fieldAndValue: Prisma.DeviceWhereUniqueInput) {
@@ -101,6 +186,7 @@ export class DeviceService {
       hardwareModel: row['Hardware_Model'],
       startingCode: row['Starting_Code'],
       restrictedDigitMode: row['Restricted_Digit_Mode'] == '1',
+      isTokenable: row['Tokenable'] == '1',
     }));
 
     for (const device of data) {
