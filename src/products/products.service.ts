@@ -215,11 +215,14 @@ export class ProductsService {
     const categoryExists = await this.prisma.category.findFirst({
       where: {
         name,
+        type: CategoryTypes.PRODUCT,
       },
     });
 
     if (categoryExists) {
-      throw new ConflictException('A category with this name already exists');
+        throw new ConflictException(
+          `A product category with this name: ${name} already exists`,
+        );
     }
 
     return this.prisma.category.create({

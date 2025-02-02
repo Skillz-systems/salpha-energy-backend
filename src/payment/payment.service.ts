@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { PaymentMode, PaymentStatus } from '@prisma/client';
+import { PaymentMode, PaymentStatus, SalesStatus } from '@prisma/client';
 import { EmailService } from '../mailer/email.service';
 import { ConfigService } from '@nestjs/config';
 import { OpenPayGoService } from '../openpaygo/openpaygo.service';
@@ -124,6 +124,10 @@ export class PaymentService {
         totalPaid: {
           increment: paymentData.amount,
         },
+        status:
+          sale.totalPaid + paymentData.amount >= sale.totalPrice
+            ? SalesStatus.COMPLETED
+            : SalesStatus.IN_INSTALLMENT,
       },
     });
 

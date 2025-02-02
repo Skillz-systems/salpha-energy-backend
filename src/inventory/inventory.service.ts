@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -258,13 +259,14 @@ export class InventoryService {
     for (const category of categories) {
       const { name, subCategories, parentId } = category;
 
-      const existingCategory = await this.prisma.category.findUnique({
-        where: { name },
+      const existingCategoryByName = await this.prisma.category.findFirst({
+        where: { name, type: CategoryTypes.INVENTORY },
       });
 
-      if (existingCategory) {
-        existingCategoryNames.push(name);
-        continue;
+      if (existingCategoryByName) {
+        throw new ConflictException(
+          `An inventory category with this name: ${name} already exists`,
+        );
       }
 
       if (parentId) {

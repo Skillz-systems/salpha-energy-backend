@@ -134,13 +134,14 @@ export class SalesService {
           data: { contractId: contract.id },
         });
 
-        const tempAccountDetails = await this.paymentService.generateStaticAccount(
-          sale.id,
-          5000,
-          sale.customer.email,
-          '4', // duration
-          dto.bvn,
-        );
+        const tempAccountDetails =
+          await this.paymentService.generateStaticAccount(
+            sale.id,
+            5000,
+            sale.customer.email,
+            '4', // duration
+            dto.bvn,
+          );
         await prisma.installmentAccountDetails.create({
           data: {
             sales: {
@@ -159,6 +160,8 @@ export class SalesService {
           },
         });
       }
+
+      await this.handleInventoryUpdate(sale.id, totalAmount);
 
       return await this.paymentService.generatePaymentPayload(
         sale.id,
@@ -337,7 +340,7 @@ export class SalesService {
     return processedItem;
   }
 
-  async handlePaymentSuccess(saleId: string, paymentAmount: number) {
+  async handleInventoryUpdate(saleId: string, paymentAmount: number) {
     return this.prisma.$transaction(async (prisma) => {
       const sale = await prisma.sales.findUnique({
         where: { id: saleId },
@@ -356,20 +359,6 @@ export class SalesService {
       if (!sale) {
         throw new NotFoundException('Sale not found');
       }
-
-      // Update sale payment status
-      await prisma.sales.update({
-        where: { id: saleId },
-        data: {
-          totalPaid: {
-            increment: paymentAmount,
-          },
-          status:
-            sale.totalPaid + paymentAmount >= sale.totalPrice
-              ? SalesStatus.COMPLETED
-              : SalesStatus.IN_INSTALLMENT,
-        },
-      });
 
       // Process inventory deduction for each sale item
       for (const saleItem of sale.saleItems) {
@@ -431,6 +420,17 @@ export class SalesService {
       },
     });
 
+    const validProductIds = new Set(products.map((product) => product.id));
+    const invalidProductIds = productIds.filter(
+      (id) => !validProductIds.has(id),
+    );
+
+    if (invalidProductIds.length > 0) {
+      throw new BadRequestException(
+        `Invalid Product IDs: ${invalidProductIds.join(', ')}`,
+      );
+    }
+
     for (const saleProduct of saleProducts) {
       const { productId, quantity } = saleProduct;
       const product = products.find((p) => p.id === productId);
@@ -471,9 +471,12 @@ export class SalesService {
 
         totalAvailableQuantity += availableInventoryQuantity;
 
+        const requiredInventoryQuantity = quantity * productInventory.quantity;
+
         inventoryBreakdown.push({
           inventoryId: currentInventoryId,
           availableQuantity: availableInventoryQuantity,
+          requiredQuantity: requiredInventoryQuantity,
           batches: batchesBreakdown,
         });
       }
