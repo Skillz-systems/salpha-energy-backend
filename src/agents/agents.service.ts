@@ -20,8 +20,7 @@ export class AgentsService {
   constructor(private prisma: PrismaService) {}
 
   async create(createAgentDto: CreateAgentDto, userId) {
-    const { email, addressType, location, ...otherData } =
-      createAgentDto;
+    const { email, addressType, location, ...otherData } = createAgentDto;
 
     const agentId = this.generateAgentNumber();
 
@@ -114,7 +113,7 @@ export class AgentsService {
     const agents = await this.prisma.agent.findMany({
       where: whereConditions,
       include: {
-        user: true
+        user: true,
       },
       skip,
       take: limit,
@@ -128,13 +127,11 @@ export class AgentsService {
     });
 
     return {
-      data: agents,
-      meta: {
-        total,
-        page,
-        lastPage: Math.ceil(total / limit),
-        limit,
-      },
+      agents,
+      total,
+      page,
+      lastPage: Math.ceil(total / limit),
+      limit,
     };
   }
 
@@ -146,7 +143,7 @@ export class AgentsService {
     const agent = await this.prisma.agent.findUnique({
       where: { id },
       include: {
-        user: true
+        user: true,
       },
     });
 
