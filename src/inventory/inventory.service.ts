@@ -364,7 +364,7 @@ export class InventoryService {
     return tabs;
   }
 
-  private mapInventoryToResponseDto(
+  mapInventoryToResponseDto(
     inventory: Prisma.InventoryGetPayload<{
       include: {
         inventoryCategory: true;

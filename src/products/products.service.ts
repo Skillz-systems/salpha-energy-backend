@@ -11,7 +11,6 @@ import { GetProductsDto } from './dto/get-products.dto';
 import { MESSAGES } from '../constants';
 import { CreateProductCategoryDto } from './dto/create-category.dto';
 import { CategoryTypes, Prisma } from '@prisma/client';
-import { ObjectId } from 'mongodb';
 import { plainToInstance } from 'class-transformer';
 import { CategoryEntity } from 'src/utils/entity/category';
 
@@ -220,9 +219,9 @@ export class ProductsService {
     });
 
     if (categoryExists) {
-        throw new ConflictException(
-          `A product category with this name: ${name} already exists`,
-        );
+      throw new ConflictException(
+        `A product category with this name: ${name} already exists`,
+      );
     }
 
     return this.prisma.category.create({
@@ -321,7 +320,11 @@ export class ProductsService {
         inventories: {
           include: {
             inventory: {
-              include: { batches: true };
+              include: {
+                batches: true;
+                inventoryCategory: true;
+                inventorySubCategory: true;
+              };
             };
           };
         };
@@ -340,10 +343,10 @@ export class ProductsService {
           return {
             minimumInventoryBatchPrice: batchPrices.length
               ? Math.min(...batchPrices)
-              : 0.00,
+              : 0.0,
             maximumInventoryBatchPrice: batchPrices.length
               ? Math.max(...batchPrices)
-              : 0.00,
+              : 0.0,
           };
         })
         .reduce(
@@ -362,7 +365,25 @@ export class ProductsService {
 
     return {
       ...rest,
-      inventories,
+      inventories: inventories.map(({ inventory }) => {
+        const { batches, ...rest } = inventory;
+
+        const totalRemainingQuantities = batches.reduce(
+          (sum, batch) => sum + batch.remainingQuantity,
+          0,
+        );
+
+        const totalInitialQuantities = batches.reduce(
+          (sum, batch) => sum + batch.numberOfStock,
+          0,
+        );
+
+        return {
+          ...rest,
+          totalRemainingQuantities,
+          totalInitialQuantities,
+        };
+      }),
       category: plainToInstance(CategoryEntity, category),
       priceRange,
     };
