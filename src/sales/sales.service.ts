@@ -355,9 +355,11 @@ export class SalesService {
         },
       });
 
+      console.log({saleId, sale})
       if (!sale) {
         throw new NotFoundException('Sale not found');
       }
+
 
       // Process inventory deduction for each sale item
       for (const saleItem of sale.saleItems) {
