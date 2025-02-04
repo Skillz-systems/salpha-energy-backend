@@ -33,13 +33,16 @@ export class SalesService {
   ) {}
 
   async createSale(creatorId: string, dto: CreateSalesDto) {
+
     const financialSettings = await this.prisma.financialSettings.findFirst();
     if (!financialSettings) {
       throw new BadRequestException('Financial settings not configured');
     }
 
+
     // Validate inventory availability
     await this.validateSaleProductQuantity(dto.saleItems);
+
 
     const processedItems: ProcessedSaleItem[] = [];
     for (const item of dto.saleItems) {
@@ -49,6 +52,7 @@ export class SalesService {
       );
       processedItems.push(processedItem);
     }
+
 
     const totalAmount = processedItems.reduce(
       (sum, item) => sum + item.totalPrice,
@@ -73,8 +77,12 @@ export class SalesService {
       );
     }
 
-    return this.prisma.$transaction(async (prisma) => {
-      const sale = await prisma.sales.create({
+    console.log('hello5');
+
+    let sale: any;
+
+    await this.prisma.$transaction(async (prisma) => {
+      sale = await prisma.sales.create({
         data: {
           category: dto.category,
           customerId: dto.customerId,
@@ -86,6 +94,8 @@ export class SalesService {
           customer: true,
         },
       });
+
+      console.log('hello6');
 
       for (const item of processedItems) {
         await prisma.saleItem.create({
@@ -117,57 +127,109 @@ export class SalesService {
             }),
           },
         });
-      }
 
-      if (hasInstallmentItems) {
-        const totalInitialPayment = processedItems
-          .filter((item) => item.paymentMode === PaymentMode.INSTALLMENT)
-          .reduce((sum, item) => sum + item.installmentStartingPrice, 0);
-
-        const contract = await this.contractService.createContract(
-          dto,
-          totalInitialPayment,
-        );
-
-        await prisma.sales.update({
-          where: { id: sale.id },
-          data: { contractId: contract.id },
-        });
-
-        const tempAccountDetails =
-          await this.paymentService.generateStaticAccount(
-            sale.id,
-            5000,
-            sale.customer.email,
-            '4', // duration
-            dto.bvn,
-          );
-        await prisma.installmentAccountDetails.create({
-          data: {
-            sales: {
-              connect: { id: sale.id },
+        // Deduct from inventory batches
+        for (const allocation of item.batchAllocation) {
+          await this.prisma.inventoryBatch.update({
+            where: { id: allocation.batchId },
+            data: {
+              remainingQuantity: {
+                decrement: allocation.quantity,
+              },
             },
-            flw_ref: tempAccountDetails.flw_ref,
-            order_ref: tempAccountDetails.order_ref,
-            account_number: tempAccountDetails.account_number,
-            account_status: tempAccountDetails.account_status,
-            frequency: tempAccountDetails.frequency,
-            bank_name: tempAccountDetails.bank_name,
-            expiry_date: tempAccountDetails.expiry_date,
-            note: tempAccountDetails.note,
-            amount: tempAccountDetails.amount,
-          },
-        });
+          });
+        }
       }
 
-      await this.handleInventoryUpdate(sale.id, totalAmount);
 
-      return await this.paymentService.generatePaymentPayload(
-        sale.id,
-        totalAmount,
-        sale.customer.email,
-      );
+      // await this.handleInventoryUpdate(sale.id, totalAmount);
+      // Process inventory deduction for each sale item
     });
+    if (hasInstallmentItems) {
+      const totalInitialPayment = processedItems
+        .filter((item) => item.paymentMode === PaymentMode.INSTALLMENT)
+        .reduce((sum, item) => sum + item.installmentStartingPrice, 0);
+
+      const contract = await this.contractService.createContract(
+        dto,
+        totalInitialPayment,
+      );
+
+      await this.prisma.sales.update({
+        where: { id: sale.id },
+        data: { contractId: contract.id },
+      });
+
+      const tempAccountDetails =
+        await this.paymentService.generateStaticAccount(
+          sale.id,
+          5000,
+          sale.customer.email,
+          '4', // duration
+          dto.bvn,
+        );
+      await this.prisma.installmentAccountDetails.create({
+        data: {
+          sales: {
+            connect: { id: sale.id },
+          },
+          flw_ref: tempAccountDetails.flw_ref,
+          order_ref: tempAccountDetails.order_ref,
+          account_number: tempAccountDetails.account_number,
+          account_status: tempAccountDetails.account_status,
+          frequency: tempAccountDetails.frequency,
+          bank_name: tempAccountDetails.bank_name,
+          expiry_date: tempAccountDetails.expiry_date,
+          note: tempAccountDetails.note,
+          amount: tempAccountDetails.amount,
+        },
+      });
+    }
+
+
+    // const saleOt = await this.prisma.sales.findUnique({
+    //   where: { id: sale.id },
+    //   include: {
+    //     saleItems: {
+    //       include: {
+    //         product: true,
+    //         devices: {
+    //           select: { id: true },
+    //         },
+    //       },
+    //     },
+    //   },
+    // });
+    // for (const saleItem of saleOt.saleItems) {
+    //   const { devices, miscellaneousPrices, ...rest } = saleItem;
+
+    //   const processedItem = await this.calculateItemPrice(
+    //     {
+    //       ...rest,
+    //       miscellaneousPrices: miscellaneousPrices as Record<string, string>,
+    //       devices: devices.map(({ id }) => id),
+    //     },
+    //     await this.prisma.financialSettings.findFirst(),
+    //   );
+
+    //   // Deduct from inventory batches
+    //   for (const allocation of processedItem.batchAllocation) {
+    //     await this.prisma.inventoryBatch.update({
+    //       where: { id: allocation.batchId },
+    //       data: {
+    //         remainingQuantity: {
+    //           decrement: allocation.quantity,
+    //         },
+    //       },
+    //     });
+    //   }
+    // }
+
+    return await this.paymentService.generatePaymentPayload(
+      sale.id,
+      totalAmount,
+      sale.customer.email,
+    );
   }
 
   async getAllSales(query: PaginationQueryDto) {
@@ -355,11 +417,10 @@ export class SalesService {
         },
       });
 
-      console.log({saleId, sale})
+      console.log({ saleId, sale });
       if (!sale) {
         throw new NotFoundException('Sale not found');
       }
-
 
       // Process inventory deduction for each sale item
       for (const saleItem of sale.saleItems) {
