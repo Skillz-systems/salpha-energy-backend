@@ -41,11 +41,12 @@ model InstallmentAccountDetails {
   account_status String
   frequency      Int
   bank_name      String
-  created_at     Int
   expiry_date    String
   note           String
   amount         String
 
+  createdAt      DateTime @default(now())
+  
   sales Sales[]
 }
 

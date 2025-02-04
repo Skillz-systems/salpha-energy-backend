@@ -153,7 +153,6 @@ export class SalesService {
             account_status: tempAccountDetails.account_status,
             frequency: tempAccountDetails.frequency,
             bank_name: tempAccountDetails.bank_name,
-            created_at: tempAccountDetails.created_at,
             expiry_date: tempAccountDetails.expiry_date,
             note: tempAccountDetails.note,
             amount: tempAccountDetails.amount,
