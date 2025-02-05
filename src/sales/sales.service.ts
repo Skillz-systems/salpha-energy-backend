@@ -39,10 +39,8 @@ export class SalesService {
       throw new BadRequestException('Financial settings not configured');
     }
 
-
     // Validate inventory availability
     await this.validateSaleProductQuantity(dto.saleItems);
-
 
     const processedItems: ProcessedSaleItem[] = [];
     for (const item of dto.saleItems) {
@@ -52,7 +50,6 @@ export class SalesService {
       );
       processedItems.push(processedItem);
     }
-
 
     const totalAmount = processedItems.reduce(
       (sum, item) => sum + item.totalPrice,
@@ -140,10 +137,6 @@ export class SalesService {
           });
         }
       }
-
-
-      // await this.handleInventoryUpdate(sale.id, totalAmount);
-      // Process inventory deduction for each sale item
     });
     if (hasInstallmentItems) {
       const totalInitialPayment = processedItems
@@ -186,46 +179,7 @@ export class SalesService {
       });
     }
 
-
-    // const saleOt = await this.prisma.sales.findUnique({
-    //   where: { id: sale.id },
-    //   include: {
-    //     saleItems: {
-    //       include: {
-    //         product: true,
-    //         devices: {
-    //           select: { id: true },
-    //         },
-    //       },
-    //     },
-    //   },
-    // });
-    // for (const saleItem of saleOt.saleItems) {
-    //   const { devices, miscellaneousPrices, ...rest } = saleItem;
-
-    //   const processedItem = await this.calculateItemPrice(
-    //     {
-    //       ...rest,
-    //       miscellaneousPrices: miscellaneousPrices as Record<string, string>,
-    //       devices: devices.map(({ id }) => id),
-    //     },
-    //     await this.prisma.financialSettings.findFirst(),
-    //   );
-
-    //   // Deduct from inventory batches
-    //   for (const allocation of processedItem.batchAllocation) {
-    //     await this.prisma.inventoryBatch.update({
-    //       where: { id: allocation.batchId },
-    //       data: {
-    //         remainingQuantity: {
-    //           decrement: allocation.quantity,
-    //         },
-    //       },
-    //     });
-    //   }
-    // }
-
-    return await this.paymentService.generatePaymentPayload(
+    return await this.paymentService.generatePaymentLink(
       sale.id,
       totalAmount,
       sale.customer.email,
