@@ -40,7 +40,7 @@ export class PaymentController {
     @Query('transaction_id') transaction_id: number,
     @Res() res: Response,
   ) {
-    // return await this.paymentService.verifyPayment(tx_ref, transaction_id);
+    await this.paymentService.verifyPayment(tx_ref, transaction_id);
     return res.redirect(
       this.config.get<string>('FRONTEND_SUCCESSFUL_SALES_URL'),
     );

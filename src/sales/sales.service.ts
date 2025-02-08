@@ -10,19 +10,8 @@ import { ValidateSaleProductItemDto } from './dto/validate-sale-product.dto';
 import { ContractService } from '../contract/contract.service';
 import { PaymentService } from '../payment/payment.service';
 import { PaginationQueryDto } from 'src/utils/dto/pagination.dto';
-
-interface ProcessedSaleItem extends SaleItemDto {
-  totalPrice: number;
-  monthlyPayment?: number;
-  totalPayableAmount?: number;
-  batchAllocation?: BatchAllocation[];
-}
-
-interface BatchAllocation {
-  batchId: string;
-  quantity: number;
-  price: number;
-}
+import { BatchAllocation, ProcessedSaleItem } from './sales.interface';
+import { MESSAGES } from 'src/constants';
 
 @Injectable()
 export class SalesService {
@@ -33,14 +22,17 @@ export class SalesService {
   ) {}
 
   async createSale(creatorId: string, dto: CreateSalesDto) {
-
-    const financialSettings = await this.prisma.financialSettings.findFirst();
-    if (!financialSettings) {
-      throw new BadRequestException('Financial settings not configured');
-    }
+    // Validate sales relations
+    await this.validateSalesRelations(dto);
 
     // Validate inventory availability
     await this.validateSaleProductQuantity(dto.saleItems);
+
+    const financialSettings = await this.prisma.financialSettings.findFirst();
+
+    if (!financialSettings) {
+      throw new BadRequestException('Financial settings not configured');
+    }
 
     const processedItems: ProcessedSaleItem[] = [];
     for (const item of dto.saleItems) {
@@ -53,6 +45,11 @@ export class SalesService {
 
     const totalAmount = processedItems.reduce(
       (sum, item) => sum + item.totalPrice,
+      0,
+    );
+
+    const totalAmountToPay = processedItems.reduce(
+      (sum, item) => sum + (item.installmentTotalPrice || item.totalPrice),
       0,
     );
 
@@ -74,8 +71,6 @@ export class SalesService {
       );
     }
 
-    console.log('hello5');
-
     let sale: any;
 
     await this.prisma.$transaction(async (prisma) => {
@@ -85,14 +80,23 @@ export class SalesService {
           customerId: dto.customerId,
           totalPrice: totalAmount,
           status: SalesStatus.UNPAID,
+          batchAllocations: {
+            createMany: {
+              data: processedItems.flatMap(({ batchAllocation }) =>
+                batchAllocation.map(({ batchId, price, quantity }) => ({
+                  inventoryBatchId: batchId,
+                  price,
+                  quantity,
+                })),
+              ),
+            },
+          },
           creatorId,
         },
         include: {
           customer: true,
         },
       });
-
-      console.log('hello6');
 
       for (const item of processedItems) {
         await prisma.saleItem.create({
@@ -181,7 +185,7 @@ export class SalesService {
 
     return await this.paymentService.generatePaymentLink(
       sale.id,
-      totalAmount,
+      totalAmountToPay,
       sale.customer.email,
     );
   }
@@ -275,39 +279,10 @@ export class SalesService {
       throw new NotFoundException(`Product not found`);
     }
 
-    // Calculate price using multiple batches if needed
-    const batchAllocations: BatchAllocation[] = [];
-    let totalBasePrice = 0;
-
-    for (const productInventory of product.inventories) {
-      let remainingQuantity = saleItem.quantity;
-
-      for (const batch of productInventory.inventory.batches) {
-        if (remainingQuantity <= 0) break;
-
-        const quantityFromBatch = Math.min(
-          remainingQuantity,
-          batch.remainingQuantity,
-        );
-
-        if (quantityFromBatch > 0) {
-          batchAllocations.push({
-            batchId: batch.id,
-            quantity: quantityFromBatch,
-            price: batch.price,
-          });
-
-          totalBasePrice += batch.price * quantityFromBatch;
-          remainingQuantity -= quantityFromBatch;
-        }
-      }
-
-      if (remainingQuantity > 0) {
-        throw new BadRequestException(
-          `Insufficient inventory for product ${saleItem.productId}`,
-        );
-      }
-    }
+    const { batchAllocations, totalBasePrice } = await this.processBatches(
+      product,
+      saleItem.quantity,
+    );
 
     // Add miscellaneous prices
     const miscTotal = saleItem.miscellaneousPrices
@@ -347,7 +322,14 @@ export class SalesService {
       const totalInterest = principal * monthlyInterestRate * numberOfMonths;
       const totalWithMargin = (principal + totalInterest) * (1 + loanMargin);
 
-      processedItem.totalPayableAmount = totalWithMargin;
+      if (totalWithMargin < saleItem.installmentStartingPrice) {
+        throw new BadRequestException(
+          `Starting price (${saleItem.installmentStartingPrice}) too large for installment payments`,
+        );
+      }
+
+      processedItem.totalPrice = totalWithMargin;
+      processedItem.installmentTotalPrice = saleItem.installmentStartingPrice;
       processedItem.monthlyPayment =
         (totalWithMargin - saleItem.installmentStartingPrice) / numberOfMonths;
     }
@@ -355,69 +337,94 @@ export class SalesService {
     return processedItem;
   }
 
-  async handleInventoryUpdate(saleId: string, paymentAmount: number) {
-    return this.prisma.$transaction(async (prisma) => {
-      const sale = await prisma.sales.findUnique({
-        where: { id: saleId },
-        include: {
-          saleItems: {
-            include: {
-              product: true,
-              devices: {
-                select: { id: true },
-              },
-            },
-          },
-        },
-      });
+  async processBatches(
+    product: any,
+    requiredQuantity: number,
+  ): Promise<{ batchAllocations: BatchAllocation[]; totalBasePrice: number }> {
+    const batchAllocations: BatchAllocation[] = [];
 
-      console.log({ saleId, sale });
-      if (!sale) {
-        throw new NotFoundException('Sale not found');
-      }
+    let totalBasePrice = 0;
 
-      // Process inventory deduction for each sale item
-      for (const saleItem of sale.saleItems) {
-        const { devices, miscellaneousPrices, ...rest } = saleItem;
+    for (const productInventory of product.inventories) {
+      const quantityPerProduct = productInventory.quantity;
+      let remainingQuantity = requiredQuantity * quantityPerProduct;
 
-        const processedItem = await this.calculateItemPrice(
-          {
-            ...rest,
-            miscellaneousPrices: miscellaneousPrices as Record<string, string>,
-            devices: devices.map(({ id }) => id),
-          },
-          await prisma.financialSettings.findFirst(),
+      for (const batch of productInventory.inventory.batches) {
+        if (remainingQuantity <= 0) break;
+
+        const quantityFromBatch = Math.min(
+          batch.remainingQuantity,
+          remainingQuantity,
         );
 
-        // Deduct from inventory batches
-        for (const allocation of processedItem.batchAllocation) {
-          await prisma.inventoryBatch.update({
-            where: { id: allocation.batchId },
-            data: {
-              remainingQuantity: {
-                decrement: allocation.quantity,
-              },
-            },
+        if (quantityFromBatch > 0) {
+          batchAllocations.push({
+            batchId: batch.id,
+            quantity: quantityFromBatch,
+            price: batch.price,
           });
+
+          totalBasePrice += batch.price * quantityFromBatch;
+
+          remainingQuantity -= quantityFromBatch;
         }
       }
 
-      return sale;
+      if (remainingQuantity > 0) {
+        throw new BadRequestException(
+          `Insufficient inventory for product ${product.id}`,
+        );
+      }
+    }
+
+    return { batchAllocations, totalBasePrice };
+  }
+
+  private async validateSalesRelations(dto: CreateSalesDto) {
+    const customer = await this.prisma.customer.findUnique({
+      where: {
+        id: dto.customerId,
+      },
     });
+
+    if (!customer) {
+      throw new NotFoundException(
+        `Customer wth ID: ${dto.customerId} not found`,
+      );
+    }
+
+    let invalidDeviceId: string;
+
+    for (const saleItem of dto.saleItems) {
+      if (invalidDeviceId) break;
+
+      for (const id of saleItem.devices) {
+        const deviceExists = await this.prisma.device.findUnique({
+          where: { id },
+        });
+
+        if (!deviceExists) invalidDeviceId = id;
+      }
+    }
+
+    if (invalidDeviceId)
+      throw new BadRequestException(
+        `Device wth ID: ${invalidDeviceId} not found`,
+      );
   }
 
   async validateSaleProductQuantity(
     saleProducts: ValidateSaleProductItemDto[],
   ) {
-    const validationResults = [];
-    const insufficientProducts: { productId: string }[] = [];
-
-    // Create a map to track allocated quantities per inventory
     const inventoryAllocationMap = new Map<string, number>();
 
-    // Fetch all product inventories for the given products in one query
-    const productIds = saleProducts.map((saleProduct) => saleProduct.productId);
+    // Ensure product IDs are unique
+    const productIds = saleProducts.map((p) => p.productId);
+    if (new Set(productIds).size !== productIds.length) {
+      throw new BadRequestException(`Duplicate product IDs are not allowed.`);
+    }
 
+    // Fetch products with inventories and batches
     const products = await this.prisma.product.findMany({
       where: { id: { in: productIds } },
       include: {
@@ -436,100 +443,25 @@ export class SalesService {
       },
     });
 
-    const validProductIds = new Set(products.map((product) => product.id));
+    // Validate product existence
+    const validProductIds = new Set(products.map((p) => p.id));
     const invalidProductIds = productIds.filter(
       (id) => !validProductIds.has(id),
     );
-
-    if (invalidProductIds.length > 0) {
+    if (invalidProductIds.length) {
       throw new BadRequestException(
         `Invalid Product IDs: ${invalidProductIds.join(', ')}`,
       );
     }
 
-    for (const saleProduct of saleProducts) {
-      const { productId, quantity } = saleProduct;
-      const product = products.find((p) => p.id === productId);
+    // Process product validation
+    const { validationResults, insufficientProducts } = this.processProducts(
+      saleProducts,
+      products,
+      inventoryAllocationMap,
+    );
 
-      if (!product) {
-        throw new BadRequestException(`Product not found: ${productId}`);
-      }
-
-      let totalAvailableQuantity = 0;
-      const inventoryBreakdown = [];
-
-      // Check each inventory associated with the product
-      for (const productInventory of product.inventories) {
-        const inventory = productInventory.inventory;
-        const currentInventoryId = inventory.id;
-
-        // Get already allocated quantity for this inventory
-        const allocatedQuantity =
-          inventoryAllocationMap.get(currentInventoryId) || 0;
-        let availableInventoryQuantity = 0;
-
-        const batchesBreakdown = [];
-
-        // Calculate available quantity from batches
-        for (const batch of inventory.batches) {
-          const remainingAfterAllocation = batch.remainingQuantity;
-          if (remainingAfterAllocation > 0) {
-            availableInventoryQuantity += remainingAfterAllocation;
-            batchesBreakdown.push({
-              batchId: batch.id,
-              remainingQuantity: remainingAfterAllocation,
-            });
-          }
-        }
-
-        // Subtract already allocated quantity
-        availableInventoryQuantity -= allocatedQuantity;
-
-        totalAvailableQuantity += availableInventoryQuantity;
-
-        const requiredInventoryQuantity = quantity * productInventory.quantity;
-
-        inventoryBreakdown.push({
-          inventoryId: currentInventoryId,
-          availableQuantity: availableInventoryQuantity,
-          requiredQuantity: requiredInventoryQuantity,
-          batches: batchesBreakdown,
-        });
-      }
-
-      // Store validation result
-      validationResults.push({
-        productId,
-        availableQuantity: totalAvailableQuantity,
-        requiredQuantity: quantity,
-        inventoryBreakdown,
-      });
-
-      // Check if available quantity is sufficient
-      if (totalAvailableQuantity < quantity) {
-        insufficientProducts.push({ productId });
-        continue;
-      }
-
-      // If sufficient, update allocation map
-      let remainingToAllocate = quantity;
-      for (const inventory of inventoryBreakdown) {
-        if (remainingToAllocate <= 0) break;
-
-        const quantityToAllocate = Math.min(
-          remainingToAllocate,
-          inventory.availableQuantity,
-        );
-        const currentAllocation =
-          inventoryAllocationMap.get(inventory.inventoryId) || 0;
-        inventoryAllocationMap.set(
-          inventory.inventoryId,
-          currentAllocation + quantityToAllocate,
-        );
-        remainingToAllocate -= quantityToAllocate;
-      }
-    }
-
+    // If any product has insufficient inventory, throw an error
     if (insufficientProducts.length) {
       throw new BadRequestException({
         message: 'Insufficient inventory for products',
@@ -543,5 +475,93 @@ export class SalesService {
       success: true,
       validationDetails: validationResults,
     };
+  }
+
+  private processProducts(
+    saleProducts: ValidateSaleProductItemDto[],
+    products: any[],
+    inventoryAllocationMap: Map<string, number>,
+  ) {
+    const validationResults = [];
+    const insufficientProducts = [];
+
+    for (const { productId, quantity } of saleProducts) {
+      const product = products.find((p) => p.id === productId);
+      let maxPossibleUnits = Infinity;
+
+      const inventoryBreakdown = product.inventories.map((productInventory) => {
+        const { inventory, quantity: perProductInventoryQuantity } =
+          productInventory;
+        const requiredQuantityForInventory =
+          perProductInventoryQuantity * quantity;
+
+        let availableInventoryQuantity = inventory.batches.reduce(
+          (sum, batch) => sum + batch.remainingQuantity,
+          0,
+        );
+
+        availableInventoryQuantity -=
+          inventoryAllocationMap.get(inventory.id) || 0;
+
+        maxPossibleUnits = Math.min(
+          maxPossibleUnits,
+          Math.floor(availableInventoryQuantity / perProductInventoryQuantity),
+        );
+
+        return {
+          inventoryId: inventory.id,
+          availableInventoryQuantity,
+          requiredQuantityForInventory,
+        };
+      });
+
+      validationResults.push({
+        productId,
+        requiredQuantity: quantity,
+        inventoryBreakdown,
+      });
+
+      if (maxPossibleUnits < quantity) {
+        insufficientProducts.push({ productId });
+      } else {
+        this.allocateInventory(
+          inventoryBreakdown,
+          quantity,
+          inventoryAllocationMap,
+        );
+      }
+    }
+
+    return { validationResults, insufficientProducts };
+  }
+
+  private allocateInventory(
+    inventoryBreakdown: any[],
+    quantity: number,
+    inventoryAllocationMap: Map<string, number>,
+  ) {
+    let remainingToAllocate = quantity;
+
+    for (const inventory of inventoryBreakdown) {
+      if (remainingToAllocate <= 0) break;
+
+      const quantityToAllocate = Math.min(
+        remainingToAllocate,
+        Math.floor(
+          inventory.availableInventoryQuantity /
+            inventory.requiredQuantityForInventory,
+        ),
+      );
+
+      const currentAllocation =
+        inventoryAllocationMap.get(inventory.inventoryId) || 0;
+      inventoryAllocationMap.set(
+        inventory.inventoryId,
+        currentAllocation +
+          quantityToAllocate * inventory.requiredQuantityForInventory,
+      );
+
+      remainingToAllocate -= quantityToAllocate;
+    }
   }
 }

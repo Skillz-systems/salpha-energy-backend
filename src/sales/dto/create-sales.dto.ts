@@ -197,12 +197,12 @@ export class CreateSalesDto {
   @ApiProperty({
     description: 'An array of sale product items',
     type: [SaleItemDto],
-    required: false,
+    required: true,
   })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => SaleItemDto)
-  saleItems?: SaleItemDto[];
+  saleItems: SaleItemDto[];
 
   @ApiPropertyOptional({
     description:
