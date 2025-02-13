@@ -48,8 +48,8 @@ export class InventoryService {
           : {},
         inventoryCategoryId ? { inventoryCategoryId } : {},
         inventorySubCategoryId ? { inventorySubCategoryId } : {},
-        createdAt ? { createdAt: new Date(createdAt) } : {},
-        updatedAt ? { updatedAt: new Date(updatedAt) } : {},
+        createdAt ? { createdAt: { gte: new Date(createdAt) } } : {},
+        updatedAt ? { updatedAt: { gte: new Date(updatedAt) } } : {},
         inventoryClass ? { class: inventoryClass as InventoryClass } : {},
       ],
     };
@@ -254,7 +254,7 @@ export class InventoryService {
   }
 
   async createInventoryCategory(categories: CreateCategoryDto[]) {
-    const existingCategoryNames = [];
+    // const existingCategoryNames = [];
 
     for (const category of categories) {
       const { name, subCategories, parentId } = category;

@@ -89,8 +89,8 @@ export class CustomersService {
               },
             }
           : {},
-        createdAt ? { createdAt: new Date(createdAt) } : {},
-        updatedAt ? { updatedAt: new Date(updatedAt) } : {},
+        createdAt ? { createdAt: { gte: new Date(createdAt) } } : {},
+        updatedAt ? { updatedAt: { gte: new Date(updatedAt) } } : {},
       ],
     };
 
@@ -98,6 +98,7 @@ export class CustomersService {
   }
 
   async getCustomers(query: ListCustomersQueryDto) {
+    console.log({ query });
     const { page = 1, limit = 100, sortField, sortOrder } = query;
 
     const filterConditions = await this.customerFilter(query);

@@ -57,8 +57,8 @@ export class UsersService {
         status ? { status } : {},
         isBlocked !== undefined ? { isBlocked } : {},
         roleId ? { roleId } : {},
-        createdAt ? { createdAt: new Date(createdAt) } : {},
-        updatedAt ? { updatedAt: new Date(updatedAt) } : {},
+        createdAt ? { createdAt: { gte: new Date(createdAt) } } : {},
+        updatedAt ? { updatedAt: { gte: new Date(updatedAt) } } : {},
       ],
     };
 
