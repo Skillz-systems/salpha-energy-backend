@@ -11,7 +11,6 @@ import { ContractService } from '../contract/contract.service';
 import { PaymentService } from '../payment/payment.service';
 import { PaginationQueryDto } from 'src/utils/dto/pagination.dto';
 import { BatchAllocation, ProcessedSaleItem } from './sales.interface';
-import { MESSAGES } from 'src/constants';
 
 @Injectable()
 export class SalesService {

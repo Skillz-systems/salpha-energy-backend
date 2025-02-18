@@ -375,14 +375,18 @@ export class InventoryService {
   ) {
     const { batches, inventoryCategory, inventorySubCategory, ...rest } =
       inventory;
-    let salePrice = '';
+    const salePrice = {
+      minimumInventoryBatchPrice: 0,
+      maximumInventoryBatchPrice: 0,
+    };
     if (batches.length) {
       const batchPrices = batches
         .filter(({ remainingQuantity }) => remainingQuantity > 0)
         .map((batch) => batch.price);
       const minimumInventoryBatchPrice = Math.floor(Math.min(...batchPrices));
       const maximumInventoryBatchPrice = Math.ceil(Math.max(...batchPrices));
-      salePrice = `₦${minimumInventoryBatchPrice} - ₦${maximumInventoryBatchPrice}`;
+      salePrice.minimumInventoryBatchPrice = minimumInventoryBatchPrice
+      salePrice.maximumInventoryBatchPrice = maximumInventoryBatchPrice
     }
     const inventoryValue = batches.reduce(
       (sum, batch) => sum + batch.remainingQuantity * batch.price,

@@ -361,7 +361,10 @@ export class ProductsService {
           },
         );
 
-    const priceRange = `₦${minimumInventoryBatchPrice.toFixed(2)} - ₦${maximumInventoryBatchPrice.toFixed(2)}`;
+    const priceRange = {
+      minimumInventoryBatchPrice: minimumInventoryBatchPrice.toFixed(2),
+      maximumInventoryBatchPrice: maximumInventoryBatchPrice.toFixed(2),
+    };
 
     return {
       ...rest,
