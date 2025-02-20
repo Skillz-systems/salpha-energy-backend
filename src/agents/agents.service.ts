@@ -129,11 +129,10 @@ export class AgentsService {
     const skip = (pageNumber - 1) * limitNumber;
     const take = limitNumber;
 
-    const orderBy = sortField
-      ? {
-          [sortField]: sortOrder || 'asc',
-        }
-      : undefined;
+    const orderBy = {
+      [sortField || 'createdAt']: sortOrder || 'asc',
+    };
+    
     // Fetch Agents with pagination and filters
     const agents = await this.prisma.agent.findMany({
       where: whereConditions,
@@ -142,7 +141,9 @@ export class AgentsService {
       },
       skip,
       take,
-      orderBy,
+      orderBy: {
+        user: orderBy,
+      },
     });
 
     const total = await this.prisma.agent.count({

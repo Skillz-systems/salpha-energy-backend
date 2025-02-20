@@ -95,11 +95,9 @@ export class DeviceService {
     const skip = (pageNumber - 1) * limitNumber;
     const take = limitNumber;
 
-    const orderBy = sortField
-      ? {
-          [sortField]: sortOrder || 'asc',
-        }
-      : undefined;
+    const orderBy = {
+      [sortField || 'createdAt']: sortOrder || 'asc',
+    };
 
     const totalCount = await this.prisma.device.count({
       where: filterConditions,

@@ -76,12 +76,10 @@ export class UsersService {
     const skip = (pageNumber - 1) * limitNumber;
     const take = limitNumber;
 
-    const orderBy = sortField
-      ? {
-          [sortField]: sortOrder || 'asc',
-        }
-      : undefined;
-
+    const orderBy = {
+      [sortField || 'createdAt']: sortOrder || 'asc',
+    };
+    
     const result = await this.prisma.user.findMany({
       skip,
       take,

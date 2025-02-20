@@ -28,7 +28,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { RolesAndPermissionsGuard } from '../auth/guards/roles.guard';
 import { ActionEnum, Agent, SubjectEnum } from '@prisma/client';
 import { GetAgentsDto } from './dto/get-agent.dto';
-import { GetUser } from '../auth/decorators/getUser';
+import { GetSessionUser } from '../auth/decorators/getUser';
 
 @ApiTags('Agents')
 @Controller('agents')
@@ -80,7 +80,7 @@ export class AgentsController {
   @Post('create')
   async create(
     @Body() CreateAgentDto: CreateAgentDto,
-    @GetUser('id') id: string,
+    @GetSessionUser('id') id: string,
   ) {
     return await this.agentsService.create(CreateAgentDto, id);
   }

@@ -23,7 +23,7 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
-import { GetUser } from '../auth/decorators/getUser';
+import { GetSessionUser } from '../auth/decorators/getUser';
 import { SalesService } from './sales.service';
 import { CreateSalesDto } from './dto/create-sales.dto';
 import { ValidateSaleProductDto } from './dto/validate-sale-product.dto';
@@ -58,7 +58,7 @@ export class SalesController {
   @Post('create')
   async create(
     @Body() createSalesDto: CreateSalesDto,
-    @GetUser('id') requestUserId: string,
+    @GetSessionUser('id') requestUserId: string,
   ) {
     return await this.salesService.createSale(requestUserId, createSalesDto);
   }

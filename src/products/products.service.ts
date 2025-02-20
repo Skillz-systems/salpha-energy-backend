@@ -143,12 +143,10 @@ export class ProductsService {
     const skip = (pageNumber - 1) * limitNumber;
     const take = limitNumber;
 
-    const orderBy = sortField
-      ? {
-          [sortField]: sortOrder || 'asc',
-        }
-      : undefined;
-
+    const orderBy = {
+      [sortField || 'createdAt']: sortOrder || 'asc',
+    };
+    
     // Fetch products with pagination and filters
     const result = await this.prisma.product.findMany({
       where: whereConditions,

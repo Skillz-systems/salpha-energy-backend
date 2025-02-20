@@ -228,6 +228,7 @@ export class SalesService {
         sale: {
           include: {
             customer: true,
+            payment: true
           },
         },
         product: {
