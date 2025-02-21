@@ -20,17 +20,26 @@ export class PaymentService {
     private readonly flutterwaveService: FlutterwaveService,
   ) {}
 
-  async generatePaymentLink(saleId: string, amount: number, email: string) {
+  async generatePaymentLink(
+    saleId: string,
+    amount: number,
+    email: string,
+    transactionRef: string,
+  ) {
     return this.flutterwaveService.generatePaymentLink({
       saleId,
       amount,
       email,
+      transactionRef,
     });
   }
 
-  async generatePaymentPayload(saleId: string, amount: number, email: string) {
-    const transactionRef = `sale-${saleId}-${Date.now()}`;
-
+  async generatePaymentPayload(
+    saleId: string,
+    amount: number,
+    email: string,
+    transactionRef: string,
+  ) {
     await this.prisma.payment.create({
       data: {
         saleId,
@@ -81,17 +90,15 @@ export class PaymentService {
 
   async generateStaticAccount(
     saleId: string,
-    monthlyPayment: number,
     email: string,
-    installmentDuration: string,
     bvn: string,
+    transactionRef: string,
   ) {
     return this.flutterwaveService.generateStaticAccount(
       saleId,
-      monthlyPayment,
       email,
-      installmentDuration,
       bvn,
+      transactionRef,
     );
   }
 
@@ -119,13 +126,20 @@ export class PaymentService {
         res.data.charged_amount,
       );
 
-      await this.prisma.payment.update({
-        where: { id: paymentExist.id },
-        data: {
-          paymentStatus: PaymentStatus.REFUNDED,
-          paymentResponse: refundResponse,
-        },
-      });
+      await this.prisma.$transaction([
+        this.prisma.payment.update({
+          where: { id: paymentExist.id },
+          data: {
+            paymentStatus: PaymentStatus.REFUNDED,
+          },
+        }),
+        this.prisma.paymentResponses.create({
+          data: {
+            paymentId: paymentExist.id,
+            data: refundResponse,
+          },
+        }),
+      ]);
 
       throw new BadRequestException(
         'This sale is cancelled already. Refund Initialised!',
@@ -133,13 +147,20 @@ export class PaymentService {
     }
 
     if (paymentExist.paymentStatus !== PaymentStatus.COMPLETED) {
-      const paymentData = await this.prisma.payment.update({
-        where: { id: paymentExist.id },
-        data: {
-          paymentStatus: PaymentStatus.COMPLETED,
-          paymentResponse: res,
-        },
-      });
+      const [paymentData] = await this.prisma.$transaction([
+        this.prisma.payment.update({
+          where: { id: paymentExist.id },
+          data: {
+            paymentStatus: PaymentStatus.COMPLETED,
+          },
+        }),
+        this.prisma.paymentResponses.create({
+          data: {
+            paymentId: paymentExist.id,
+            data: res,
+          },
+        }),
+      ]);
 
       await this.handlePostPayment(paymentData);
     }
@@ -263,16 +284,33 @@ export class PaymentService {
   }
 
   async verifyWebhookSignature(payload: any) {
-    // const isValid = await this.flutterwaveService.verifyWebhookSignature(
-    //   payload,
-    // );
+    const txRef = payload?.data?.tx_ref;
+    const status = payload?.data?.status;
 
-    // if (!isValid) {
-    //   throw new Error('Invalid webhook signature');
-    // }
+    if (!txRef || status !== 'successful') {
+      console.error('Invalid webhook payload:', payload);
+      return;
+    }
 
-    // // Process the webhook payload
-    // return { status: 'success' };
-    console.log({payload})
+    const paymentExist = await this.prisma.payment.findUnique({
+      where: { transactionRef: txRef },
+    });
+
+    if (!paymentExist) {
+      console.warn(`Payment not found for txRef: ${txRef}`);
+      return;
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.paymentResponses.create({
+        data: {
+          paymentId: paymentExist.id,
+          data: payload,
+        },
+      }),
+    ]);
+
+    console.log(`Payment updated successfully for txRef: ${txRef}`);
+    console.log({ payload });
   }
 }

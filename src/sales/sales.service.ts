@@ -160,6 +160,9 @@ export class SalesService {
         }
       }
     });
+
+    const transactionRef = `sale-${sale.id}-${Date.now()}`;
+
     if (hasInstallmentItems) {
       const totalInitialPayment = processedItems
         .filter((item) => item.paymentMode === PaymentMode.INSTALLMENT)
@@ -178,10 +181,9 @@ export class SalesService {
       const tempAccountDetails =
         await this.paymentService.generateStaticAccount(
           sale.id,
-          5000,
           sale.customer.email,
-          '4', // duration
           dto.bvn,
+          transactionRef,
         );
       await this.prisma.installmentAccountDetails.create({
         data: {
@@ -205,11 +207,13 @@ export class SalesService {
     //   sale.id,
     //   totalAmountToPay,
     //   sale.customer.email,
+    // transactionRef
     // );
     return await this.paymentService.generatePaymentPayload(
       sale.id,
       totalAmountToPay,
       sale.customer.email,
+      transactionRef,
     );
   }
 

@@ -11,6 +11,7 @@ interface PaymentPayload {
   saleId: string;
   name?: string;
   phone?: string;
+  transactionRef?: string;
 }
 
 @Injectable()
@@ -32,9 +33,8 @@ export class FlutterwaveService {
   }
 
   async generatePaymentLink(paymentDetails: PaymentPayload) {
-    const { amount, email, saleId } = paymentDetails;
+    const { amount, email, saleId, transactionRef } = paymentDetails;
 
-    const transactionRef = `sale-${saleId}-${Date.now()}`;
     const payload = {
       amount,
       tx_ref: transactionRef,
@@ -77,13 +77,20 @@ export class FlutterwaveService {
       });
 
       if (data.status !== 'success') {
-        await this.prisma.payment.update({
-          where: { id: payment.id },
-          data: {
-            paymentStatus: PaymentStatus.FAILED,
-            paymentResponse: data,
-          },
-        });
+        await this.prisma.$transaction([
+          this.prisma.payment.update({
+            where: { id: payment.id },
+            data: {
+              paymentStatus: PaymentStatus.FAILED,
+            },
+          }),
+          this.prisma.paymentResponses.create({
+            data: {
+              paymentId: payment.id,
+              data,
+            },
+          }),
+        ]);
         throw new HttpException(
           `Payment link not generated ${data.message}`,
           500,
@@ -92,28 +99,35 @@ export class FlutterwaveService {
       return data.data;
     } catch (error) {
       console.log({ error });
-      await this.prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          paymentStatus: PaymentStatus.FAILED,
-          paymentResponse: error,
-        },
-      });
+      await this.prisma.$transaction([
+        this.prisma.payment.update({
+          where: { id: payment.id },
+          data: {
+            paymentStatus: PaymentStatus.FAILED,
+          },
+        }),
+        this.prisma.paymentResponses.create({
+          data: {
+            paymentId: payment.id,
+            data: error,
+          },
+        }),
+      ]);
       throw new Error(`Failed to generate payment link: ${error.message}`);
     }
   }
 
   async generateStaticAccount(
     saleId: string,
-    monthlyPayment: number,
     email: string,
-    installmentDuration: string,
     bvn: string,
+    transactionRef: string,
   ) {
     try {
       const payload = {
         //   amount: monthlyPayment,
         // frequency: installmentDuration,
+        tx_ref: transactionRef,
         bvn,
         is_permanent: true,
         narration: `Please make a bank transfer for the installment payment of sale ${saleId}`,
