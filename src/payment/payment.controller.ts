@@ -17,7 +17,7 @@ import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Payment')
 @Controller('payment')
-export class PaymentContrConfioller {
+export class PaymentController {
   constructor(
     private readonly paymentService: PaymentService,
     private readonly config: ConfigService,
