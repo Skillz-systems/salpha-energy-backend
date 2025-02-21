@@ -172,12 +172,4 @@ export class FlutterwaveService {
       throw new Error(`Failed to verify transaction: ${error.message}`);
     }
   }
-
-  async verifyWebhookSignature(signature: string, payload: any) {
-    const secretHash = this.configService.get<string>(
-      'FLUTTERWAVE_SECRET_HASH',
-    );
-    // Implement signature verification logic here
-    return true; // Replace with actual verification
-  }
 }

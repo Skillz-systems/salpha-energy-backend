@@ -40,21 +40,41 @@ export class PaymentService {
       },
     });
 
+    const sale = await this.prisma.sales.findFirst({
+      where: {
+        id: saleId,
+      },
+      include: {
+        saleItems: {
+          include: {
+            product: true,
+            devices: true,
+          },
+        },
+      },
+    });
+
+    const financialMargins = await this.prisma.financialSettings.findFirst();
+
     return {
-      amount,
-      tx_ref: transactionRef,
-      currency: 'NGN',
-      customer: {
-        email,
-      },
-      payment_options: 'banktransfer',
-      customizations: {
-        title: 'Product Purchase',
-        description: `Payment for sale ${saleId}`,
-        logo: this.config.get<string>('COMPANY_LOGO_URL'),
-      },
-      meta: {
-        saleId,
+      sale,
+      financialMargins,
+      paymentData: {
+        amount,
+        tx_ref: transactionRef,
+        currency: 'NGN',
+        customer: {
+          email,
+        },
+        payment_options: 'banktransfer',
+        customizations: {
+          title: 'Product Purchase',
+          description: `Payment for sale ${saleId}`,
+          logo: this.config.get<string>('COMPANY_LOGO_URL'),
+        },
+        meta: {
+          saleId,
+        },
       },
     };
   }
@@ -240,5 +260,19 @@ export class PaymentService {
     }
 
     return updatedSale;
+  }
+
+  async verifyWebhookSignature(payload: any) {
+    // const isValid = await this.flutterwaveService.verifyWebhookSignature(
+    //   payload,
+    // );
+
+    // if (!isValid) {
+    //   throw new Error('Invalid webhook signature');
+    // }
+
+    // // Process the webhook payload
+    // return { status: 'success' };
+    console.log({payload})
   }
 }

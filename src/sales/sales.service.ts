@@ -38,6 +38,7 @@ export class SalesService {
       const processedItem = await this.calculateItemPrice(
         item,
         financialSettings,
+        dto.applyMargin,
       );
       processedItems.push(processedItem);
     }
@@ -49,6 +50,21 @@ export class SalesService {
 
     const totalAmountToPay = processedItems.reduce(
       (sum, item) => sum + (item.installmentTotalPrice || item.totalPrice),
+      0,
+    );
+
+    const totalInstallmentStartingPrice = processedItems.reduce(
+      (sum, item) => sum + (item.installmentTotalPrice || 0),
+      0,
+    );
+
+    const totalInstallmentDuration = processedItems.reduce(
+      (sum, item) => sum + (item.duration || 0),
+      0,
+    );
+
+    const totalMonthlyPayment = processedItems.reduce(
+      (sum, item) => sum + (item.monthlyPayment || 0),
       0,
     );
 
@@ -78,6 +94,9 @@ export class SalesService {
           category: dto.category,
           customerId: dto.customerId,
           totalPrice: totalAmount,
+          installmentStartingPrice: totalInstallmentStartingPrice,
+          totalInstallmentDuration,
+          totalMonthlyPayment,
           status: SalesStatus.UNPAID,
           batchAllocations: {
             createMany: {
@@ -182,7 +201,12 @@ export class SalesService {
       });
     }
 
-    return await this.paymentService.generatePaymentLink(
+    // return await this.paymentService.generatePaymentLink(
+    //   sale.id,
+    //   totalAmountToPay,
+    //   sale.customer.email,
+    // );
+    return await this.paymentService.generatePaymentPayload(
       sale.id,
       totalAmountToPay,
       sale.customer.email,
@@ -228,7 +252,7 @@ export class SalesService {
         sale: {
           include: {
             customer: true,
-            payment: true
+            payment: true,
           },
         },
         product: {
@@ -256,6 +280,7 @@ export class SalesService {
   private async calculateItemPrice(
     saleItem: SaleItemDto,
     financialSettings: any,
+    applyMargin: boolean,
   ): Promise<ProcessedSaleItem> {
     const product = await this.prisma.product.findUnique({
       where: { id: saleItem.productId },
@@ -282,6 +307,7 @@ export class SalesService {
     const { batchAllocations, totalBasePrice } = await this.processBatches(
       product,
       saleItem.quantity,
+      applyMargin,
     );
 
     // Add miscellaneous prices
@@ -306,7 +332,8 @@ export class SalesService {
     };
 
     if (saleItem.paymentMode === PaymentMode.ONE_OFF) {
-      processedItem.totalPrice *= 1 + financialSettings.outrightMargin;
+      if (applyMargin)
+        processedItem.totalPrice *= 1 + financialSettings.outrightMargin;
     } else {
       if (!saleItem.installmentDuration || !saleItem.installmentStartingPrice) {
         throw new BadRequestException(
@@ -317,7 +344,7 @@ export class SalesService {
       const principal = totalPrice;
       const monthlyInterestRate = financialSettings.monthlyInterest;
       const numberOfMonths = saleItem.installmentDuration;
-      const loanMargin = financialSettings.loanMargin;
+      const loanMargin = applyMargin ? financialSettings.loanMargin : 0;
 
       const totalInterest = principal * monthlyInterestRate * numberOfMonths;
       const totalWithMargin = (principal + totalInterest) * (1 + loanMargin);
@@ -329,6 +356,7 @@ export class SalesService {
       }
 
       processedItem.totalPrice = totalWithMargin;
+      processedItem.duration = numberOfMonths;
       processedItem.installmentTotalPrice = saleItem.installmentStartingPrice;
       processedItem.monthlyPayment =
         (totalWithMargin - saleItem.installmentStartingPrice) / numberOfMonths;
@@ -340,6 +368,7 @@ export class SalesService {
   async processBatches(
     product: any,
     requiredQuantity: number,
+    applyMargin: boolean,
   ): Promise<{ batchAllocations: BatchAllocation[]; totalBasePrice: number }> {
     const batchAllocations: BatchAllocation[] = [];
 
@@ -357,14 +386,16 @@ export class SalesService {
           remainingQuantity,
         );
 
+        const batchPrice = applyMargin ? batch.costOfItem || 0 : batch.price;
+
         if (quantityFromBatch > 0) {
           batchAllocations.push({
             batchId: batch.id,
             quantity: quantityFromBatch,
-            price: batch.price,
+            price: batchPrice,
           });
 
-          totalBasePrice += batch.price * quantityFromBatch;
+          totalBasePrice += batchPrice * quantityFromBatch;
 
           remainingQuantity -= quantityFromBatch;
         }
