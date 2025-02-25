@@ -232,6 +232,7 @@ export class SalesService {
         sale: {
           include: { customer: true },
         },
+        devices: true,
         SaleRecipient: true,
       },
       skip,
@@ -259,6 +260,7 @@ export class SalesService {
             payment: true,
           },
         },
+        devices: true,
         product: {
           include: {
             inventories: {
@@ -275,6 +277,31 @@ export class SalesService {
     if (!saleItem) return new BadRequestException(`saleItem ${id} not found`);
 
     return saleItem;
+  }
+
+  async getSalesPaymentDetails(saleId: string) {
+    const sale = await this.prisma.sales.findFirst({
+      where: {
+        id: saleId,
+      },
+      include: {
+        customer: true,
+        saleItems: {
+          include: {
+            devices: true,
+          },
+        },
+      },
+    });
+
+    const transactionRef = `sale-${sale.id}-${Date.now()}`;
+
+    return await this.paymentService.generatePaymentPayload(
+      sale.id,
+      sale.installmentStartingPrice || sale.totalPrice,
+      sale.customer.email,
+      transactionRef,
+    );
   }
 
   async getMargins() {
@@ -353,17 +380,22 @@ export class SalesService {
       const totalInterest = principal * monthlyInterestRate * numberOfMonths;
       const totalWithMargin = (principal + totalInterest) * (1 + loanMargin);
 
-      if (totalWithMargin < saleItem.installmentStartingPrice) {
-        throw new BadRequestException(
-          `Starting price (${saleItem.installmentStartingPrice}) too large for installment payments`,
-        );
-      }
+      // if (totalWithMargin < saleItem.installmentStartingPrice) {
+      //   throw new BadRequestException(
+      //     `Starting price (${saleItem.installmentStartingPrice}) too large for installment payments`,
+      //   );
+      // }
+
+      const installmentTotalPrice = saleItem.installmentStartingPrice
+        ? (totalWithMargin * Number(saleItem.installmentStartingPrice)) / 100
+        : 0;
 
       processedItem.totalPrice = totalWithMargin;
-      processedItem.duration = numberOfMonths;
-      processedItem.installmentTotalPrice = saleItem.installmentStartingPrice;
+      // processedItem.duration = numberOfMonths;
+      // processedItem.installmentTotalPrice = installmentTotalPrice;
+      processedItem.installmentTotalPrice = installmentTotalPrice;
       processedItem.monthlyPayment =
-        (totalWithMargin - saleItem.installmentStartingPrice) / numberOfMonths;
+        (totalWithMargin - installmentTotalPrice) / numberOfMonths;
     }
 
     return processedItem;

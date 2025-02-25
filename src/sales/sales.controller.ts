@@ -112,10 +112,25 @@ export class SalesController {
   @HttpCode(HttpStatus.OK)
   @ApiParam({
     name: 'id',
-    description: 'Contract id to fetch details.',
+    description: 'Sale id to fetch details.',
   })
   @Get(':id')
   async getSale(@Param('id') id: string) {
     return await this.salesService.getSale(id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Sales}`],
+  })
+  @ApiBadRequestResponse({})
+  @HttpCode(HttpStatus.OK)
+  @ApiParam({
+    name: 'id',
+    description: 'Sale id to fetch payment details.',
+  })
+  @Get(':id/payment-data')
+  async getSalePaymentData(@Param('id') id: string) {
+    return await this.salesService.getSalesPaymentDetails(id);
   }
 }
