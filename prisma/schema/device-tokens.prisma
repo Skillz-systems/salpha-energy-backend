@@ -10,6 +10,8 @@ model Device {
   hardwareModel       String?
   firmwareVersion     String?
 
+  tokens Tokens[]
+
   isTokenable Boolean @default(false)
 
   saleItemIDs String[]   @db.ObjectId
@@ -19,4 +21,16 @@ model Device {
   updatedAt DateTime @updatedAt
 
   @@map("devices")
+}
+
+model Tokens {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  token     String   @unique
+  createdAt DateTime @default(now())
+
+  device   Device? @relation(fields: [deviceId], references: [id])
+  deviceId String? @db.ObjectId
+
+  @@map("token")
 }

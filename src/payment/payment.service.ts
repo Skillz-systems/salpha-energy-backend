@@ -243,6 +243,13 @@ export class PaymentService {
               count: String(token.newCount),
             },
           });
+
+          await this.prisma.tokens.create({
+            data: {
+              deviceId: device.id,
+              token: String(token.newCount),
+            },
+          });
         }
       }
     }

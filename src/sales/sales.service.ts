@@ -235,6 +235,9 @@ export class SalesService {
         devices: true,
         SaleRecipient: true,
       },
+      orderBy: {
+        createdAt: "desc"
+      },
       skip,
       take,
     });
@@ -258,9 +261,14 @@ export class SalesService {
           include: {
             customer: true,
             payment: true,
+            installmentAccountDetails: true
           },
         },
-        devices: true,
+        devices: {
+          include: {
+            tokens: true,
+          },
+        },
         product: {
           include: {
             inventories: {
