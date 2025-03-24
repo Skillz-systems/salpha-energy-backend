@@ -1,5 +1,6 @@
 # Step 1: Build the NestJS application
 FROM node:19.3.0 AS build
+RUN npm install @css-inline/css-inline-linux-x64-gnu
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
@@ -9,6 +10,7 @@ RUN npm run build
 
 # Step 2: Create a lightweight image for production
 FROM node:19.3.0
+RUN npm install @css-inline/css-inline-linux-x64-gnu
 WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
