@@ -11,6 +11,7 @@ import { ContractService } from '../contract/contract.service';
 import { PaymentService } from '../payment/payment.service';
 import { PaginationQueryDto } from 'src/utils/dto/pagination.dto';
 import { BatchAllocation, ProcessedSaleItem } from './sales.interface';
+import { CreateFinancialMarginDto } from './dto/create-financial-margins.dto';
 
 @Injectable()
 export class SalesService {
@@ -236,7 +237,7 @@ export class SalesService {
         SaleRecipient: true,
       },
       orderBy: {
-        createdAt: "desc"
+        createdAt: 'desc',
       },
       skip,
       take,
@@ -261,7 +262,7 @@ export class SalesService {
           include: {
             customer: true,
             payment: true,
-            installmentAccountDetails: true
+            installmentAccountDetails: true,
           },
         },
         devices: {
@@ -314,6 +315,12 @@ export class SalesService {
 
   async getMargins() {
     return await this.prisma.financialSettings.findFirst();
+  }
+
+  async createFinMargin(body: CreateFinancialMarginDto) {
+    await this.prisma.financialSettings.create({
+      data: body,
+    });
   }
 
   private async calculateItemPrice(

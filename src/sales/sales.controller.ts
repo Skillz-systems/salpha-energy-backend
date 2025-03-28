@@ -28,6 +28,7 @@ import { SalesService } from './sales.service';
 import { CreateSalesDto } from './dto/create-sales.dto';
 import { ValidateSaleProductDto } from './dto/validate-sale-product.dto';
 import { PaginationQueryDto } from '../utils/dto/pagination.dto';
+import { CreateFinancialMarginDto } from './dto/create-financial-margins.dto';
 
 @SkipThrottle()
 @ApiTags('Sales')
@@ -102,6 +103,16 @@ export class SalesController {
   @Get('financial-margins')
   async getMargins() {
     return await this.salesService.getMargins();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Sales}`],
+  })
+  @HttpCode(HttpStatus.CREATED)
+  @Post('financial-margins')
+  async createMargins(@Body() body: CreateFinancialMarginDto) {
+    return await this.salesService.createFinMargin(body);
   }
 
   @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
