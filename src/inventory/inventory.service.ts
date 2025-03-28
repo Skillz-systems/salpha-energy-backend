@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -10,6 +11,11 @@ import { MESSAGES } from '../constants';
 import { CategoryTypes, InventoryClass, Prisma } from '@prisma/client';
 import { FetchInventoryQueryDto } from './dto/fetch-inventory.dto';
 import { CreateCategoryDto } from './dto/create-category.dto';
+import { CreateInventoryBatchDto } from './dto/create-inventory-batch.dto';
+import { InventoryEntity } from './entity/inventory.entity';
+import { plainToInstance } from 'class-transformer';
+import { InventoryBatchEntity } from './entity/inventory-batch.entity';
+import { CategoryEntity } from '../utils/entity/category';
 
 @Injectable()
 export class InventoryService {
@@ -42,15 +48,9 @@ export class InventoryService {
           : {},
         inventoryCategoryId ? { inventoryCategoryId } : {},
         inventorySubCategoryId ? { inventorySubCategoryId } : {},
-        createdAt ? { createdAt: new Date(createdAt) } : {},
-        updatedAt ? { updatedAt: new Date(updatedAt) } : {},
-        inventoryClass
-          ? {
-              batches: {
-                some: { class: inventoryClass as InventoryClass },
-              },
-            }
-          : {},
+        createdAt ? { createdAt: { gte: new Date(createdAt) } } : {},
+        updatedAt ? { updatedAt: { gte: new Date(updatedAt) } } : {},
+        inventoryClass ? { class: inventoryClass as InventoryClass } : {},
       ],
     };
 
@@ -64,6 +64,7 @@ export class InventoryService {
   }
 
   async createInventory(
+    requestUserId: string,
     createInventoryDto: CreateInventoryDto,
     file: Express.Multer.File,
   ) {
@@ -90,51 +91,59 @@ export class InventoryService {
 
     const image = (await this.uploadInventoryImage(file)).secure_url;
 
-    let inventoryData = await this.prisma.inventory.findFirst({
-      where: {
-        name: {
-          equals: createInventoryDto.name,
-          mode: 'insensitive',
-        },
-        manufacturerName: {
-          equals: createInventoryDto.manufacturerName,
-          mode: 'insensitive',
-        },
+    const inventoryData = await this.prisma.inventory.create({
+      data: {
+        name: createInventoryDto.name,
+        manufacturerName: createInventoryDto.manufacturerName,
+        dateOfManufacture: createInventoryDto.dateOfManufacture,
+        sku: createInventoryDto.sku,
+        image,
+        class: createInventoryDto.class,
+        inventoryCategoryId: createInventoryDto.inventoryCategoryId,
+        inventorySubCategoryId: createInventoryDto.inventorySubCategoryId,
       },
     });
 
-    if (!inventoryData) {
-      inventoryData = await this.prisma.inventory.create({
-        data: {
-          name: createInventoryDto.name,
-          manufacturerName: createInventoryDto.manufacturerName,
-          inventoryCategoryId: createInventoryDto.inventoryCategoryId,
-          inventorySubCategoryId: createInventoryDto.inventorySubCategoryId,
-        },
-      });
-    }
+    await this.prisma.inventoryBatch.create({
+      data: {
+        creatorId: requestUserId,
+        inventoryId: inventoryData.id,
+        batchNumber: Date.now() - 100,
+        costOfItem: parseFloat(createInventoryDto.costOfItem),
+        price: parseFloat(createInventoryDto.price),
+        numberOfStock: createInventoryDto.numberOfStock,
+        remainingQuantity: createInventoryDto.numberOfStock,
+      },
+    });
 
-    const batchNumber = this.generateBatchNumber();
+    return {
+      message: MESSAGES.INVENTORY_CREATED,
+    };
+  }
+
+  async createInventoryBatch(
+    requestUserId: string,
+    createInventoryBatchDto: CreateInventoryBatchDto,
+  ) {
+    const isInventoryValid = await this.prisma.inventory.findFirst({
+      where: {
+        id: createInventoryBatchDto.inventoryId,
+      },
+    });
+
+    if (!isInventoryValid) {
+      throw new BadRequestException('Invalid inventoryId');
+    }
 
     await this.prisma.inventoryBatch.create({
       data: {
-        inventory: { connect: { id: inventoryData.id } },
-        name: createInventoryDto.name,
-        ...(createInventoryDto.dateOfManufacture !== undefined && {
-          dateOfManufacture: createInventoryDto.dateOfManufacture,
-        }),
-        ...(createInventoryDto.sku !== undefined && {
-          sku: createInventoryDto.sku,
-        }),
-        ...(createInventoryDto.costOfItem !== undefined && {
-          costOfItem: parseFloat(createInventoryDto.costOfItem),
-        }),
-        image,
-        batchNumber: Number(batchNumber),
-        price: parseFloat(createInventoryDto.price),
-        numberOfStock: Number(createInventoryDto.numberOfStock),
-        remainingQuantity: Number(createInventoryDto.numberOfStock),
-        class: createInventoryDto.class,
+        creatorId: requestUserId,
+        batchNumber: Date.now() - 100,
+        inventoryId: createInventoryBatchDto.inventoryId,
+        costOfItem: parseFloat(createInventoryBatchDto.costOfItem),
+        price: parseFloat(createInventoryBatchDto.price),
+        numberOfStock: createInventoryBatchDto.numberOfStock,
+        remainingQuantity: createInventoryBatchDto.numberOfStock,
       },
     });
 
@@ -182,11 +191,9 @@ export class InventoryService {
     const skip = (pageNumber - 1) * limitNumber;
     const take = limitNumber;
 
-    const orderBy = sortField
-      ? {
-          [sortField]: sortOrder || 'asc',
-        }
-      : undefined;
+    const orderBy = {
+      [sortField || 'createdAt']: sortOrder || 'asc',
+    };
 
     const result = await this.prisma.inventory.findMany({
       skip,
@@ -194,18 +201,29 @@ export class InventoryService {
       where: filterConditions,
       orderBy,
       include: {
-        batches: true,
+        batches: {
+          include: {
+            creatorDetails: {
+              select: {
+                firstname: true,
+                lastname: true,
+              },
+            },
+          },
+        },
         inventoryCategory: true,
         inventorySubCategory: true,
       },
     });
+
+    const updatedResults = result.map(this.mapInventoryToResponseDto);
 
     const totalCount = await this.prisma.inventory.count({
       where: filterConditions,
     });
 
     return {
-      inventories: result,
+      inventories: plainToInstance(InventoryEntity, updatedResults),
       total: totalCount,
       page,
       limit,
@@ -213,34 +231,64 @@ export class InventoryService {
     };
   }
 
-  async fetchInventoryBatchDetails(id: string) {
-    const inventoryBatch = await this.prisma.inventoryBatch.findUnique({
-      where: { id },
+  async getInventory(inventoryId: string) {
+    const inventory = await this.prisma.inventory.findUnique({
+      where: { id: inventoryId },
+      include: {
+        batches: {
+          include: {
+            creatorDetails: {
+              select: {
+                firstname: true,
+                lastname: true,
+              },
+            },
+          },
+        },
+        inventoryCategory: true,
+        inventorySubCategory: true,
+      },
+    });
+
+    if (!inventory) {
+      throw new NotFoundException(MESSAGES.INVENTORY_NOT_FOUND);
+    }
+
+    return this.mapInventoryToResponseDto(inventory);
+  }
+
+  async getInventoryBatch(inventoryBatchId: string) {
+    const inventorybatch = await this.prisma.inventoryBatch.findUnique({
+      where: { id: inventoryBatchId },
       include: {
         inventory: true,
       },
     });
 
-    if (!inventoryBatch) {
+    if (!inventorybatch) {
       throw new NotFoundException(MESSAGES.BATCH_NOT_FOUND);
     }
 
-    return inventoryBatch;
+    return plainToInstance(InventoryBatchEntity, {
+      ...inventorybatch,
+      inventory: plainToInstance(InventoryEntity, inventorybatch.inventory),
+    });
   }
 
   async createInventoryCategory(categories: CreateCategoryDto[]) {
-    const existingCategoryNames = [];
+    // const existingCategoryNames = [];
 
     for (const category of categories) {
       const { name, subCategories, parentId } = category;
 
-      const existingCategory = await this.prisma.category.findUnique({
-        where: { name },
+      const existingCategoryByName = await this.prisma.category.findFirst({
+        where: { name, type: CategoryTypes.INVENTORY },
       });
 
-      if (existingCategory) {
-        existingCategoryNames.push(name);
-        continue;
+      if (existingCategoryByName) {
+        throw new ConflictException(
+          `An inventory category with this name: ${name} already exists`,
+        );
       }
 
       if (parentId) {
@@ -284,7 +332,7 @@ export class InventoryService {
   }
 
   async getInventoryStats() {
-    const inventoryClassCounts = await this.prisma.inventoryBatch.groupBy({
+    const inventoryClassCounts = await this.prisma.inventory.groupBy({
       by: ['class'],
       _count: {
         class: true,
@@ -296,9 +344,9 @@ export class InventoryService {
       count: item._count.class,
     }));
 
-    const totalInventoryCount = await this.prisma.inventoryBatch.count();
+    const totalInventoryCount = await this.prisma.inventory.count();
 
-    const deletedInventoryCount = await this.prisma.inventoryBatch.count({
+    const deletedInventoryCount = await this.prisma.inventory.count({
       where: {
         deletedAt: {
           not: null,
@@ -313,37 +361,96 @@ export class InventoryService {
     };
   }
 
-  async getInventoryTabs(inventoryBatchId: string) {
-    const inventoryBatch = await this.prisma.inventoryBatch.findUnique({
-      where: { id: inventoryBatchId },
-      include: {
-        inventory: true,
-      },
+  async getInventoryTabs(inventoryId: string) {
+    const inventory = await this.prisma.inventory.findUnique({
+      where: { id: inventoryId },
     });
 
-    if (!inventoryBatch) {
-      throw new NotFoundException(MESSAGES.BATCH_NOT_FOUND);
-    }
+    if (!inventory) throw new NotFoundException(MESSAGES.INVENTORY_NOT_FOUND);
 
     const tabs = [
       {
         name: 'Details',
-        url: `/inventory/batch/${inventoryBatchId}`,
+        url: `/inventory/${inventoryId}`,
       },
       {
         name: 'History',
-        url: `/inventory/${inventoryBatchId}/history`,
+        url: `/inventory/${inventoryId}/history`,
       },
       {
         name: 'Stats',
-        url: `/inventory/${inventoryBatchId}/stats`,
+        url: `/inventory/${inventoryId}/stats`,
       },
     ];
 
     return tabs;
   }
 
-  private generateBatchNumber(): number {
-    return Math.floor(10000000 + Math.random() * 90000000);
+  mapInventoryToResponseDto(
+    inventory: Prisma.InventoryGetPayload<{
+      include: {
+        inventoryCategory: true;
+        inventorySubCategory: true;
+        batches: {
+          include: {
+            creatorDetails: {
+              select: {
+                firstname: true;
+                lastname: true;
+              };
+            };
+          };
+        };
+      };
+    }>,
+  ) {
+    const { batches, inventoryCategory, inventorySubCategory, ...rest } =
+      inventory;
+    const salePrice = {
+      minimumInventoryBatchPrice: 0,
+      maximumInventoryBatchPrice: 0,
+    };
+    if (batches.length) {
+      const batchPrices = batches
+        .filter(({ remainingQuantity }) => remainingQuantity > 0)
+        .map((batch) => batch.price);
+      const minimumInventoryBatchPrice = Math.floor(Math.min(...batchPrices));
+      const maximumInventoryBatchPrice = Math.ceil(Math.max(...batchPrices));
+      salePrice.minimumInventoryBatchPrice = minimumInventoryBatchPrice;
+      salePrice.maximumInventoryBatchPrice = maximumInventoryBatchPrice;
+    }
+    const inventoryValue = batches.reduce(
+      (sum, batch) => sum + batch.remainingQuantity * batch.price,
+      0,
+    );
+
+    const totalRemainingQuantities = batches.reduce(
+      (sum, batch) => sum + batch.remainingQuantity,
+      0,
+    );
+
+    const totalInitialQuantities = batches.reduce(
+      (sum, batch) => sum + batch.numberOfStock,
+      0,
+    );
+
+    const updatedBatches = batches.map((batch) => ({
+      ...batch,
+      stockValue: (batch.remainingQuantity * batch.price).toFixed(2),
+    }));
+
+    return {
+      ...rest,
+      inventoryCategory: plainToInstance(CategoryEntity, inventoryCategory),
+      inventorySubCategory: plainToInstance(
+        CategoryEntity,
+        inventorySubCategory,
+      ),
+      batches: plainToInstance(InventoryBatchEntity, updatedBatches),
+      salePrice,
+      inventoryValue,
+      totalRemainingQuantities,
+      totalInitialQuantities,
+    };
   }
 }

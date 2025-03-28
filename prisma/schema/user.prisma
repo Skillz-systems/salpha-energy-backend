@@ -24,11 +24,12 @@ model User {
   roleId       String @db.ObjectId
   createdRoles Role[] @relation("RoleCreator")
 
-  agentDetails    Agent?
-  customerDetails Customer? @relation("CustomerDetails")
+  agentDetails Agent?
 
-  createdProducts  Product[]
-  createdCustomers Customer[]
+  createdProducts         Product[]
+  createdCustomers        Customer[]
+  createdSales            Sales[]
+  createdInventoryBatches InventoryBatch[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
