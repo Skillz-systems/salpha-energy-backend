@@ -47,7 +47,10 @@ export class DeviceService {
       isTokenable,
       createdAt,
       updatedAt,
+      fetchFormat,
     } = query;
+
+    // console.log({ fetchFormat });
 
     const filterConditions: Prisma.DeviceWhereInput = {
       AND: [
@@ -68,6 +71,7 @@ export class DeviceService {
           ? { startingCode: { contains: startingCode, mode: 'insensitive' } }
           : {},
         key ? { key: { contains: key, mode: 'insensitive' } } : {},
+        // !fetchFormat ? { isUsed: false } : { },
         hardwareModel
           ? { hardwareModel: { contains: hardwareModel, mode: 'insensitive' } }
           : {},

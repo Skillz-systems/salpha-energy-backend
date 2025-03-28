@@ -3,6 +3,7 @@ import { Transform } from 'class-transformer';
 import {
   IsOptional,
   IsString,
+  IsIn,
   IsBoolean,
   IsDateString,
 } from 'class-validator';
@@ -81,6 +82,16 @@ export class ListDevicesQueryDto {
   @IsOptional()
   @IsString()
   sortOrder?: 'asc' | 'desc';
+
+  @ApiPropertyOptional({
+    description: 'Specifies whether to fetch all the include both used and unused. Default fetches only unused ',
+    enum: ['all'],
+    example: '',
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['all'])
+  fetchFormat?: 'all';
 
   @ApiPropertyOptional({
     description: 'Search devices by name, email, or devicename',
