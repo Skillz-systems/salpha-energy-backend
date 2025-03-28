@@ -257,7 +257,7 @@ export class PaymentService {
     if (deviceTokens.length) {
       await this.Email.sendMail({
         to: sale.customer.email,
-        from: this.config.get<string>('EMAIL_USER'),
+        from: this.config.get<string>('MAIL_FROM'),
         subject: `Here are your device tokens`,
         template: './device-tokens',
         context: {
@@ -269,7 +269,7 @@ export class PaymentService {
     if (sale.installmentAccountDetailsId && !sale.deliveredAccountDetails) {
       await this.Email.sendMail({
         to: sale.customer.email,
-        from: this.config.get<string>('EMAIL_USER'),
+        from: this.config.get<string>('MAIL_FROM'),
         subject: `Here is your account details for installment payments`,
         template: './installment-account-details',
         context: {
