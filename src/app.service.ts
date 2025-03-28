@@ -5,7 +5,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 export class AppService {
    private readonly logger = new Logger(AppService.name);
   getHello(): string {
-    return 'Welcom to A4t!';
+    return 'Welcom to A4t! Pro';
   }
 
   //   @Cron(CronExpression.EVERY_30_SECONDS)
