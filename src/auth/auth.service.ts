@@ -331,7 +331,7 @@ export class AuthService {
   ) {
     const tokenValid = await this.verifyToken(
       params.token,
-      TokenType.password_reset,
+      TokenType.email_verification,
       params.userid,
     );
 
