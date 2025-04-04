@@ -20,9 +20,7 @@ export class CreateDeviceDto {
 
   @ApiProperty({ description: 'Optional count', required: false })
   @IsString()
-  @MinLength(2)
-  @MinLength(2)
-  @MinLength(2)
+  @MinLength(1)
   @IsOptional()
   count?: string;
 

@@ -332,11 +332,11 @@ export class ProductsService {
     const { inventories, category, ...rest } = product;
     const { maximumInventoryBatchPrice, minimumInventoryBatchPrice } =
       inventories
-        .map(({ inventory }) => {
+        .map(({ quantity, inventory }) => {
           const { batches } = inventory;
           const batchPrices = batches
             .filter(({ remainingQuantity }) => remainingQuantity > 0)
-            .map((batch) => batch.price);
+            .map((batch) => batch.price * quantity);
 
           return {
             minimumInventoryBatchPrice: batchPrices.length
@@ -366,7 +366,7 @@ export class ProductsService {
 
     return {
       ...rest,
-      inventories: inventories.map(({ inventory }) => {
+      inventories: inventories.map(({quantity, inventory }) => {
         const { batches, ...rest } = inventory;
 
         const totalRemainingQuantities = batches.reduce(
@@ -383,6 +383,7 @@ export class ProductsService {
           ...rest,
           totalRemainingQuantities,
           totalInitialQuantities,
+          productInventoryQuantity: quantity
         };
       }),
       category: plainToInstance(CategoryEntity, category),
