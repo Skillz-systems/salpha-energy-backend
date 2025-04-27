@@ -7,9 +7,16 @@ import { OpenPayGoService } from '../openpaygo/openpaygo.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { FlutterwaveService } from '../flutterwave/flutterwave.service';
 import { EmailService } from '../mailer/email.service';
+import { BullModule } from '@nestjs/bullmq';
+import { PaymentProcessor } from './payment.processor';
 
 @Module({
-  imports: [EmailModule],
+  imports: [
+    EmailModule,
+    BullModule.registerQueue({
+      name: 'payment-queue',
+    }),
+  ],
   controllers: [PaymentController],
   providers: [
     PaymentService,
@@ -17,7 +24,9 @@ import { EmailService } from '../mailer/email.service';
     OpenPayGoService,
     PrismaService,
     FlutterwaveService,
-    EmailService
+    EmailService,
+    PaymentProcessor,
   ],
+  exports: [PaymentService, BullModule],
 })
 export class PaymentModule {}

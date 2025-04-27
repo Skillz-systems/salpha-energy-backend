@@ -35,7 +35,9 @@ import { unlinkSync } from 'fs';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { ListDevicesQueryDto } from './dto/list-devices.dto';
+import { SkipThrottle } from '@nestjs/throttler';
 
+@SkipThrottle()
 @ApiTags('Devices')
 @Controller('device')
 @ApiBearerAuth('access_token')

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { BullModule } from '@nestjs/bullmq';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -26,6 +27,19 @@ import { CronjobsModule } from './cronjobs/cronjobs.module';
 
 @Module({
   imports: [
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        connection: {
+          // host: configService.get<string>('REDIS_HOST'),
+          // port: configService.get<number>('REDIS_PORT'),
+          // password: configService.get<string>('REDIS_PASSWORD'),
+          // username: configService.get<string>('REDIS_USERNAME'),
+          url: configService.get<string>('REDIS_URL'),
+        },
+      }),
+    }),
     ThrottlerModule.forRoot([
       {
         ttl: 10000, // 15 minutes

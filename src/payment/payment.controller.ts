@@ -14,6 +14,8 @@ import { PaymentService } from './payment.service';
 import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @ApiTags('Payment')
 @Controller('payment')
@@ -21,6 +23,7 @@ export class PaymentController {
   constructor(
     private readonly paymentService: PaymentService,
     private readonly config: ConfigService,
+    @InjectQueue('payment-queue') private paymentQueue: Queue,
   ) {}
 
   @ApiOperation({ summary: 'Verify payment callback' })
@@ -44,10 +47,27 @@ export class PaymentController {
     @Query('transaction_id') transaction_id: number,
     @Res() res: Response,
   ) {
-    await this.paymentService.verifyPayment(tx_ref, transaction_id);
-    return res.redirect(
-      this.config.get<string>('FRONTEND_SUCCESSFUL_SALES_URL'),
+    // await this.paymentService.verifyPayment(tx_ref, transaction_id);
+    const job = await this.paymentQueue.add( 
+      'verify-payment',
+      { tx_ref, transaction_id },
+      {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000,
+        },
+        removeOnComplete: true,
+        removeOnFail: false,
+      },
     );
+
+    console.log({ job });
+
+    // return res.redirect(
+    //   this.config.get<string>('FRONTEND_SUCCESSFUL_SALES_URL'),
+    // );
+    return res.json({ message: 'Payment verification initiated.' });
   }
 
   @Post('flw-webhook')
@@ -62,10 +82,7 @@ export class PaymentController {
     //   throw new UnauthorizedException();
     // }
 
-    await this.paymentService.verifyWebhookSignature(
-      payload,
-    );
-
+    await this.paymentService.verifyWebhookSignature(payload);
 
     res.status(200).end();
   }

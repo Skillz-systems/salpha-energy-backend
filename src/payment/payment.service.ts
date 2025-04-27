@@ -200,7 +200,7 @@ export class PaymentService {
             : SalesStatus.IN_INSTALLMENT,
       },
     });
-
+ 
     // Process tokenable devices
     const deviceTokens = [];
     for (const saleItem of sale.saleItems) {
@@ -253,6 +253,8 @@ export class PaymentService {
         }
       }
     }
+
+    console.log({deviceTokens})
 
     if (deviceTokens.length) {
       await this.Email.sendMail({

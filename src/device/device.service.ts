@@ -71,7 +71,13 @@ export class DeviceService {
           ? { startingCode: { contains: startingCode, mode: 'insensitive' } }
           : {},
         key ? { key: { contains: key, mode: 'insensitive' } } : {},
-        // !fetchFormat ? { isUsed: false } : { },
+
+        // fetchFormat === 'used'
+        //   ? { isUsed: true }
+        //   : fetchFormat === 'unused'
+        //     ? { isUsed: false }
+        //     : {},
+            
         hardwareModel
           ? { hardwareModel: { contains: hardwareModel, mode: 'insensitive' } }
           : {},
@@ -111,7 +117,6 @@ export class DeviceService {
       skip,
       take,
       where: {
-        ...filterConditions,
       },
       orderBy,
     });
@@ -128,6 +133,9 @@ export class DeviceService {
   async fetchDevice(fieldAndValue: Prisma.DeviceWhereUniqueInput) {
     return await this.prisma.device.findUnique({
       where: { ...fieldAndValue },
+      include: {
+        tokens: true,
+      },
     });
   }
 
