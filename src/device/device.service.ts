@@ -7,10 +7,14 @@ import * as csvParser from 'csv-parser';
 import { MESSAGES } from '../constants';
 import { Prisma } from '@prisma/client';
 import { ListDevicesQueryDto } from './dto/list-devices.dto';
+import { OpenPayGoService } from '../openpaygo/openpaygo.service';
 
 @Injectable()
 export class DeviceService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly openPayGo: OpenPayGoService,
+  ) {}
 
   async uploadBatchDevices(filePath: string) {
     const rows = await this.parseCsv(filePath);
@@ -33,6 +37,48 @@ export class DeviceService {
     return await this.prisma.device.create({
       data: createDeviceDto,
     });
+  }
+
+  async createBatchDeviceTokens(filePath: string) {
+    const rows = await this.parseCsv(filePath);
+
+    console.log({filePath, rows})
+    const filteredRows = rows.filter(
+      (row) => row['Serial_Number'] && row['Key'],
+    );
+
+    console.log({ rows });
+    const data = filteredRows.map((row) => ({
+      serialNumber: row['Serial_Number'],
+      deviceName: row['Device_Name'],
+      key: row['Key'],
+      count: row['Count'],
+      timeDivider: row['Time_Divider'],
+      firmwareVersion: row['Firmware_Version'],
+      hardwareModel: row['Hardware_Model'],
+      startingCode: row['Starting_Code'],
+      restrictedDigitMode: row['Restricted_Digit_Mode'] == '1',
+      isTokenable: row['Tokenable'] == '1',
+    }));
+
+    const deviceTokens = [];
+
+    for (const device of data) {
+      const token = await this.openPayGo.generateToken(
+        device,
+        -1,
+        Number(device.count),
+      );
+
+      deviceTokens.push({
+        deviceSerialNumber: device.serialNumber,
+        deviceKey: device.key,
+        deviceToken: token.finalToken,
+      });
+    }
+
+    await this.mapDevicesToModel(filteredRows);
+    return { message: MESSAGES.CREATED, deviceTokens };
   }
 
   async devicesFilter(
@@ -116,8 +162,7 @@ export class DeviceService {
     const result = await this.prisma.device.findMany({
       skip,
       take,
-      where: {
-      },
+      where: {},
       orderBy,
     });
 

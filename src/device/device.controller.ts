@@ -15,7 +15,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { DeviceService } from './device.service';
-import { CreateDeviceDto } from './dto/create-device.dto';
+import { CreateBatchDeviceTokensDto, CreateDeviceDto } from './dto/create-device.dto';
 import { UpdateDeviceDto } from './dto/update-device.dto';
 import {
   ApiBearerAuth,
@@ -69,13 +69,45 @@ export class DeviceController {
   async createBatchDevices(
     @UploadedFile(
       new ParseFilePipeBuilder()
-        .addFileTypeValidator({ fileType: /(csv|xlsx)$/i })
+        .addFileTypeValidator({ fileType: /^(text\/csv)$/i })
         .build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }),
     )
     file: Express.Multer.File,
   ) {
     const filePath = file.path;
     const upload = await this.deviceService.uploadBatchDevices(filePath);
+    unlinkSync(filePath);
+
+    return upload;
+  }
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Sales}`],
+  })
+  @ApiBody({
+    type: CreateBatchDeviceTokensDto,
+    description: 'Json structure for request payload',
+  })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './files',
+      }),
+    }),
+  )
+  @Post('batch/generate-tokens')
+  async createBatchDeviceTokens(
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({ fileType: /^(text\/csv)$/i })
+        .build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }),
+    )
+    file: Express.Multer.File,
+  ) {
+    const filePath = file.path;
+    const upload = await this.deviceService.createBatchDeviceTokens(filePath);
     unlinkSync(filePath);
 
     return upload;

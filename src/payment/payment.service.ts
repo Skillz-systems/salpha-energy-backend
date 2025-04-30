@@ -254,7 +254,7 @@ export class PaymentService {
       }
     }
 
-    console.log({deviceTokens})
+    console.log({ deviceTokens });
 
     if (deviceTokens.length) {
       await this.Email.sendMail({
