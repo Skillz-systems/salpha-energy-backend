@@ -20,6 +20,9 @@ import { PrismaService } from '../prisma/prisma.service';
             user: configService.get<string>('EMAIL_USER'),
             pass: configService.get<string>('EMAIL_PWD'),
           },
+          tls: {
+            rejectUnauthorized: false, // Allow self-signed or misconfigured certs
+          },
         },
         template: {
           dir: join(__dirname, 'templates'),
