@@ -15,7 +15,7 @@ import { PrismaService } from '../prisma/prisma.service';
         transport: {
           host: configService.get<string>('EMAIL_HOST'),
           port: configService.get<number>('EMAIL_PORT'),
-          secure: configService.get<number>('EMAIL_PORT') === 465,
+          secure: true,
           auth: {
             user: configService.get<string>('EMAIL_USER'),
             pass: configService.get<string>('EMAIL_PWD'),
