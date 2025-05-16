@@ -25,6 +25,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CronjobsModule } from './cronjobs/cronjobs.module';
 import { PaystackModule } from './paystack/paystack.module';
+import { WarehousesModule } from './warehouses/warehouses.module';
 
 @Module({
   imports: [
@@ -73,6 +74,7 @@ import { PaystackModule } from './paystack/paystack.module';
     FlutterwaveModule,
     CronjobsModule,
     PaystackModule,
+    WarehousesModule,
   ],
   controllers: [AppController],
   providers: [
