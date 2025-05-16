@@ -9,6 +9,7 @@ import { FlutterwaveService } from '../flutterwave/flutterwave.service';
 import { EmailService } from '../mailer/email.service';
 import { BullModule } from '@nestjs/bullmq';
 import { PaymentProcessor } from './payment.processor';
+import { PaystackService } from '../paystack/paystack.service';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { PaymentProcessor } from './payment.processor';
     OpenPayGoService,
     PrismaService,
     FlutterwaveService,
+    PaystackService,
     EmailService,
     PaymentProcessor,
   ],

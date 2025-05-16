@@ -28,14 +28,9 @@ export class PaymentController {
 
   @ApiOperation({ summary: 'Verify payment callback' })
   @ApiQuery({
-    name: 'tx_ref',
+    name: 'txref',
     type: String,
     description: 'Transaction reference',
-  })
-  @ApiQuery({
-    name: 'transaction_id',
-    type: Number,
-    description: 'Transaction ID',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -43,14 +38,13 @@ export class PaymentController {
   @HttpCode(HttpStatus.OK)
   @Get('verify/callback')
   async verifyPayment(
-    @Query('tx_ref') tx_ref: string,
-    @Query('transaction_id') transaction_id: number,
+    @Query('txref') trxref: string,
     @Res() res: Response,
   ) {
-    // await this.paymentService.verifyPayment(tx_ref, transaction_id);
-    const job = await this.paymentQueue.add( 
+    // await this.paymentService.verifyPayment(tx_ref);
+    const job = await this.paymentQueue.add(
       'verify-payment',
-      { tx_ref, transaction_id },
+      { trxref },
       {
         attempts: 3,
         backoff: {

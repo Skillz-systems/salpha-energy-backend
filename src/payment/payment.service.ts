@@ -8,7 +8,7 @@ import { PaymentMode, PaymentStatus, SalesStatus } from '@prisma/client';
 import { EmailService } from '../mailer/email.service';
 import { ConfigService } from '@nestjs/config';
 import { OpenPayGoService } from '../openpaygo/openpaygo.service';
-import { FlutterwaveService } from '../flutterwave/flutterwave.service';
+import { PaystackService } from '../paystack/paystack.service';
 
 @Injectable()
 export class PaymentService {
@@ -17,7 +17,7 @@ export class PaymentService {
     private readonly Email: EmailService,
     private readonly config: ConfigService,
     private readonly openPayGo: OpenPayGoService,
-    private readonly flutterwaveService: FlutterwaveService,
+    private readonly paystackService: PaystackService,
   ) {}
 
   async generatePaymentLink(
@@ -26,7 +26,7 @@ export class PaymentService {
     email: string,
     transactionRef: string,
   ) {
-    return this.flutterwaveService.generatePaymentLink({
+    return this.paystackService.generatePaymentLink({
       saleId,
       amount,
       email,
@@ -92,17 +92,17 @@ export class PaymentService {
     saleId: string,
     email: string,
     bvn: string,
-    transactionRef: string,
+    // transactionRef: string,
   ) {
-    return this.flutterwaveService.generateStaticAccount(
+    return this.paystackService.generateStaticAccount(
       saleId,
       email,
       bvn,
-      transactionRef,
+      // transactionRef,
     );
   }
 
-  async verifyPayment(ref: string | number, transaction_id: number) {
+  async verifyPayment(ref: string | number) {
     const paymentExist = await this.prisma.payment.findUnique({
       where: {
         transactionRef: ref as string,
@@ -115,14 +115,14 @@ export class PaymentService {
     if (!paymentExist)
       throw new BadRequestException(`Payment with ref: ${ref} does not exist.`);
 
-    const res = await this.flutterwaveService.verifyTransaction(transaction_id);
+    const res = await this.paystackService.verifyTransaction(ref as string);
 
     if (
       paymentExist.paymentStatus === PaymentStatus.FAILED &&
       paymentExist.sale.status === SalesStatus.CANCELLED
     ) {
-      const refundResponse = await this.flutterwaveService.refundPayment(
-        transaction_id,
+      const refundResponse = await this.paystackService.refundPayment(
+        ref as string,
         res.data.charged_amount,
       );
 

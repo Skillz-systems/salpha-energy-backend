@@ -8,6 +8,7 @@ import { EmailService } from '../mailer/email.service';
 import { OpenPayGoService } from '../openpaygo/openpaygo.service';
 import { FlutterwaveService } from '../flutterwave/flutterwave.service';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
+import { PaystackService } from '../paystack/paystack.service';
 
 @Module({
   imports: [CloudinaryModule],
@@ -20,6 +21,7 @@ import { CloudinaryModule } from '../cloudinary/cloudinary.module';
     ContractService,
     EmailService,
     FlutterwaveService,
+    PaystackService,
   ],
 })
 export class SalesModule {}

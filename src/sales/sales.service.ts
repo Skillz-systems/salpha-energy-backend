@@ -184,8 +184,10 @@ export class SalesService {
           sale.id,
           sale.customer.email,
           dto.bvn,
-          transactionRef,
+          // transactionRef,
         );
+
+        console.log({ tempAccountDetails });
       await this.prisma.installmentAccountDetails.create({
         data: {
           sales: {
