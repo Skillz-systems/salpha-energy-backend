@@ -26,7 +26,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { CronjobsModule } from './cronjobs/cronjobs.module';
 import { PaystackModule } from './paystack/paystack.module';
 import { WarehousesModule } from './warehouses/warehouses.module';
-
+import { WarehouseInventoryModule } from './warehouse-inventory/warehouse-inventory.module';
 @Module({
   imports: [
     BullModule.forRootAsync({
@@ -75,6 +75,7 @@ import { WarehousesModule } from './warehouses/warehouses.module';
     CronjobsModule,
     PaystackModule,
     WarehousesModule,
+    WarehouseInventoryModule,
   ],
   controllers: [AppController],
   providers: [
