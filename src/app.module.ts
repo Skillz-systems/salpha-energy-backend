@@ -26,6 +26,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { CronjobsModule } from './cronjobs/cronjobs.module';
 import { PaystackModule } from './paystack/paystack.module';
 import { CsvUploadModule } from './csv-upload/csv-upload.module';
+import { WarehousesModule } from './warehouses/warehouses.module';
 
 @Module({
   imports: [
@@ -75,6 +76,7 @@ import { CsvUploadModule } from './csv-upload/csv-upload.module';
     CronjobsModule,
     PaystackModule,
     CsvUploadModule,
+    WarehousesModule,
   ],
   controllers: [AppController],
   providers: [
