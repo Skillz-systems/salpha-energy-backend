@@ -1,0 +1,33 @@
+model OrphanedTransaction {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  transactionId   String?
+  amount          Float
+  reference       String?
+  date            DateTime?
+
+  // Status tracking
+  status          OrphanedTransactionStatus @default(PENDING)
+  matchedSaleId   String? @db.ObjectId
+  matchedSale     Sales?  @relation(fields: [matchedSaleId], references: [id])
+  
+  // Resolution info
+  resolvedBy      String? @db.ObjectId
+  resolvedUser    User?   @relation(fields: [resolvedBy], references: [id])
+  
+  resolvedAt      DateTime?
+  resolutionNotes String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("unmatched_transactions")
+}
+
+enum OrphanedTransactionStatus {
+  PENDING
+  MATCHED
+  IGNORED
+  MANUAL_REVIEW
+  NIL
+}

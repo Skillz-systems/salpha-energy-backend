@@ -33,6 +33,8 @@ model Sales {
   contractId String?   @db.ObjectId
   contract   Contract? @relation(fields: [contractId], references: [id])
 
+  orphanedTransactions OrphanedTransaction[]
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -133,4 +135,5 @@ enum SalesStatus {
   IN_INSTALLMENT
   UNPAID
   CANCELLED // The shows sales that were not paid for in time hence, all it's inventories were restored.
+  NIL
 }
