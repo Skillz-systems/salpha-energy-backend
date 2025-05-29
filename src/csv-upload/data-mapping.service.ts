@@ -57,13 +57,12 @@ export class DataMappingService {
       quantity: extractedData.quantity,
       totalPrice: extractedData.totalPrice,
       paymentMode: this.determinePaymentMode(extractedData.totalPrice),
-      deviceIDs: device ? [device.id] : [],
     };
 
     // Create sale data
     const saleData = {
       category: 'PRODUCT' as const,
-      status: SalesStatus.NIL,
+      status: SalesStatus.COMPLETED,
       totalPrice: extractedData.totalPrice,
       totalPaid: extractedData.totalPrice,
       creatorId: generatedDefaults.defaultUser.id,

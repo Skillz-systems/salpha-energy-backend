@@ -201,8 +201,6 @@ export class CsvUploadService {
       // Parse file and extract sheets
       const sheets = await this.fileParser.parseFile(file);
 
-      console.log({ dddsheets: JSON.stringify(sheets) });
-
       if (sheets.length === 0) {
         throw new BadRequestException('File contains no readable data');
       }
@@ -492,8 +490,6 @@ export class CsvUploadService {
     const sheet = session.sheets.find((s) => s.sheetName === batch.sheetName);
     if (!sheet) return;
 
-    console.log({ sheet, ddf: JSON.stringify(session.sheets) });
-
     const sheetStats = session.stats.breakdown.sheets.find(
       (s) => s.sheetName === batch.sheetName,
     );
@@ -526,9 +522,7 @@ export class CsvUploadService {
           sheet.dataType === CsvDataType.MIXED
         ) {
           if (this.isTransactionRow(row)) {
-            const result = await this.processTransactionRow(
-              row,
-            );
+            const result = await this.processTransactionRow(row);
             sheetStats.processed++;
             session.stats.processedRecords++;
 
@@ -638,12 +632,29 @@ export class CsvUploadService {
       createdSale = true;
 
       // Create sale item
-      await this.prisma.saleItem.create({
+      const saleItem = await this.prisma.saleItem.create({
         data: {
           ...transformedData.saleItemData,
           saleId: sale.id,
+          devices: transformedData.relatedEntities.device
+            ? {
+                connect: [{ id: transformedData.relatedEntities.device.id }],
+              }
+            : undefined,
         },
       });
+
+      if (transformedData.relatedEntities.device) {
+        await this.prisma.device.update({
+          where: { id: transformedData.relatedEntities.device.id },
+          data: {
+            isUsed: true,
+            saleItems: {
+              connect: [{ id: saleItem.id }],
+            },
+          },
+        });
+      }
 
       // Create product inventory relationship if needed
       const existingProductInventory =
@@ -676,9 +687,7 @@ export class CsvUploadService {
     }
   }
 
-  private async processTransactionRow(
-    row: TransactionsCsvRowDto,
-  ): Promise<{
+  private async processTransactionRow(row: TransactionsCsvRowDto): Promise<{
     createdTransaction: boolean;
   }> {
     try {
@@ -689,10 +698,10 @@ export class CsvUploadService {
         this.logger.warn(
           `Could not find related sale for transaction: ${row.transactionId || row.reference}`,
         );
-        // Create unmatched transaction record for later manual matching
-        await this.createUnmatchedTransaction(row);
         return { createdTransaction: false };
       }
+
+      await this.createUnmatchedTransaction(row, saleId);
 
       // Transform transaction data
       const paymentData =
@@ -792,6 +801,7 @@ export class CsvUploadService {
 
   private async createUnmatchedTransaction(
     row: TransactionsCsvRowDto,
+    saleId?: string
   ): Promise<void> {
     try {
       // Extract transaction data from the CSV row
@@ -806,6 +816,7 @@ export class CsvUploadService {
           reference: reference || null,
           date: date || new Date(),
           status: OrphanedTransactionStatus.NIL,
+          matchedSaleId: saleId || null,
         },
       });
 
@@ -823,14 +834,44 @@ export class CsvUploadService {
   private async findRelatedSaleId(
     row: TransactionsCsvRowDto,
   ): Promise<string | null> {
-    // Enhanced logic to find related sales
     const amount = this.parseNumber(row.amount || '');
     const date = this.parseDate(row.date || '');
     const reference = row.reference || row.transactionId || '';
 
+    // Strategy 1: Match by serial number (most reliable)
+    if (reference) {
+      const saleBySerial = await this.prisma.sales.findFirst({
+        where: {
+          saleItems: {
+            some: {
+              devices: {
+                some: {
+                  serialNumber: {
+                    equals: reference.trim(),
+                    mode: 'insensitive',
+                  },
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      if (saleBySerial) {
+        await this.prisma.sales.update({
+          where: { id: saleBySerial.id },
+          data: { transactionDate: date },
+        });
+        return saleBySerial.id;
+      }
+    }
+
     if (!amount) return null;
 
-    // Strategy 1: Match by exact amount and date range
+    // Strategy 2: Match by exact amount and date range
     if (date) {
       const dateStart = new Date(date);
       dateStart.setDate(dateStart.getDate() - 7); // 7 days before
@@ -853,7 +894,7 @@ export class CsvUploadService {
       if (sale) return sale.id;
     }
 
-    // Strategy 2: Match by amount only (most recent unpaid/partial)
+    // Strategy 3: Match by amount only (most recent unpaid/partial)
     const saleByAmount = await this.prisma.sales.findFirst({
       where: {
         OR: [
@@ -861,7 +902,7 @@ export class CsvUploadService {
           { totalMonthlyPayment: amount }, // Monthly payment match
         ],
         status: {
-          in: ['IN_INSTALLMENT', 'UNPAID'],
+          in: ['IN_INSTALLMENT', 'UNPAID', 'COMPLETED'],
         },
       },
       orderBy: {
@@ -871,7 +912,7 @@ export class CsvUploadService {
 
     if (saleByAmount) return saleByAmount.id;
 
-    // Strategy 3: Match by reference pattern (if structured)
+    // Strategy 4: Match by reference pattern (if structured)
     if (reference && reference.includes('-')) {
       const contractNumber = reference.split('-')[0];
       const saleWithContract = await this.prisma.sales.findFirst({
