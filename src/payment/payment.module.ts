@@ -10,9 +10,15 @@ import { EmailService } from '../mailer/email.service';
 import { BullModule } from '@nestjs/bullmq';
 import { PaymentProcessor } from './payment.processor';
 import { PaystackService } from '../paystack/paystack.service';
+import { HttpModule } from '@nestjs/axios';
+import { TermiiService } from '../termii/termii.service';
 
 @Module({
   imports: [
+    HttpModule.register({
+      timeout: 10000,
+      maxRedirects: 5,
+    }),
     EmailModule,
     BullModule.registerQueue({
       name: 'payment-queue',
@@ -28,6 +34,7 @@ import { PaystackService } from '../paystack/paystack.service';
     PaystackService,
     EmailService,
     PaymentProcessor,
+    TermiiService,
   ],
   exports: [PaymentService, BullModule],
 })

@@ -9,9 +9,18 @@ import { OpenPayGoService } from '../openpaygo/openpaygo.service';
 import { FlutterwaveService } from '../flutterwave/flutterwave.service';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { PaystackService } from '../paystack/paystack.service';
+import { TermiiService } from '../termii/termii.service';
+import { ConfigService } from '@nestjs/config';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
-  imports: [CloudinaryModule],
+  imports: [
+    HttpModule.register({
+      timeout: 10000,
+      maxRedirects: 5,
+    }),
+    CloudinaryModule,
+  ],
   controllers: [SalesController],
   providers: [
     SalesService,
@@ -22,6 +31,8 @@ import { PaystackService } from '../paystack/paystack.service';
     EmailService,
     FlutterwaveService,
     PaystackService,
+    TermiiService,
+    ConfigService,
   ],
 })
 export class SalesModule {}

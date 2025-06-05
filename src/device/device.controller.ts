@@ -9,13 +9,16 @@ import {
   UseGuards,
   UploadedFile,
   HttpStatus,
-  ParseFilePipeBuilder,
   HttpCode,
   UseInterceptors,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { DeviceService } from './device.service';
-import { CreateBatchDeviceTokensDto, CreateDeviceDto } from './dto/create-device.dto';
+import {
+  CreateBatchDeviceTokensDto,
+  CreateDeviceDto,
+} from './dto/create-device.dto';
 import { UpdateDeviceDto } from './dto/update-device.dto';
 import {
   ApiBearerAuth,
@@ -66,14 +69,20 @@ export class DeviceController {
     }),
   )
   @Post('batch-upload')
-  async createBatchDevices(
-    @UploadedFile(
-      new ParseFilePipeBuilder()
-        .addFileTypeValidator({ fileType: /^(text\/csv)$/i })
-        .build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }),
-    )
-    file: Express.Multer.File,
-  ) {
+  async createBatchDevices(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    const allowedTypes = ['.csv'];
+
+    const fileExtension = file.originalname
+      .toLowerCase()
+      .substring(file.originalname.lastIndexOf('.'));
+
+    if (!allowedTypes.includes(fileExtension)) {
+      throw new BadRequestException('Only CSV files are allowed (.csv)');
+    }
     const filePath = file.path;
     const upload = await this.deviceService.uploadBatchDevices(filePath);
     unlinkSync(filePath);
@@ -98,19 +107,71 @@ export class DeviceController {
     }),
   )
   @Post('batch/generate-tokens')
-  async createBatchDeviceTokens(
-    @UploadedFile(
-      new ParseFilePipeBuilder()
-        .addFileTypeValidator({ fileType: /^(text\/csv)$/i })
-        .build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }),
-    )
-    file: Express.Multer.File,
-  ) {
-    const filePath = file.path;
-    const upload = await this.deviceService.createBatchDeviceTokens(filePath);
-    unlinkSync(filePath);
+  async createBatchDeviceTokens(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
 
-    return upload;
+    const allowedTypes = ['.csv'];
+
+    const fileExtension = file.originalname
+      .toLowerCase()
+      .substring(file.originalname.lastIndexOf('.'));
+
+    if (!allowedTypes.includes(fileExtension)) {
+      throw new BadRequestException('Only CSV files are allowed (.csv)');
+    }
+
+    const filePath = file.path;
+    try {
+      const upload = await this.deviceService.createBatchDeviceTokens(filePath);
+      return upload;
+    } finally {
+      try {
+        unlinkSync(filePath);
+      } catch (error) {
+        console.warn('Failed to delete uploaded file:', error);
+      }
+    }
+  }
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Sales}`],
+  })
+  @ApiParam({
+    name: 'deviceId',
+    type: String,
+    description: 'Device ID',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        tokenDuration: {
+          type: 'number',
+          description: 'Token duration in days (-1 for forever token)',
+          example: 30,
+        },
+      },
+      required: ['tokenDuration'],
+    },
+  })
+  @Post(':deviceId/generate-token')
+  async generateSingleDeviceToken(
+    @Param('deviceId') deviceId: string,
+    @Body() body: { tokenDuration: number },
+  ) {
+    const { tokenDuration } = body;
+
+    if (tokenDuration === undefined || tokenDuration === null) {
+      throw new BadRequestException('Token duration is required');
+    }
+
+    return await this.deviceService.generateSingleDeviceToken(
+      deviceId,
+      tokenDuration,
+    );
   }
 
   @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)

@@ -27,6 +27,7 @@ import { CronjobsModule } from './cronjobs/cronjobs.module';
 import { PaystackModule } from './paystack/paystack.module';
 import { CsvUploadModule } from './csv-upload/csv-upload.module';
 import { WarehousesModule } from './warehouses/warehouses.module';
+import { TermiiModule } from './termii/termii.module';
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { WarehousesModule } from './warehouses/warehouses.module';
     OpenpaygoModule,
     FlutterwaveModule,
     CronjobsModule,
+    TermiiModule,
     PaystackModule,
     CsvUploadModule,
     WarehousesModule,
