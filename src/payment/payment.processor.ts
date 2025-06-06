@@ -8,18 +8,18 @@ export class PaymentProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<{ tx_ref: string }>) {
+  async process(job: Job<{ trxref: string }>) {
    console.log(`[PROCESSOR] Processing job: ${job.id}, type: ${job.name}`);
 
    // Check job name to determine what to do
    if (job.name === 'verify-payment') {
-     const { tx_ref } = job.data;
-     console.log(`[PROCESSOR] Processing payment: ${tx_ref}`);
+     const { trxref } = job.data;
+     console.log(`[PROCESSOR] Processing payment: ${trxref}`);
 
      try {
-       await this.paymentService.verifyPayment(tx_ref);
-       console.log(`[PROCESSOR] Payment verified: ${tx_ref}`);
-       return { success: true, tx_ref };
+       await this.paymentService.verifyPayment(trxref);
+       console.log(`[PROCESSOR] Payment verified: ${trxref}`);
+       return { success: true, trxref };
      } catch (error) {
        console.error(`[PROCESSOR] Payment error: ${error.message}`);
        throw error; // Rethrow to trigger retry

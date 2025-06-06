@@ -105,7 +105,8 @@ export class PaymentService {
   }
 
   async verifyPayment(ref: string | number) {
-    const paymentExist = await this.prisma.payment.findUnique({
+    console.log({ref})
+    const paymentExist = await this.prisma.payment.findFirst({
       where: {
         transactionRef: ref as string,
       },

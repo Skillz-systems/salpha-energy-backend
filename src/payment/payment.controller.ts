@@ -42,12 +42,16 @@ export class PaymentController {
     @Query('txref') trxref: string,
   ) {
     try {
+      if (!trxref) {
+        throw new BadRequestException('txref is required');
+      }
+
       await this.paymentQueue.waitUntilReady();
       console.log('[CONTROLLER] Queue is ready');
 
       const job = await this.paymentQueue.add(
         'verify-payment',
-        { trxref },
+        { trxref: trxref.trim() },
         {
           attempts: 3,
           backoff: {
