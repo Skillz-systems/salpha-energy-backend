@@ -31,6 +31,8 @@ model User {
   createdSales            Sales[]
   createdInventoryBatches InventoryBatch[]
 
+  recordedPayments Payment[] @relation("RecordedPayments")
+
   orphanedTransactions OrphanedTransaction[]
 
   createdAt DateTime  @default(now())

@@ -8,6 +8,7 @@ import {
   Get,
   Query,
   Param,
+  BadRequestException,
 } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { RolesAndPermissions } from '../auth/decorators/roles.decorator';
@@ -20,6 +21,7 @@ import {
   ApiBody,
   ApiExtraModels,
   ApiHeader,
+  ApiOperation,
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
@@ -27,8 +29,11 @@ import { GetSessionUser } from '../auth/decorators/getUser';
 import { SalesService } from './sales.service';
 import { CreateSalesDto } from './dto/create-sales.dto';
 import { ValidateSaleProductDto } from './dto/validate-sale-product.dto';
-import { PaginationQueryDto } from '../utils/dto/pagination.dto';
 import { CreateFinancialMarginDto } from './dto/create-financial-margins.dto';
+import { RecordCashPaymentDto } from '../payment/dto/cash-payment.dto';
+import { ListSalesQueryDto } from './dto/list-sales.dto';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @SkipThrottle()
 @ApiTags('Sales')
@@ -44,7 +49,10 @@ import { CreateFinancialMarginDto } from './dto/create-financial-margins.dto';
   },
 })
 export class SalesController {
-  constructor(private readonly salesService: SalesService) {}
+  constructor(
+    private readonly salesService: SalesService,
+    @InjectQueue('payment-queue') private paymentQueue: Queue,
+  ) {}
 
   @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
   @RolesAndPermissions({
@@ -62,6 +70,56 @@ export class SalesController {
     @GetSessionUser('id') requestUserId: string,
   ) {
     return await this.salesService.createSale(requestUserId, createSalesDto);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Sales}`],
+  })
+  @ApiOperation({ summary: 'Record a cash payment for a sale' })
+  @ApiBody({
+    type: RecordCashPaymentDto,
+    description: 'Cash payment details',
+  })
+  @ApiBadRequestResponse({})
+  @HttpCode(HttpStatus.CREATED)
+  @Post('record-cash-payment')
+  async recordCashPayment(
+    @Body() recordCashPaymentDto: RecordCashPaymentDto,
+    @GetSessionUser('id') requestUserId: string,
+  ) {
+    try {
+      
+      const paymentData = await this.salesService.recordCashPayment(
+        requestUserId,
+        recordCashPaymentDto,
+      );
+      await this.paymentQueue.waitUntilReady();
+      
+      const job = await this.paymentQueue.add(
+        'process-cash-payment',
+        { paymentData },
+        {
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 5000,
+          },
+          removeOnComplete: true,
+          removeOnFail: false,
+          delay: 1000,
+        },
+      );
+
+      return {
+        jobId: job.id,
+        status: 'processing',
+        message: 'Cash payment recorded successfully',
+      };
+    } catch (error) {
+      console.log({ error });
+      throw new BadRequestException('Payment verification failed');
+    }
   }
 
   @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
@@ -88,10 +146,10 @@ export class SalesController {
     permissions: [`${ActionEnum.manage}:${SubjectEnum.Sales}`],
   })
   @ApiBadRequestResponse({})
-  @ApiExtraModels(PaginationQueryDto)
+  @ApiExtraModels(ListSalesQueryDto)
   @HttpCode(HttpStatus.OK)
   @Get('')
-  async getSales(@Query() query: PaginationQueryDto) {
+  async getSales(@Query() query: ListSalesQueryDto) {
     return await this.salesService.getAllSales(query);
   }
 

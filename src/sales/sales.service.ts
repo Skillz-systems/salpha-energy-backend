@@ -5,13 +5,20 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSalesDto, SaleItemDto } from './dto/create-sales.dto';
-import { PaymentMode, SalesStatus } from '@prisma/client';
+import {
+  PaymentMode,
+  SalesStatus,
+  PaymentMethod,
+  PaymentStatus,
+  Prisma,
+} from '@prisma/client';
 import { ValidateSaleProductItemDto } from './dto/validate-sale-product.dto';
 import { ContractService } from '../contract/contract.service';
 import { PaymentService } from '../payment/payment.service';
-import { PaginationQueryDto } from 'src/utils/dto/pagination.dto';
 import { BatchAllocation, ProcessedSaleItem } from './sales.interface';
 import { CreateFinancialMarginDto } from './dto/create-financial-margins.dto';
+import { RecordCashPaymentDto } from '../payment/dto/cash-payment.dto';
+import { ListSalesQueryDto } from './dto/list-sales.dto';
 
 @Injectable()
 export class SalesService {
@@ -98,6 +105,7 @@ export class SalesService {
           installmentStartingPrice: totalInstallmentStartingPrice,
           totalInstallmentDuration,
           totalMonthlyPayment,
+          paymentMethod: dto.paymentMethod,
           status: SalesStatus.UNPAID,
           batchAllocations: {
             createMany: {
@@ -179,31 +187,33 @@ export class SalesService {
         data: { contractId: contract.id },
       });
 
-      const tempAccountDetails =
-        await this.paymentService.generateStaticAccount(
-          sale.id,
-          sale.customer.email,
-          dto.bvn,
-          // transactionRef,
-        );
+      if (dto.paymentMethod === PaymentMethod.ONLINE) {
+        const tempAccountDetails =
+          await this.paymentService.generateStaticAccount(
+            sale.id,
+            sale.customer.email,
+            dto.bvn,
+            // transactionRef,
+          );
 
         console.log({ tempAccountDetails });
-      await this.prisma.installmentAccountDetails.create({
-        data: {
-          sales: {
-            connect: { id: sale.id },
+        await this.prisma.installmentAccountDetails.create({
+          data: {
+            sales: {
+              connect: { id: sale.id },
+            },
+            flw_ref: tempAccountDetails.flw_ref,
+            order_ref: tempAccountDetails.order_ref,
+            account_number: tempAccountDetails.account_number,
+            account_status: tempAccountDetails.account_status,
+            frequency: tempAccountDetails.frequency,
+            bank_name: tempAccountDetails.bank_name,
+            expiry_date: tempAccountDetails.expiry_date,
+            note: tempAccountDetails.note,
+            amount: tempAccountDetails.amount,
           },
-          flw_ref: tempAccountDetails.flw_ref,
-          order_ref: tempAccountDetails.order_ref,
-          account_number: tempAccountDetails.account_number,
-          account_status: tempAccountDetails.account_status,
-          frequency: tempAccountDetails.frequency,
-          bank_name: tempAccountDetails.bank_name,
-          expiry_date: tempAccountDetails.expiry_date,
-          note: tempAccountDetails.note,
-          amount: tempAccountDetails.amount,
-        },
-      });
+        });
+      }
     }
 
     // return await this.paymentService.generatePaymentLink(
@@ -217,10 +227,11 @@ export class SalesService {
       totalAmountToPay,
       sale.customer.email,
       transactionRef,
+      dto.paymentMethod,
     );
   }
 
-  async getAllSales(query: PaginationQueryDto) {
+  async getAllSales(query: ListSalesQueryDto) {
     const { page = 1, limit = 100 } = query;
     const pageNumber = parseInt(String(page), 10);
     const limitNumber = parseInt(String(limit), 10);
@@ -228,28 +239,55 @@ export class SalesService {
     const skip = (pageNumber - 1) * limitNumber;
     const take = limitNumber;
 
-    const totalCount = await this.prisma.saleItem.count();
+    const whereClause: Prisma.SaleItemWhereInput = {};
 
-    const saleItems = await this.prisma.saleItem.findMany({
-      include: {
-        sale: {
-          include: { customer: true },
+    if (query.paymentMethod) {
+      whereClause.sale = {
+        paymentMethod: query.paymentMethod,
+      };
+    }
+    console.log({ query, whereClause });
+
+    const [totalCount, saleItems] = await Promise.all([
+      this.prisma.saleItem.count({
+        where: whereClause,
+      }),
+      this.prisma.saleItem.findMany({
+        where: whereClause,
+        include: {
+          sale: {
+            include: {
+              customer: true,
+              payment: {
+                include: {
+                  recordedBy: {
+                    select: {
+                      id: true,
+                      firstname: true,
+                      lastname: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          devices: true,
+          SaleRecipient: true,
+          product: true,
         },
-        devices: true,
-        SaleRecipient: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      skip,
-      take,
-    });
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take,
+      }),
+    ]);
 
     return {
       saleItems,
       total: totalCount,
-      page,
-      limit,
+      page: pageNumber,
+      limit: limitNumber,
       totalPages: limitNumber === 0 ? 0 : Math.ceil(totalCount / limitNumber),
     };
   }
@@ -288,6 +326,69 @@ export class SalesService {
     if (!saleItem) return new BadRequestException(`saleItem ${id} not found`);
 
     return saleItem;
+  }
+
+  async recordCashPayment(recordedById: string, dto: RecordCashPaymentDto) {
+    const sale = await this.prisma.sales.findUnique({
+      where: { id: dto.saleId },
+      include: {
+        customer: true,
+        saleItems: {
+          include: {
+            product: true,
+            devices: true,
+          },
+        },
+      },
+    });
+
+    if (!sale) {
+      throw new NotFoundException('Sale not found');
+    }
+
+    if (sale.paymentMethod !== PaymentMethod.CASH) {
+      throw new BadRequestException(
+        'This sale is not configured for cash payments',
+      );
+    }
+
+    if (sale.status === SalesStatus.COMPLETED) {
+      throw new BadRequestException('This sale is already completed');
+    }
+
+    if (sale.status === SalesStatus.CANCELLED) {
+      throw new BadRequestException('This sale has been cancelled');
+    }
+
+    // Check if payment amount is valid
+    const remainingAmount = sale.totalPrice - sale.totalPaid;
+    if (dto.amount > Math.ceil(remainingAmount)) {
+      throw new BadRequestException(
+        `Payment amount (${dto.amount}) exceeds remaining balance (${Math.ceil(remainingAmount)})`,
+      );
+    }
+
+    const transactionRef = `cash-${sale.id}-${Date.now()}`;
+
+    return await this.prisma.payment.create({
+      data: {
+        saleId: dto.saleId,
+        amount: dto.amount,
+        paymentMethod: PaymentMethod.CASH,
+        transactionRef,
+        paymentStatus: PaymentStatus.COMPLETED,
+        recordedById,
+        notes: dto.notes,
+        paymentDate: new Date(),
+      },
+    });
+
+    // await this.paymentService.handlePostPayment(payment);
+
+    // return {
+    //   payment,
+    //   message: 'Cash payment recorded successfully',
+    // };
   }
 
   async getSalesPaymentDetails(saleId: string) {

@@ -4,7 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { PaymentMode, PaymentStatus, SalesStatus } from '@prisma/client';
+import {
+  PaymentMethod,
+  PaymentMode,
+  PaymentStatus,
+  SalesStatus,
+} from '@prisma/client';
 import { EmailService } from '../mailer/email.service';
 import { ConfigService } from '@nestjs/config';
 import { OpenPayGoService } from '../openpaygo/openpaygo.service';
@@ -41,15 +46,18 @@ export class PaymentService {
     amount: number,
     email: string,
     transactionRef: string,
+    type: PaymentMethod = PaymentMethod.ONLINE,
   ) {
-    await this.prisma.payment.create({
-      data: {
-        saleId,
-        amount,
-        transactionRef,
-        paymentDate: new Date(),
-      },
-    });
+    if (type === PaymentMethod.ONLINE) {
+      await this.prisma.payment.create({
+        data: {
+          saleId,
+          amount,
+          transactionRef,
+          paymentDate: new Date(),
+        },
+      });
+    }
 
     const sale = await this.prisma.sales.findFirst({
       where: {
@@ -73,11 +81,12 @@ export class PaymentService {
       paymentData: {
         amount,
         tx_ref: transactionRef,
-        currency: 'NGN',
+        currency: type === PaymentMethod.ONLINE ? 'NGN' : undefined,
         customer: {
           email,
         },
-        payment_options: 'banktransfer',
+        payment_options:
+          type === PaymentMethod.ONLINE ? 'banktransfer' : undefined,
         customizations: {
           title: 'Product Purchase',
           description: `Payment for sale ${saleId}`,
@@ -105,7 +114,7 @@ export class PaymentService {
   }
 
   async verifyPayment(ref: string | number) {
-    console.log({ref})
+    console.log({ ref });
     const paymentExist = await this.prisma.payment.findFirst({
       where: {
         transactionRef: ref as string,
@@ -117,6 +126,12 @@ export class PaymentService {
 
     if (!paymentExist)
       throw new BadRequestException(`Payment with ref: ${ref} does not exist.`);
+
+    if (paymentExist.paymentMethod === PaymentMethod.CASH) {
+      throw new BadRequestException(
+        'Cash payments cannot be verified through this endpoint',
+      );
+    }
 
     const res = await this.paystackService.verifyTransaction(ref as string);
 
@@ -171,7 +186,7 @@ export class PaymentService {
     return 'success';
   }
 
-  private async handlePostPayment(paymentData: any) {
+  async handlePostPayment(paymentData: any) {
     const sale = await this.prisma.sales.findUnique({
       where: { id: paymentData.saleId },
       include: {
@@ -222,38 +237,40 @@ export class PaymentService {
             (saleItem.totalPrice - saleItem.installmentStartingPrice) /
             saleItem.installmentDuration;
           const monthsCovered = Math.floor(paymentData.amount / monthlyPayment);
-          tokenDuration = monthsCovered * 30; // Convert months to days
+          tokenDuration = Math.floor(monthsCovered * 30); // Convert months to days
         }
 
-        for (const device of tokenableDevices) {
-          const token = await this.openPayGo.generateToken(
-            device,
-            tokenDuration,
-            Number(device.count),
-          );
+        if (tokenDuration > 0 || tokenDuration === -1) {
+          for (const device of tokenableDevices) {
+            const token = await this.openPayGo.generateToken(
+              device,
+              tokenDuration,
+              Number(device.count),
+            );
 
-          deviceTokens.push({
-            deviceSerialNumber: device.serialNumber,
-            deviceKey: device.key,
-            deviceToken: token.finalToken,
-          });
+            deviceTokens.push({
+              deviceSerialNumber: device.serialNumber,
+              deviceKey: device.key,
+              deviceToken: token.finalToken,
+            });
 
-          await this.prisma.device.update({
-            where: {
-              id: device.id,
-            },
-            data: {
-              count: String(token.newCount),
-            },
-          });
+            await this.prisma.device.update({
+              where: {
+                id: device.id,
+              },
+              data: {
+                count: String(token.newCount),
+              },
+            });
 
-          await this.prisma.tokens.create({
-            data: {
-              deviceId: device.id,
-              token: String(token.finalToken),
-              duration: tokenDuration,
-            },
-          });
+            await this.prisma.tokens.create({
+              data: {
+                deviceId: device.id,
+                token: String(token.finalToken),
+                duration: tokenDuration,
+              },
+            });
+          }
         }
       }
     }
@@ -287,7 +304,11 @@ export class PaymentService {
       console.warn('Customer phone number not available for SMS');
     }
 
-    if (sale.installmentAccountDetailsId && !sale.deliveredAccountDetails) {
+    if (
+      sale.paymentMethod === PaymentMethod.ONLINE &&
+      sale.installmentAccountDetailsId &&
+      !sale.deliveredAccountDetails
+    ) {
       await this.Email.sendMail({
         to: sale.customer.email,
         from: this.config.get<string>('MAIL_FROM'),

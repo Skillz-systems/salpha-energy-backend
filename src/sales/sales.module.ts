@@ -12,6 +12,8 @@ import { PaystackService } from '../paystack/paystack.service';
 import { TermiiService } from '../termii/termii.service';
 import { ConfigService } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
+import { BullModule } from '@nestjs/bullmq';
+import { PaymentProcessor } from '../payment/payment.processor';
 
 @Module({
   imports: [
@@ -20,6 +22,9 @@ import { HttpModule } from '@nestjs/axios';
       maxRedirects: 5,
     }),
     CloudinaryModule,
+    BullModule.registerQueue({
+      name: 'payment-queue',
+    }),
   ],
   controllers: [SalesController],
   providers: [
@@ -32,6 +37,7 @@ import { HttpModule } from '@nestjs/axios';
     FlutterwaveService,
     PaystackService,
     TermiiService,
+    PaymentProcessor,
     ConfigService,
   ],
 })
