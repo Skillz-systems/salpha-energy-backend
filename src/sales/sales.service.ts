@@ -187,33 +187,33 @@ export class SalesService {
         data: { contractId: contract.id },
       });
 
-      if (dto.paymentMethod === PaymentMethod.ONLINE) {
-        const tempAccountDetails =
-          await this.paymentService.generateStaticAccount(
-            sale.id,
-            sale.customer.email,
-            dto.bvn,
-            // transactionRef,
-          );
+      // if (dto.paymentMethod === PaymentMethod.ONLINE) {
+      //   const tempAccountDetails =
+      //     await this.paymentService.generateStaticAccount(
+      //       sale.id,
+      //       sale.customer.email,
+      //       dto.bvn,
+      //       // transactionRef,
+      //     );
 
-        console.log({ tempAccountDetails });
-        await this.prisma.installmentAccountDetails.create({
-          data: {
-            sales: {
-              connect: { id: sale.id },
-            },
-            flw_ref: tempAccountDetails.flw_ref,
-            order_ref: tempAccountDetails.order_ref,
-            account_number: tempAccountDetails.account_number,
-            account_status: tempAccountDetails.account_status,
-            frequency: tempAccountDetails.frequency,
-            bank_name: tempAccountDetails.bank_name,
-            expiry_date: tempAccountDetails.expiry_date,
-            note: tempAccountDetails.note,
-            amount: tempAccountDetails.amount,
-          },
-        });
-      }
+      //   console.log({ tempAccountDetails });
+      //   await this.prisma.installmentAccountDetails.create({
+      //     data: {
+      //       sales: {
+      //         connect: { id: sale.id },
+      //       },
+      //       flw_ref: tempAccountDetails.flw_ref,
+      //       order_ref: tempAccountDetails.order_ref,
+      //       account_number: tempAccountDetails.account_number,
+      //       account_status: tempAccountDetails.account_status,
+      //       frequency: tempAccountDetails.frequency,
+      //       bank_name: tempAccountDetails.bank_name,
+      //       expiry_date: tempAccountDetails.expiry_date,
+      //       note: tempAccountDetails.note,
+      //       amount: tempAccountDetails.amount,
+      //     },
+      //   });
+      // }
     }
 
     // return await this.paymentService.generatePaymentLink(
