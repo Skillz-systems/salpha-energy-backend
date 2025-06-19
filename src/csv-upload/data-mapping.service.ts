@@ -475,8 +475,8 @@ export class DataMappingService {
   ): string {
     const baseEmail = `${firstname.toLowerCase()}.${lastname.toLowerCase()}`;
     const phoneHash = phone.slice(-4); // Last 4 digits of phone
-    const timestamp = Date.now().toString().slice(-4);
-    return `${baseEmail}.${phoneHash}.${timestamp}@salphaenergy.com`;
+    // const timestamp = Date.now().toString().slice(-4);
+    return `${baseEmail}.${phoneHash}@gmail.com`;
   }
 
   private parseNumber(value: string | null): number | null {
