@@ -346,17 +346,77 @@ export class DataMappingService {
     return device;
   }
 
+  private generateBusinessHourDateTime(date: Date | string): Date {
+    let baseDate: Date;
+
+    if (date instanceof Date) {
+      baseDate = new Date(date);
+    } else if (typeof date === 'string') {
+      const parsedDate = this.parseDate(date);
+      if (parsedDate) {
+        baseDate = parsedDate;
+      } else {
+        console.warn(
+          `Failed to parse date string: ${date}, using current date`,
+        );
+        baseDate = new Date();
+      }
+    } else {
+      console.warn(`Invalid date type: ${typeof date}, using current date`);
+      baseDate = new Date();
+    }
+
+    if (isNaN(baseDate.getTime())) {
+      console.warn(`Invalid date detected, using current date instead`);
+      baseDate = new Date();
+    }
+
+    // Check if it's a weekend and adjust to nearest weekday if needed
+    const dayOfWeek = baseDate.getDay(); // 0 = Sunday, 6 = Saturday
+
+    if (dayOfWeek === 0) {
+      // Sunday -> move to Monday
+      baseDate.setDate(baseDate.getDate() + 1);
+    } else if (dayOfWeek === 6) {
+      // Saturday -> move to Friday
+      baseDate.setDate(baseDate.getDate() - 1);
+    }
+
+    // Define business hours with lunch break consideration
+    const businessPeriods = [
+      { start: 8, end: 12 }, // Morning: 8 AM - 12 PM
+      { start: 13, end: 18 }, // Afternoon: 1 PM - 6 PM
+    ];
+
+    // Randomly choose morning or afternoon
+    const period =
+      businessPeriods[Math.floor(Math.random() * businessPeriods.length)];
+
+    // Generate random time within the chosen period
+    const randomHour =
+      Math.floor(Math.random() * (period.end - period.start)) + period.start;
+    const randomMinutes = Math.floor(Math.random() * 60);
+    const randomSeconds = Math.floor(Math.random() * 60);
+
+    baseDate.setHours(randomHour, randomMinutes, randomSeconds, 0);
+
+    return baseDate;
+  }
   async transformTransactionToPayment(
     row: TransactionsCsvRowDto,
     saleId?: string,
   ) {
     const extractedData = this.extractTransactionData(row);
 
+    const businessHourDateTime = extractedData.date
+      ? this.generateBusinessHourDateTime(extractedData.date)
+      : new Date();
+
     return {
       transactionRef: extractedData.reference,
       amount: extractedData.amount,
       paymentStatus: 'COMPLETED' as const,
-      paymentDate: extractedData.date,
+      paymentDate: businessHourDateTime,
       saleId: saleId || null,
     };
   }
@@ -381,20 +441,21 @@ export class DataMappingService {
         'transaction_ref',
       ]) || transactionId;
 
-    const date = this.parseDate(
-      this.extractValue(row, [
-        'date',
-        'transaction_date',
-        'payment_date',
-        'timestamp',
-      ]),
-    );
+    const dateString = this.extractValue(row, [
+      'date',
+      'transaction_date',
+      'payment_date',
+      'timestamp',
+    ]);
+
+    const date = this.parseDate(dateString);
 
     return {
       transactionId,
       amount: amount || 0,
       reference: reference || `TXN_${Date.now()}`,
       date: date || new Date(),
+      dateString,
     };
   }
 
@@ -488,25 +549,42 @@ export class DataMappingService {
 
     return isNaN(parsed) ? null : parsed;
   }
-
   private parseDate(dateString: string | null): Date | null {
     if (!dateString) return null;
 
     try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        // Try parsing DD/MM/YYYY format
-        const parts = dateString.split(/[\/\-]/);
+      if (dateString.includes('/')) {
+        const parts = dateString.split('/');
         if (parts.length === 3) {
           const day = parseInt(parts[0]);
-          const month = parseInt(parts[1]) - 1; // Months are 0-indexed
+          const month = parseInt(parts[1]) - 1;
           const year = parseInt(parts[2]);
-          return new Date(year, month, day);
+
+          if (
+            !isNaN(day) &&
+            !isNaN(month) &&
+            !isNaN(year) &&
+            day >= 1 &&
+            day <= 31 &&
+            month >= 0 &&
+            month <= 11 &&
+            year >= 1900 &&
+            year <= 2100
+          ) {
+            return new Date(year, month, day);
+          }
         }
-        return null;
       }
-      return date;
-    } catch {
+
+      // If DD/MM/YYYY parsing fails, try standard Date parsing
+      const date = new Date(dateString);
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`Error parsing date: ${dateString}`, error);
       return null;
     }
   }

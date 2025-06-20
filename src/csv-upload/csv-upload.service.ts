@@ -837,6 +837,15 @@ export class CsvUploadService {
           saleId,
         );
 
+      await this.prisma.sales.update({
+        where: {
+          id: saleId,
+        },
+        data: {
+          transactionDate: paymentData.paymentDate,
+        },
+      });
+
       // Check if payment already exists
       const existingPayment = await this.prisma.payment.findFirst({
         where: {
