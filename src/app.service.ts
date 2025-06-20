@@ -5,7 +5,7 @@ export class AppService {
    private readonly logger = new Logger(AppService.name);
   getHello(): string {
 
-    return 'Welcom to A4t!proosalpha';
+    return 'Welcom to Aproosalpha';
   }
 
   //   @Cron(CronExpression.EVERY_30_SECONDS)
