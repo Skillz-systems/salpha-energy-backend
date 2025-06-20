@@ -31,6 +31,8 @@ model User {
   createdSales            Sales[]
   createdInventoryBatches InventoryBatch[]
 
+  createdApiTokens OdysseyApiToken[] @relation("CreatedApiTokens")
+
   recordedPayments Payment[] @relation("RecordedPayments")
 
   orphanedTransactions OrphanedTransaction[]

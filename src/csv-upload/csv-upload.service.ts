@@ -495,6 +495,401 @@ export class CsvUploadService {
     );
     if (!sheetStats) return;
 
+    // for (const row of batch.data) {
+    //   try {
+    //     let sale: any = null
+    //     if (
+    //       sheet.dataType === CsvDataType.SALES ||
+    //       sheet.dataType === CsvDataType.MIXED
+    //     ) {
+    //       if (this.isSalesRow(row)) {
+    // const result = await this.processSalesRow(
+    //   row,
+    //   session.generatedDefaults,
+    // );
+    //         sheetStats.processed++;
+    //         session.stats.processedRecords++;
+
+    //         // Update created counts
+    //         if (result.createdCustomer) sheetStats.created.customers++;
+    //         if (result.createdProduct) sheetStats.created.products++;
+    //         if (result.createdSale) {
+    //           sheetStats.created.sales++
+    //           sale = result.createdSale
+    //         };
+    //         if (result.createdContract) sheetStats.created.contracts++;
+    //       }
+    //     }
+
+    //     console.log({sale})
+
+    //     if (
+    //       sheet.dataType === CsvDataType.TRANSACTIONS ||
+    //       sheet.dataType === CsvDataType.MIXED
+    //     ) {
+    //       if (this.isTransactionRow(row)) {
+    //         const result = await this.processTransactionRow(row, sale?.id);
+    //         sheetStats.processed++;
+    //         session.stats.processedRecords++;
+
+    //         if (result.createdTransaction) sheetStats.created.transactions++;
+    //       }
+    //     }
+    //   } catch (error) {
+    //     this.logger.error(`Error processing row in ${batch.sheetName}`, error);
+    //     session.stats.errorRecords++;
+    //     sheetStats.errors++;
+
+    //     session.stats.errors.push({
+    //       sheet: batch.sheetName,
+    //       row: sheetStats.processed + sheetStats.errors + 1,
+    //       field: 'general',
+    //       message: error.message,
+    //       data: row,
+    //     });
+    //   }
+    // }
+
+    const salesSheet = session.sheets.find(
+      (s) =>
+        s.dataType === CsvDataType.SALES ||
+        s.sheetName.toLowerCase().includes('sales') ||
+        s.sheetName.toLowerCase().includes('sale'),
+    );
+
+    const transactionSheet = session.sheets.find(
+      (s) =>
+        s.dataType === CsvDataType.TRANSACTIONS ||
+        s.sheetName.toLowerCase().includes('transaction') ||
+        s.sheetName.toLowerCase().includes('payment'),
+    );
+
+    // If we have both sheets and this is the sales sheet, process synchronized
+    if (
+      salesSheet &&
+      transactionSheet &&
+      sheet.sheetName === salesSheet.sheetName
+    ) {
+      await this.processSynchronizedBatch(
+        session,
+        batch,
+        salesSheet,
+        transactionSheet,
+      );
+    } else if (
+      salesSheet &&
+      transactionSheet &&
+      sheet.sheetName === transactionSheet.sheetName
+    ) {
+      // Skip transaction sheet processing as it's handled by sales sheet processing
+      this.logger.log(
+        `Skipping transaction sheet ${sheet.sheetName} - processed with sales sheet`,
+      );
+      return;
+    } else {
+      // Process single sheet normally (fallback for mixed or single sheet files)
+      await this.processSingleSheetBatch(session, batch, sheet);
+    }
+  }
+
+  private async processSynchronizedBatch(
+    session: ProcessingSession,
+    salesBatch: { sheetName: string; batchIndex: number; data: any[] },
+    salesSheet: SheetData,
+    transactionSheet: SheetData,
+  ): Promise<void> {
+    const salesSheetStats = session.stats.breakdown.sheets.find(
+      (s) => s.sheetName === salesSheet.sheetName,
+    );
+    const transactionSheetStats = session.stats.breakdown.sheets.find(
+      (s) => s.sheetName === transactionSheet.sheetName,
+    );
+
+    if (!salesSheetStats || !transactionSheetStats) return;
+
+    this.logger.log(
+      `Processing synchronized batch: ${salesSheet.sheetName} + ${transactionSheet.sheetName}`,
+    );
+
+    // Calculate the starting row index for this batch
+    const batchStartIndex = salesBatch.batchIndex * salesBatch.data.length;
+
+    for (let i = 0; i < salesBatch.data.length; i++) {
+      const salesRow = salesBatch.data[i];
+      const correspondingRowIndex = batchStartIndex + i;
+
+      // Get the corresponding transaction row (same index)
+      const transactionRow = transactionSheet.data[correspondingRowIndex];
+
+      try {
+        // Process the sales row first
+        const salesResult = await this.processSalesRowWithImmediateTransaction(
+          salesRow,
+          transactionRow,
+          session.generatedDefaults,
+        );
+
+        // Update sales statistics
+        salesSheetStats.processed++;
+        session.stats.processedRecords++;
+
+        if (salesResult.createdCustomer) salesSheetStats.created.customers++;
+        if (salesResult.createdProduct) salesSheetStats.created.products++;
+        if (salesResult.createdSale) salesSheetStats.created.sales++;
+        if (salesResult.createdContract) salesSheetStats.created.contracts++;
+
+        // Update transaction statistics if transaction was processed
+        if (salesResult.processedTransaction && transactionRow) {
+          transactionSheetStats.processed++;
+          session.stats.processedRecords++;
+          if (salesResult.createdTransaction) {
+            transactionSheetStats.created.transactions++;
+          }
+        }
+
+        this.logger.debug(
+          `Processed row ${correspondingRowIndex + 1}: Sales + Transaction`,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Error processing synchronized row ${correspondingRowIndex + 1}`,
+          error,
+        );
+
+        // Record error for both sheets
+        session.stats.errorRecords++;
+        salesSheetStats.errors++;
+
+        if (transactionRow) {
+          session.stats.errorRecords++;
+          transactionSheetStats.errors++;
+        }
+
+        session.stats.errors.push({
+          sheet: `${salesSheet.sheetName} + ${transactionSheet.sheetName}`,
+          row: correspondingRowIndex + 1,
+          field: 'general',
+          message: error.message,
+          data: { sales: salesRow, transaction: transactionRow },
+        });
+      }
+    }
+  }
+
+  private async processSalesRowWithImmediateTransaction(
+    salesRow: any,
+    transactionRow: any | null,
+    generatedDefaults: any,
+  ): Promise<{
+    createdCustomer: boolean;
+    createdProduct: boolean;
+    createdSale: boolean;
+    createdContract: boolean;
+    processedTransaction: boolean;
+    createdTransaction: boolean;
+  }> {
+    try {
+      // First, process the sales row (same as before)
+      const transformedData =
+        await this.dataMappingService.transformSalesRowToDatabase(
+          salesRow,
+          generatedDefaults,
+        );
+
+      let createdCustomer = false;
+      let createdSale = false;
+      let createdContract = false;
+
+      // Create or find customer
+      let customer = await this.prisma.customer.findFirst({
+        where: {
+          OR: [
+            { phone: transformedData.customerData.phone },
+            { email: transformedData.customerData.email },
+          ],
+        },
+      });
+
+      if (!customer) {
+        customer = await this.prisma.customer.create({
+          data: transformedData.customerData,
+        });
+        createdCustomer = true;
+        this.logger.debug(
+          `Created new customer: ${customer.firstname} ${customer.lastname}`,
+        );
+      }
+
+      // Create contract if needed
+      let contract = null;
+      if (this.shouldCreateContract(salesRow)) {
+        contract = await this.prisma.contract.create({
+          data: transformedData.contractData,
+        });
+        createdContract = true;
+        this.logger.debug(
+          `Created contract for customer: ${customer.firstname} ${customer.lastname}`,
+        );
+      }
+
+      // Create sales record
+      const sale = await this.prisma.sales.create({
+        data: {
+          ...transformedData.saleData,
+          customerId: customer.id,
+          contractId: contract?.id,
+        },
+      });
+      createdSale = true;
+
+      // Create sale item
+      const saleItem = await this.prisma.saleItem.create({
+        data: {
+          ...transformedData.saleItemData,
+          saleId: sale.id,
+          devices: transformedData.relatedEntities.device
+            ? {
+                connect: [{ id: transformedData.relatedEntities.device.id }],
+              }
+            : undefined,
+        },
+      });
+
+      if (transformedData.relatedEntities.device) {
+        await this.prisma.device.update({
+          where: { id: transformedData.relatedEntities.device.id },
+          data: {
+            isUsed: true,
+            saleItems: {
+              connect: [{ id: saleItem.id }],
+            },
+          },
+        });
+      }
+
+      // Create product inventory relationship if needed
+      const existingProductInventory =
+        await this.prisma.productInventory.findFirst({
+          where: {
+            productId: transformedData.relatedEntities.product.id,
+            inventoryId: transformedData.relatedEntities.inventory.id,
+          },
+        });
+
+      if (!existingProductInventory) {
+        await this.prisma.productInventory.create({
+          data: {
+            productId: transformedData.relatedEntities.product.id,
+            inventoryId: transformedData.relatedEntities.inventory.id,
+            quantity: transformedData.saleItemData.quantity,
+          },
+        });
+      }
+
+      // Now process the corresponding transaction immediately
+      let processedTransaction = false;
+      let createdTransaction = false;
+
+      if (transactionRow && this.isTransactionRow(transactionRow)) {
+        try {
+          const transactionResult = await this.processTransactionRowWithSaleId(
+            transactionRow,
+            sale.id, // Pass the just-created sale ID
+          );
+          processedTransaction = true;
+          createdTransaction = transactionResult.createdTransaction;
+
+          this.logger.debug(
+            `Processed corresponding transaction for sale ${sale.id}`,
+          );
+        } catch (transactionError) {
+          this.logger.error(
+            `Error processing corresponding transaction for sale ${sale.id}`,
+            transactionError,
+          );
+          // Don't fail the entire operation if transaction processing fails
+        }
+      }
+
+      return {
+        createdCustomer,
+        createdProduct: transformedData.relatedEntities.productCreated || false,
+        createdSale,
+        createdContract,
+        processedTransaction,
+        createdTransaction,
+      };
+    } catch (error) {
+      this.logger.error(`Error processing sales row: ${error.message}`, error);
+      throw error;
+    }
+  }
+
+  private async processTransactionRowWithSaleId(
+    row: any,
+    saleId: string,
+  ): Promise<{ createdTransaction: boolean }> {
+    try {
+      // Transform transaction data with the known sale ID
+      const paymentData =
+        await this.dataMappingService.transformTransactionToPayment(
+          row,
+          saleId,
+        );
+
+      // Check if payment already exists
+      const existingPayment = await this.prisma.payment.findFirst({
+        where: {
+          transactionRef: paymentData.transactionRef,
+          saleId: paymentData.saleId,
+        },
+      });
+
+      if (existingPayment) {
+        this.logger.warn(
+          `Payment already exists for transaction: ${paymentData.transactionRef}`,
+        );
+        return { createdTransaction: false };
+      }
+
+      // Create payment record
+      await this.prisma.payment.create({
+        data: paymentData,
+      });
+
+      // Update sale's total paid amount
+      await this.prisma.sales.update({
+        where: { id: saleId },
+        data: {
+          totalPaid: {
+            increment: paymentData.amount,
+          },
+        },
+      });
+
+      this.logger.debug(
+        `Successfully processed transaction: ${row.transactionId || row.reference}`,
+      );
+      return { createdTransaction: true };
+    } catch (error) {
+      this.logger.error(
+        `Error processing transaction row: ${error.message}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  private async processSingleSheetBatch(
+    session: ProcessingSession,
+    batch: { sheetName: string; batchIndex: number; data: any[] },
+    sheet: SheetData,
+  ): Promise<void> {
+    const sheetStats = session.stats.breakdown.sheets.find(
+      (s) => s.sheetName === batch.sheetName,
+    );
+    if (!sheetStats) return;
+
     for (const row of batch.data) {
       try {
         if (
@@ -574,7 +969,7 @@ export class CsvUploadService {
   ): Promise<{
     createdCustomer: boolean;
     createdProduct: boolean;
-    createdSale: boolean;
+    createdSale: any;
     createdContract: boolean;
   }> {
     try {
@@ -586,7 +981,6 @@ export class CsvUploadService {
         );
 
       let createdCustomer = false;
-      let createdSale = false;
       let createdContract = false;
 
       // Create or find customer
@@ -629,7 +1023,6 @@ export class CsvUploadService {
           contractId: contract?.id,
         },
       });
-      createdSale = true;
 
       // Create sale item
       const saleItem = await this.prisma.saleItem.create({
@@ -678,7 +1071,7 @@ export class CsvUploadService {
       return {
         createdCustomer,
         createdProduct: transformedData.relatedEntities.productCreated || false,
-        createdSale,
+        createdSale: sale,
         createdContract,
       };
     } catch (error) {
@@ -801,7 +1194,7 @@ export class CsvUploadService {
 
   private async createUnmatchedTransaction(
     row: TransactionsCsvRowDto,
-    saleId?: string
+    saleId?: string,
   ): Promise<void> {
     try {
       // Extract transaction data from the CSV row
