@@ -56,6 +56,14 @@ export class OdysseyPaymentDto {
   serialNumber: string;
 
   @ApiProperty({
+    description:
+      'The serial number of the SHS device. Returns "N/A" if not available.',
+    example: '001A-001-1234',
+  })
+  @IsString()
+  meterId: string;
+
+  @ApiProperty({
     description: 'The customer ID of the user of the device',
     example: 'customer-565',
   })

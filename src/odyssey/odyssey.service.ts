@@ -132,14 +132,15 @@ export class OdysseyService {
       serialNumber: device?.serialNumber || 'N/A',
       customerId: customer.id,
       customerName: `${customer.firstname} ${customer.lastname}`,
-      customerPhone: null, // customer.phone,
+      // customerPhone: null, // customer.phone,
       customerCategory: this.mapCustomerCategory(customer),
-      financingId: null,
-      agentId: null, // agentId,
+      // financingId: null,
+      meterId: device?.serialNumber || 'N/A',
+      // agentId: null, // agentId,
       latitude: customer.latitude || '',
       longitude: customer.longitude || '',
-      utilityId: null, // this.generateUtilityId(customer, sale),
-      failedBatteryCapacityCount: 0,
+      // utilityId: null, // this.generateUtilityId(customer, sale),
+      // failedBatteryCapacityCount: 0,
     };
   }
 
