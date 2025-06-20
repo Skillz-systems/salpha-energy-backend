@@ -126,7 +126,8 @@ export class OdysseyService {
     return {
       timestamp: payment.paymentDate.toISOString(),
       amount: payment.amount,
-      currency: 'Naira',
+      // currency: 'Naira',
+      currency: 'NGN',
       transactionType,
       transactionId: payment.transactionRef,
       serialNumber: device?.serialNumber || 'N/A',
