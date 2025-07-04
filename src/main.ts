@@ -72,6 +72,8 @@ async function bootstrap() {
   // Enable validation globally
   app.useGlobalPipes(new ValidationPipe());
 
-  await app.listen(configService.get<number>('PORT') || 3000);
+  // await app.listen(configService.get<number>('PORT') || 3000);
+  await app.listen(3001);
+
 }
 bootstrap();

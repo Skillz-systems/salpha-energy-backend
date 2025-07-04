@@ -47,7 +47,7 @@ async function bootstrap() {
     app.useGlobalFilters();
     app.useGlobalInterceptors(new common_1.ClassSerializerInterceptor(app.get(core_1.Reflector)));
     app.useGlobalPipes(new common_1.ValidationPipe());
-    await app.listen(configService.get('PORT') || 3000);
+    await app.listen(3001);
 }
 bootstrap();
 //# sourceMappingURL=main.js.map
