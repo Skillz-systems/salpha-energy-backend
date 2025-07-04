@@ -1,0 +1,156 @@
+import { PrismaService } from '../prisma/prisma.service';
+import { DefaultsGeneratorService } from './defaults-generator.service';
+import { SalesCsvRowDto, TransactionsCsvRowDto } from './dto/csv-upload.dto';
+export declare class DataMappingService {
+    private readonly prisma;
+    private readonly defaultsGenerator;
+    private readonly logger;
+    constructor(prisma: PrismaService, defaultsGenerator: DefaultsGeneratorService);
+    transformSalesRowToDatabase(row: SalesCsvRowDto, generatedDefaults: any): Promise<{
+        customerData: {
+            firstname: string;
+            lastname: string;
+            phone: string;
+            email: string;
+            addressType: "HOME";
+            location: any;
+            longitude: any;
+            latitude: any;
+            type: "purchase";
+            status: "active";
+            creatorId: any;
+        };
+        contractData: {
+            initialAmountPaid: number;
+            nextOfKinFullName: string;
+            nextOfKinRelationship: "Spouse" | "Parent" | "Sibling" | "Child" | "Friend";
+            nextOfKinPhoneNumber: string;
+            nextOfKinHomeAddress: string;
+            nextOfKinEmail: string;
+            nextOfKinDateOfBirth: Date;
+            nextOfKinNationality: string;
+            guarantorFullName: string;
+            guarantorPhoneNumber: string;
+            guarantorHomeAddress: string;
+            guarantorEmail: string;
+            guarantorIdType: "Nil";
+            guarantorIdNumber: string;
+            guarantorIdIssuingCountry: string;
+            guarantorIdIssueDate: Date;
+            guarantorIdExpirationDate: Date;
+            guarantorNationality: string;
+            guarantorDateOfBirth: Date;
+            idType: "Nil";
+            idNumber: string;
+            issuingCountry: string;
+            issueDate: Date;
+            expirationDate: Date;
+            fullNameAsOnID: string;
+            addressAsOnID: string;
+            signedAt: Date;
+        };
+        saleData: {
+            category: "PRODUCT";
+            status: "COMPLETED";
+            totalPrice: number;
+            totalPaid: number;
+            creatorId: any;
+        };
+        saleItemData: {
+            productId: string;
+            quantity: number;
+            totalPrice: number;
+            paymentMode: "INSTALLMENT" | "ONE_OFF";
+        };
+        relatedEntities: {
+            product: {
+                wasCreated: boolean;
+                createdAt: Date;
+                name: string;
+                description: string | null;
+                id: string;
+                updatedAt: Date;
+                image: string | null;
+                creatorId: string | null;
+                currency: string | null;
+                paymentModes: string | null;
+                categoryId: string;
+            };
+            inventory: any;
+            inventoryBatch: any;
+            device: {
+                createdAt: Date;
+                id: string;
+                updatedAt: Date;
+                count: string | null;
+                serialNumber: string;
+                key: string;
+                startingCode: string | null;
+                timeDivider: string | null;
+                restrictedDigitMode: boolean;
+                hardwareModel: string | null;
+                firmwareVersion: string | null;
+                isTokenable: boolean;
+                isUsed: boolean;
+                saleItemIDs: string[];
+            };
+            productCreated: boolean;
+        };
+    }>;
+    private extractSalesData;
+    private transformCustomerData;
+    private transformContractData;
+    findOrCreateProduct(productName: string, categoryId: string, creatorId: string): Promise<{
+        wasCreated: boolean;
+        createdAt: Date;
+        name: string;
+        description: string | null;
+        id: string;
+        updatedAt: Date;
+        image: string | null;
+        creatorId: string | null;
+        currency: string | null;
+        paymentModes: string | null;
+        categoryId: string;
+    }>;
+    findOrCreateInventory(productName: string, quantity: number, categoryId: string, price: number, creatorId: string): Promise<any>;
+    findOrCreateDevice(serialNumber: string): Promise<{
+        createdAt: Date;
+        id: string;
+        updatedAt: Date;
+        count: string | null;
+        serialNumber: string;
+        key: string;
+        startingCode: string | null;
+        timeDivider: string | null;
+        restrictedDigitMode: boolean;
+        hardwareModel: string | null;
+        firmwareVersion: string | null;
+        isTokenable: boolean;
+        isUsed: boolean;
+        saleItemIDs: string[];
+    }>;
+    private generateBusinessHourDateTime;
+    transformTransactionToPayment(row: TransactionsCsvRowDto, saleId?: string): Promise<{
+        transactionRef: string;
+        amount: number;
+        paymentStatus: "COMPLETED";
+        paymentDate: Date;
+        saleId: string;
+    }>;
+    extractTransactionData(row: TransactionsCsvRowDto): {
+        transactionId: string;
+        amount: number;
+        reference: string;
+        date: Date;
+        dateString: string;
+    };
+    private determinePaymentMode;
+    private extractValue;
+    private parseFullName;
+    private cleanPhoneNumber;
+    private generateEmail;
+    private parseNumber;
+    private parseDate;
+    private getNextBatchNumber;
+}

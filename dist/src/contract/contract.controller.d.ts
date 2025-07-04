@@ -1,0 +1,277 @@
+import { ContractService } from './contract.service';
+import { PaginationQueryDto } from '../utils/dto/pagination.dto';
+export declare class ContractController {
+    private readonly contractService;
+    constructor(contractService: ContractService);
+    getContracts(query: PaginationQueryDto): Promise<{
+        contracts: ({
+            sale: ({
+                customer: {
+                    createdAt: Date;
+                    type: import("@prisma/client").$Enums.CustomerType;
+                    firstname: string;
+                    lastname: string;
+                    email: string;
+                    phone: string;
+                    location: string | null;
+                    id: string;
+                    addressType: import("@prisma/client").$Enums.AddressType;
+                    longitude: string | null;
+                    latitude: string | null;
+                    status: import("@prisma/client").$Enums.UserStatus;
+                    updatedAt: Date;
+                    deletedAt: Date | null;
+                    creatorId: string | null;
+                    agentId: string | null;
+                };
+                saleItems: ({
+                    product: {
+                        inventories: ({
+                            inventory: {
+                                createdAt: Date;
+                                name: string;
+                                id: string;
+                                status: import("@prisma/client").$Enums.InventoryStatus;
+                                updatedAt: Date;
+                                deletedAt: Date | null;
+                                image: string | null;
+                                manufacturerName: string;
+                                dateOfManufacture: string | null;
+                                sku: string | null;
+                                class: import("@prisma/client").$Enums.InventoryClass;
+                                inventoryCategoryId: string | null;
+                                inventorySubCategoryId: string | null;
+                            };
+                        } & {
+                            id: string;
+                            inventoryId: string;
+                            quantity: number;
+                            productId: string;
+                        })[];
+                    } & {
+                        createdAt: Date;
+                        name: string;
+                        description: string | null;
+                        id: string;
+                        updatedAt: Date;
+                        image: string | null;
+                        creatorId: string | null;
+                        currency: string | null;
+                        paymentModes: string | null;
+                        categoryId: string;
+                    };
+                } & {
+                    createdAt: Date;
+                    id: string;
+                    updatedAt: Date;
+                    quantity: number;
+                    productId: string;
+                    paymentMode: import("@prisma/client").$Enums.PaymentMode;
+                    discount: number | null;
+                    installmentDuration: number | null;
+                    installmentStartingPrice: number | null;
+                    miscellaneousPrices: import("@prisma/client/runtime/library").JsonValue | null;
+                    totalPrice: number;
+                    saleId: string;
+                    monthlyPayment: number | null;
+                    saleRecipientId: string | null;
+                    deviceIDs: string[];
+                })[];
+            } & {
+                createdAt: Date;
+                category: import("@prisma/client").$Enums.CategoryTypes;
+                id: string;
+                status: import("@prisma/client").$Enums.SalesStatus;
+                updatedAt: Date;
+                deletedAt: Date | null;
+                creatorId: string | null;
+                installmentStartingPrice: number;
+                customerId: string;
+                paymentMethod: import("@prisma/client").$Enums.PaymentMethod;
+                applyMargin: boolean;
+                totalPrice: number;
+                totalPaid: number;
+                totalMonthlyPayment: number;
+                totalInstallmentDuration: number;
+                installmentAccountDetailsId: string | null;
+                deliveredAccountDetails: boolean;
+                contractId: string | null;
+                transactionDate: Date | null;
+            })[];
+        } & {
+            createdAt: Date;
+            id: string;
+            updatedAt: Date;
+            idType: import("@prisma/client").$Enums.IDType;
+            idNumber: string;
+            issuingCountry: string;
+            issueDate: Date | null;
+            expirationDate: Date | null;
+            fullNameAsOnID: string;
+            addressAsOnID: string | null;
+            initialAmountPaid: number;
+            nextOfKinFullName: string;
+            nextOfKinRelationship: string;
+            nextOfKinPhoneNumber: string;
+            nextOfKinHomeAddress: string;
+            nextOfKinEmail: string | null;
+            nextOfKinDateOfBirth: Date | null;
+            nextOfKinNationality: string | null;
+            guarantorFullName: string;
+            guarantorPhoneNumber: string;
+            guarantorHomeAddress: string;
+            guarantorEmail: string | null;
+            guarantorIdType: import("@prisma/client").$Enums.IDType;
+            guarantorIdNumber: string;
+            guarantorIdIssuingCountry: string;
+            guarantorIdIssueDate: Date | null;
+            guarantorIdExpirationDate: Date | null;
+            guarantorNationality: string | null;
+            guarantorDateOfBirth: Date | null;
+            signedContractUrl: string | null;
+            signedAt: Date | null;
+        })[];
+        total: number;
+        page: string | number;
+        limit: string | number;
+        totalPages: number;
+    }>;
+    getContract(id: string): Promise<import("@nestjs/common").BadRequestException | ({
+        sale: ({
+            customer: {
+                createdAt: Date;
+                type: import("@prisma/client").$Enums.CustomerType;
+                firstname: string;
+                lastname: string;
+                email: string;
+                phone: string;
+                location: string | null;
+                id: string;
+                addressType: import("@prisma/client").$Enums.AddressType;
+                longitude: string | null;
+                latitude: string | null;
+                status: import("@prisma/client").$Enums.UserStatus;
+                updatedAt: Date;
+                deletedAt: Date | null;
+                creatorId: string | null;
+                agentId: string | null;
+            };
+            saleItems: ({
+                product: {
+                    inventories: ({
+                        inventory: {
+                            createdAt: Date;
+                            name: string;
+                            id: string;
+                            status: import("@prisma/client").$Enums.InventoryStatus;
+                            updatedAt: Date;
+                            deletedAt: Date | null;
+                            image: string | null;
+                            manufacturerName: string;
+                            dateOfManufacture: string | null;
+                            sku: string | null;
+                            class: import("@prisma/client").$Enums.InventoryClass;
+                            inventoryCategoryId: string | null;
+                            inventorySubCategoryId: string | null;
+                        };
+                    } & {
+                        id: string;
+                        inventoryId: string;
+                        quantity: number;
+                        productId: string;
+                    })[];
+                } & {
+                    createdAt: Date;
+                    name: string;
+                    description: string | null;
+                    id: string;
+                    updatedAt: Date;
+                    image: string | null;
+                    creatorId: string | null;
+                    currency: string | null;
+                    paymentModes: string | null;
+                    categoryId: string;
+                };
+                SaleRecipient: {
+                    createdAt: Date;
+                    firstname: string;
+                    lastname: string;
+                    email: string;
+                    phone: string;
+                    id: string;
+                    updatedAt: Date;
+                    address: string;
+                };
+            } & {
+                createdAt: Date;
+                id: string;
+                updatedAt: Date;
+                quantity: number;
+                productId: string;
+                paymentMode: import("@prisma/client").$Enums.PaymentMode;
+                discount: number | null;
+                installmentDuration: number | null;
+                installmentStartingPrice: number | null;
+                miscellaneousPrices: import("@prisma/client/runtime/library").JsonValue | null;
+                totalPrice: number;
+                saleId: string;
+                monthlyPayment: number | null;
+                saleRecipientId: string | null;
+                deviceIDs: string[];
+            })[];
+        } & {
+            createdAt: Date;
+            category: import("@prisma/client").$Enums.CategoryTypes;
+            id: string;
+            status: import("@prisma/client").$Enums.SalesStatus;
+            updatedAt: Date;
+            deletedAt: Date | null;
+            creatorId: string | null;
+            installmentStartingPrice: number;
+            customerId: string;
+            paymentMethod: import("@prisma/client").$Enums.PaymentMethod;
+            applyMargin: boolean;
+            totalPrice: number;
+            totalPaid: number;
+            totalMonthlyPayment: number;
+            totalInstallmentDuration: number;
+            installmentAccountDetailsId: string | null;
+            deliveredAccountDetails: boolean;
+            contractId: string | null;
+            transactionDate: Date | null;
+        })[];
+    } & {
+        createdAt: Date;
+        id: string;
+        updatedAt: Date;
+        idType: import("@prisma/client").$Enums.IDType;
+        idNumber: string;
+        issuingCountry: string;
+        issueDate: Date | null;
+        expirationDate: Date | null;
+        fullNameAsOnID: string;
+        addressAsOnID: string | null;
+        initialAmountPaid: number;
+        nextOfKinFullName: string;
+        nextOfKinRelationship: string;
+        nextOfKinPhoneNumber: string;
+        nextOfKinHomeAddress: string;
+        nextOfKinEmail: string | null;
+        nextOfKinDateOfBirth: Date | null;
+        nextOfKinNationality: string | null;
+        guarantorFullName: string;
+        guarantorPhoneNumber: string;
+        guarantorHomeAddress: string;
+        guarantorEmail: string | null;
+        guarantorIdType: import("@prisma/client").$Enums.IDType;
+        guarantorIdNumber: string;
+        guarantorIdIssuingCountry: string;
+        guarantorIdIssueDate: Date | null;
+        guarantorIdExpirationDate: Date | null;
+        guarantorNationality: string | null;
+        guarantorDateOfBirth: Date | null;
+        signedContractUrl: string | null;
+        signedAt: Date | null;
+    })>;
+    uploadSignage(id: string, file: Express.Multer.File): Promise<import("@nestjs/common").BadRequestException>;
+}
