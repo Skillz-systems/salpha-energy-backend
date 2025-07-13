@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Post,
   Query,
+  Req,
   Res,
   // UnauthorizedException,
 } from '@nestjs/common';
@@ -27,6 +28,12 @@ export class PaymentController {
     @InjectQueue('payment-queue') private paymentQueue: Queue,
   ) {}
 
+  @HttpCode(HttpStatus.OK)
+  @Get('verify-payment')
+  async verifyPament(@Req() req: Request) {
+    console.log({req});
+  }
+
   @ApiOperation({ summary: 'Verify payment callback' })
   @ApiQuery({
     name: 'txref',
@@ -38,9 +45,7 @@ export class PaymentController {
   })
   @HttpCode(HttpStatus.OK)
   @Get('verify/callback')
-  async verifyPayment(
-    @Query('txref') trxref: string,
-  ) {
+  async verifyPayment(@Query('txref') trxref: string) {
     try {
       if (!trxref) {
         throw new BadRequestException('txref is required');
@@ -131,20 +136,16 @@ export class PaymentController {
           active: active
             .slice(0, 5)
             .map((job) => ({ id: job.id, name: job.name, data: job.data })),
-          completed: completed
-            .slice(0, 5)
-            .map((job) => ({
-              id: job.id,
-              name: job.name,
-              returnvalue: job.returnvalue,
-            })),
-          failed: failed
-            .slice(0, 5)
-            .map((job) => ({
-              id: job.id,
-              name: job.name,
-              failedReason: job.failedReason,
-            })),
+          completed: completed.slice(0, 5).map((job) => ({
+            id: job.id,
+            name: job.name,
+            returnvalue: job.returnvalue,
+          })),
+          failed: failed.slice(0, 5).map((job) => ({
+            id: job.id,
+            name: job.name,
+            failedReason: job.failedReason,
+          })),
         },
       };
     } catch (error) {

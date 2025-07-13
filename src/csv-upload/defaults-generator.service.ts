@@ -208,7 +208,7 @@ export class DefaultsGeneratorService {
     };
   }
 
-  generateContractDefaults(){
+  generateContractDefaults() {
     return {
       initialAmountPaid: 0,
 
@@ -269,7 +269,7 @@ export class DefaultsGeneratorService {
   generateInventoryBatchDefaults(price: number, quantity: number): any {
     return {
       price: price || faker.number.int({ min: 10000, max: 500000 }),
-      costOfItem:  price || faker.number.int({ min: 10000, max: 500000 }),
+      costOfItem: price || faker.number.int({ min: 10000, max: 500000 }),
       batchNumber: 1,
       numberOfStock: quantity || faker.number.int({ min: 1, max: 100 }),
       remainingQuantity: quantity || faker.number.int({ min: 1, max: 100 }),
@@ -355,9 +355,9 @@ export class DefaultsGeneratorService {
   }
 
   private generateSerialNumber(): string {
-    const letters = faker.string.alpha({ length: 3, casing: 'upper' });
-    const numbers = faker.string.numeric(8);
-    return `${letters}${numbers}`;
+    const timestamp = Date.now().toString().slice(-6); 
+    const random = faker.string.numeric(2);
+    return `SE${timestamp}${random}`
   }
 
   private generateDeviceKey(): string {

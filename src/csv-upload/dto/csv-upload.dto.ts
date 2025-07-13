@@ -49,7 +49,7 @@ export class ProcessCsvDto {
   skipValidation?: boolean = false;
 }
 
-export class ValidationResultDto {
+export class ValidationResultDto {  
   @ApiProperty({ description: 'Whether the file structure is valid' })
   isValid: boolean;
 

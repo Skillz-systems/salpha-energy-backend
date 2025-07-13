@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DefaultsGeneratorService } from './defaults-generator.service';
 import { SalesCsvRowDto, TransactionsCsvRowDto } from './dto/csv-upload.dto';
-import { SalesStatus } from '@prisma/client';
+import { Prisma, SalesStatus } from '@prisma/client';
 
 @Injectable()
 export class DataMappingService {
@@ -39,7 +39,10 @@ export class DataMappingService {
       generatedDefaults.defaultUser.id,
     );
 
-    const device = await this.findOrCreateDevice(extractedData.serialNumber);
+    const device = await this.findOrCreateDevice(
+      extractedData.serialNumber,
+      extractedData.productName,
+    );
 
     // Transform customer data with intelligent defaults
     const customerData = this.transformCustomerData(
@@ -321,29 +324,209 @@ export class DataMappingService {
     return { inventory, inventoryBatch };
   }
 
-  async findOrCreateDevice(serialNumber: string) {
-    if (!serialNumber || serialNumber.trim() === '') {
-      return null;
+  async findOrCreateDevice(serialNumber: string, productName?: string) {
+    if (serialNumber && serialNumber.trim() !== '') {
+      let device = await this.prisma.device.findUnique({
+        where: { serialNumber: serialNumber.trim() },
+      });
+
+      if (!device) {
+        const deviceDefaults = this.defaultsGenerator.generateDeviceDefaults(
+          serialNumber.trim(),
+        );
+
+        device = await this.prisma.device.create({
+          data: deviceDefaults,
+        });
+
+        this.logger.debug(`Created new device: ${serialNumber}`);
+      }
+
+      return device;
     }
 
-    // Check if device already exists
-    let device = await this.prisma.device.findUnique({
-      where: { serialNumber: serialNumber.trim() },
-    });
+    if (productName) {
+      // This method now returns the created device directly
+      const device = await this.generateUniqueDevice(productName);
 
-    if (!device) {
-      const deviceDefaults = this.defaultsGenerator.generateDeviceDefaults(
-        serialNumber.trim(),
+      this.logger.debug(
+        `Created new device with generated serial: ${device.serialNumber}`,
       );
 
-      device = await this.prisma.device.create({
+      return device;
+    }
+
+    return null;
+  }
+
+  private async generateUniqueDevice(productName: string) {
+    const prefix = this.extractSerialPrefix(productName);
+
+    return await this.prisma.$transaction(async (tx) => {
+      const devices = await tx.device.findMany({
+        where: {
+          serialNumber: {
+            startsWith: prefix,
+            mode: 'insensitive',
+          },
+        },
+        select: {
+          serialNumber: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      let maxNumber = 0;
+      const prefixLength = prefix.length;
+
+      for (const device of devices) {
+        const numberPart = device.serialNumber.substring(prefixLength);
+        const number = parseInt(numberPart);
+
+        if (!isNaN(number) && number > maxNumber) {
+          maxNumber = number;
+        }
+      }
+
+      const nextNumber = maxNumber + 1;
+      const numberPadding = this.getNumberPadding(prefix);
+      const serialNumber = `${prefix}${nextNumber.toString().padStart(numberPadding, '0')}`;
+
+      const deviceDefaults =
+        this.defaultsGenerator.generateDeviceDefaults(serialNumber);
+
+      const device = await tx.device.create({
         data: deviceDefaults,
       });
 
-      this.logger.debug(`Created new device: ${serialNumber}`);
+      return device; // Return the actual device object
+    });
+  }
+
+  private extractSerialPrefix(productName: string): string {
+    const cleanName = productName.trim().toLowerCase();
+
+    const patterns = [
+      // Rule 1: Handle "Spark XW" -> "SEXW" (where X is any number)
+      {
+        test: /spark\s+(\d+)w/i,
+        extract: (match: RegExpMatchArray) => `SE${match[1]}W`,
+      },
+
+      // Rule 2: Handle "Solar Change - SF - XXX" -> "SCXXX"
+      {
+        test: /solar\s+change.*?(\d+)/i,
+        extract: (match: RegExpMatchArray) => `SC${match[1]}`,
+      },
+
+      // Rule 3: Handle "Product Name - Model XXX" -> "PNXXX"
+      {
+        test: /^([a-z]+).*?(\d+)$/i,
+        extract: (match: RegExpMatchArray, name: string) => {
+          const words = name.split(/[\s\-_]+/).filter((w) => w.length > 0);
+          const initials = words
+            .slice(0, 2)
+            .map((w) => w[0].toUpperCase())
+            .join('');
+          return `${initials}${match[2]}`;
+        },
+      },
+
+      // Rule 4: Extract wattage patterns "XXW" anywhere in name
+      {
+        test: /(\d+)w/i,
+        extract: (match: RegExpMatchArray, name: string) => {
+          const firstWord = name.split(/[\s\-_]+/)[0];
+          const initial = firstWord
+            ? firstWord.substring(0, 2).toUpperCase()
+            : 'PR';
+          return `${initial}${match[1]}W`;
+        },
+      },
+
+      // Rule 5: Category-based prefixes with model numbers
+      {
+        test: /(solar|battery|inverter|charge).*?(\d+)/i,
+        extract: (match: RegExpMatchArray) => {
+          const categoryMap = {
+            solar: 'SOL',
+            battery: 'BAT',
+            inverter: 'INV',
+            charge: 'CHG',
+          };
+          const category = categoryMap[match[1].toLowerCase()] || 'SOL';
+          return `${category}${match[2]}`;
+        },
+      },
+    ];
+
+    // Try each pattern
+    for (const pattern of patterns) {
+      const match = cleanName.match(pattern.test);
+      if (match) {
+        return pattern.extract(match, cleanName);
+      }
     }
 
-    return device;
+    return this.createIntelligentFallback(cleanName);
+  }
+
+  private createIntelligentFallback(productName: string): string {
+    // Split into meaningful words (remove common connector words)
+    const stopWords = [
+      'and',
+      'or',
+      'the',
+      'with',
+      'for',
+      'in',
+      'on',
+      'at',
+      'to',
+    ];
+    const words = productName
+      .toLowerCase()
+      .split(/[\s\-_\(\)\.]+/)
+      .filter((word) => word.length > 1 && !stopWords.includes(word))
+      .slice(0, 3); // Take first 3 significant words
+
+    if (words.length === 0) {
+      return 'DEV';
+    }
+
+    // Extract numbers if present
+    const numbers = productName.match(/\d+/g);
+    const significantNumber = numbers ? numbers[0] : '';
+
+    if (words.length === 1) {
+      // Single word: take first 3-4 chars + number if available
+      const base = words[0]
+        .substring(0, significantNumber ? 3 : 4)
+        .toUpperCase();
+      return significantNumber ? `${base}${significantNumber}` : base;
+    } else {
+      // Multiple words: take first 1-2 chars from each word
+      const charsPerWord = Math.max(1, Math.floor(4 / words.length));
+      const base = words
+        .map((word) => word.substring(0, charsPerWord).toUpperCase())
+        .join('')
+        .substring(0, 4);
+
+      return significantNumber ? `${base}${significantNumber}` : base;
+    }
+  }
+
+  private getNumberPadding(prefix: string): number {
+    // Determine padding based on prefix characteristics
+    if (prefix.length <= 3) {
+      return 6; // Shorter prefix, longer number: ABC123456
+    } else if (prefix.length <= 5) {
+      return 4; // Medium prefix: ABCDE1234
+    } else {
+      return 3; // Longer prefix: ABCDEFG123
+    }
   }
 
   private generateBusinessHourDateTime(date: Date | string): Date {
@@ -433,13 +616,16 @@ export class DataMappingService {
       this.extractValue(row, ['amount', 'value', 'sum', 'total']),
     );
 
-    const reference =
-      this.extractValue(row, [
-        'reference',
-        'ref',
-        'receipt',
-        'transaction_ref',
-      ]) || transactionId;
+    let reference = this.extractValue(row, [
+      'reference',
+      'ref',
+      'receipt',
+      'transaction_ref',
+    ]);
+
+    if (!reference || reference.trim() === '') {
+      reference = this.generateTransactionReference(transactionId);
+    }
 
     const dateString = this.extractValue(row, [
       'date',
@@ -457,6 +643,18 @@ export class DataMappingService {
       date: date || new Date(),
       dateString,
     };
+  }
+
+  private generateTransactionReference(transactionId?: string): string {
+    if (transactionId && transactionId.trim() !== '') {
+      return `sale-${transactionId.trim()}`;
+    }
+
+    const timestamp = Date.now().toString().slice(-8);
+    const random = Math.floor(Math.random() * 1000)
+      .toString()
+      .padStart(3, '0');
+    return `sale-${timestamp}${random}`;
   }
 
   // Business logic methods
