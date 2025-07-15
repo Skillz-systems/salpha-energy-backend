@@ -5,6 +5,7 @@ model Customer {
   lastname    String
   phone       String
   email       String      @unique
+  gender      String?
   addressType AddressType
   location    String?
   longitude   String?

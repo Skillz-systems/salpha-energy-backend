@@ -5,6 +5,7 @@ import { CsvUploadController } from './csv-upload.controller';
 import { CsvUploadService } from './csv-upload.service';
 import { DefaultsGeneratorService } from './defaults-generator.service';
 import { FileParserService } from './file-parser.service';
+import { CsvExportService } from './csv-export.service';
 
 @Module({
   imports: [PrismaModule],
@@ -14,12 +15,14 @@ import { FileParserService } from './file-parser.service';
     DataMappingService,
     DefaultsGeneratorService,
     FileParserService,
+    CsvExportService,
   ],
   exports: [
     CsvUploadService,
     DataMappingService,
     DefaultsGeneratorService,
     FileParserService,
+    CsvExportService,
   ],
 })
 export class CsvUploadModule {}

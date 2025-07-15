@@ -7,6 +7,10 @@ import {
   BadRequestException,
   HttpStatus,
   HttpCode,
+  UseGuards,
+  Query,
+  Res,
+  Get,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -15,8 +19,9 @@ import {
   ApiConsumes,
   ApiResponse,
   ApiBody,
+  ApiQuery,
 } from '@nestjs/swagger';
-import { Express } from 'express';
+import { Express, Response } from 'express';
 import { CsvUploadService } from './csv-upload.service';
 import {
   CsvFileUploadDto,
@@ -27,12 +32,24 @@ import {
   BatchProcessRequestDto,
   SessionStatsRequestDto,
 } from './dto/csv-upload.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt.guard';
+import { RolesAndPermissionsGuard } from '../auth/guards/roles.guard';
+import { RolesAndPermissions } from '../auth/decorators/roles.decorator';
+import { ActionEnum, SubjectEnum } from '@prisma/client';
+import { CsvExportService } from './csv-export.service';
 
 @ApiTags('CSV Data Migration')
 @Controller('csv-upload')
 export class CsvUploadController {
-  constructor(private readonly csvUploadService: CsvUploadService) {}
+  constructor(
+    private readonly csvUploadService: CsvUploadService,
+    private readonly csvExportService: CsvExportService,
+  ) {}
 
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Sales}`],
+  })
   @Post('validate')
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({
@@ -82,6 +99,10 @@ export class CsvUploadController {
     return await this.csvUploadService.validateFile(file);
   }
 
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Sales}`],
+  })
   @Post('process')
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({
@@ -153,6 +174,115 @@ export class CsvUploadController {
     return await this.csvUploadService.processFile(file, processCsvDto);
   }
 
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Sales}`],
+  })
+  @Get('export-sales')
+  @ApiOperation({
+    summary: 'Export sales data as CSV',
+    description:
+      'Export sales data with optional date range filtering in the same format as the upload template',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    type: String,
+    description: 'Start date for filtering (ISO 8601 format)',
+    example: '2024-01-01T00:00:00Z',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    type: String,
+    description: 'End date for filtering (ISO 8601 format)',
+    example: '2024-12-31T23:59:59Z',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    type: String,
+    description: 'Filter by sales status',
+    enum: ['COMPLETED', 'IN_INSTALLMENT', 'CANCELLED', 'UNPAID'],
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'CSV file download',
+    headers: {
+      'Content-Type': {
+        description: 'text/csv',
+      },
+      'Content-Disposition': {
+        description: 'attachment; filename="sales_export_YYYY-MM-DD.csv"',
+      },
+    },
+  })
+  @HttpCode(HttpStatus.OK)
+  async exportSales(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('status') status?: string,
+    @Res() res?: Response,
+  ) {
+    try {
+      // Validate date parameters
+      let parsedStartDate: Date | undefined;
+      let parsedEndDate: Date | undefined;
+
+      if (startDate) {
+        parsedStartDate = new Date(startDate);
+        if (isNaN(parsedStartDate.getTime())) {
+          throw new BadRequestException('Invalid start date format');
+        }
+      }
+
+      if (endDate) {
+        parsedEndDate = new Date(endDate);
+        if (isNaN(parsedEndDate.getTime())) {
+          throw new BadRequestException('Invalid end date format');
+        }
+      }
+
+      if (parsedStartDate && parsedEndDate && parsedStartDate > parsedEndDate) {
+        throw new BadRequestException('Start date must be before end date');
+      }
+
+      // Generate CSV content
+      const csvContent = await this.csvExportService.exportSalesToCsv({
+        startDate: parsedStartDate,
+        endDate: parsedEndDate,
+        status: status as any,
+      });
+
+      // Generate filename with date range
+      const dateRange =
+        parsedStartDate && parsedEndDate
+          ? `${parsedStartDate.toISOString().split('T')[0]}_to_${parsedEndDate.toISOString().split('T')[0]}`
+          : new Date().toISOString().split('T')[0];
+
+      const filename = `sales_export_${dateRange}.csv`;
+
+      // Set response headers
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${filename}"`,
+      );
+      res.setHeader('Content-Length', Buffer.byteLength(csvContent));
+
+      // Send CSV content
+      res.send(csvContent);
+    } catch (error) {
+      throw new BadRequestException(
+        `Failed to export sales data: ${error.message}`,
+      );
+    }
+  }
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Sales}`],
+  })
   @Post('process-batch')
   @ApiOperation({
     summary: 'Process specific batch of validated data',
@@ -178,6 +308,10 @@ export class CsvUploadController {
     );
   }
 
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Sales}`],
+  })
   @Post('get-upload-stats')
   @ApiOperation({
     summary: 'Get upload session statistics',

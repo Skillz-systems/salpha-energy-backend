@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  BadRequestException,
-  Logger,
-  ConsoleLogger,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DataMappingService } from './data-mapping.service';
 import { DefaultsGeneratorService } from './defaults-generator.service';
@@ -795,7 +790,8 @@ export class CsvUploadService {
       let processedTransaction = false;
       let createdTransaction = false;
 
-      if (transactionRow) { // && this.isTransactionRow(transactionRow)
+      if (transactionRow) {
+        // && this.isTransactionRow(transactionRow)
         try {
           const transactionResult = await this.processTransactionRowWithSaleId(
             transactionRow,

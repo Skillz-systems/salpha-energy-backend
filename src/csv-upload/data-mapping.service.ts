@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DefaultsGeneratorService } from './defaults-generator.service';
 import { SalesCsvRowDto, TransactionsCsvRowDto } from './dto/csv-upload.dto';
-import { Prisma, SalesStatus } from '@prisma/client';
+import { SalesStatus } from '@prisma/client';
 
 @Injectable()
 export class DataMappingService {
@@ -216,6 +216,7 @@ export class DataMappingService {
       firstname: names.firstname,
       lastname: names.lastname,
       phone: cleanPhone,
+      gender: extractedData.gender,
       email: this.generateEmail(names.firstname, names.lastname, cleanPhone),
       addressType: 'HOME' as const,
       location: extractedData.address || contextualDefaults.customer.location,
