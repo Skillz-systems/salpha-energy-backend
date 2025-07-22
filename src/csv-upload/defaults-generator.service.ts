@@ -208,7 +208,11 @@ export class DefaultsGeneratorService {
     };
   }
 
-  generateContractDefaults() {
+  generateContractDefaults(paymentDate?: Date) {
+    const contractDate = paymentDate || new Date();
+
+    console.log({ contractDate });
+
     return {
       initialAmountPaid: 0,
 
@@ -223,7 +227,7 @@ export class DefaultsGeneratorService {
       nextOfKinPhoneNumber: 'nil',
       nextOfKinHomeAddress: 'nil',
       nextOfKinEmail: 'nil',
-      nextOfKinDateOfBirth: faker.date.past({ years: 100 }),
+      nextOfKinDateOfBirth: null,
       nextOfKinNationality: 'nil',
       guarantorFullName: 'nil',
       guarantorPhoneNumber: 'nil',
@@ -232,28 +236,33 @@ export class DefaultsGeneratorService {
       guarantorIdType: IDType.Nil,
       guarantorIdNumber: 'nil',
       guarantorIdIssuingCountry: 'nil',
-      guarantorIdIssueDate: faker.date.past({ years: 100 }),
-      guarantorIdExpirationDate: faker.date.past({ years: 100 }),
+      guarantorIdIssueDate: null,
+      guarantorIdExpirationDate: null,
       guarantorNationality: 'nil',
-      guarantorDateOfBirth: faker.date.past({ years: 100 }),
+      guarantorDateOfBirth: null,
 
       idType: IDType.Nil,
       idNumber: 'nil',
       issuingCountry: 'nil',
-      issueDate: faker.date.past({ years: 100 }),
-      expirationDate: faker.date.past({ years: 100 }),
+      issueDate: null,
+      expirationDate: null,
       fullNameAsOnID: 'nil',
       addressAsOnID: 'nil',
 
-      signedAt: faker.date.past({ years: 100 }),
+      signedAt: null,
     };
   }
 
-  generateProductDefaults(productName: string, categoryId: string): any {
+  generateProductDefaults(
+    productName: string,
+    categoryId: string,
+    pvCapacity?: string,
+  ): any {
     return {
       name: productName,
       paymentModes: 'ONE_OFF,INSTALLMENT',
       categoryId,
+      pvCapacity: pvCapacity || null,
     };
   }
 
@@ -266,13 +275,17 @@ export class DefaultsGeneratorService {
     };
   }
 
-  generateInventoryBatchDefaults(price: number, quantity: number): any {
+  generateInventoryBatchDefaults(
+    retailCost: number,
+    costToEndUser: number,
+    quantity: number,
+  ): any {
     return {
-      price: price || faker.number.int({ min: 10000, max: 500000 }),
-      costOfItem: price || faker.number.int({ min: 10000, max: 500000 }),
+      costOfItem: retailCost || costToEndUser,
+      price: costToEndUser || retailCost,
       batchNumber: 1,
-      numberOfStock: quantity || faker.number.int({ min: 1, max: 100 }),
-      remainingQuantity: quantity || faker.number.int({ min: 1, max: 100 }),
+      numberOfStock: quantity || 1,
+      remainingQuantity: quantity || 1,
     };
   }
 
@@ -355,9 +368,9 @@ export class DefaultsGeneratorService {
   }
 
   private generateSerialNumber(): string {
-    const timestamp = Date.now().toString().slice(-6); 
+    const timestamp = Date.now().toString().slice(-6);
     const random = faker.string.numeric(2);
-    return `SE${timestamp}${random}`
+    return `SE${timestamp}${random}`;
   }
 
   private generateDeviceKey(): string {

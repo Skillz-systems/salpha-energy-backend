@@ -180,6 +180,30 @@ export class CsvUploadResponseDto {
 
 // Internal DTOs for data processing
 export class SalesCsvRowDto {
+  'External ID (Serial No)'?: string;
+  'Customer ID'?: string;
+  'Customer Name'?: string;
+  'Gender of Primary Account Holder'?: string;
+  'Customer Category'?: string;
+  'Customer Type'?: string;
+  'Location (Address)'?: string;
+  'Location (State)'?: string;
+  'Location (LGA)'?: string;
+  'Phone Number'?: string;
+  'Alternate phone number'?: string;
+  'Latitude'?: string;
+  'Longitude'?: string;
+  'Payment Date'?: string;
+  'Model'?: string;
+  'PV Capacity (W)'?: string;
+  'Type of Payment'?: string;
+  'Retail Cost of System (NGN)'?: string;
+  'Cost to End User (N)'?: string;
+  'Payment Plan'?: string;
+  'Downpayment Amount (NGN)'?: string;
+  'Installment Amount (NGN)'?: string;
+  'Quantity'?: string;
+  
   CUSTOMER_NAME?: string;
   contractNumber?: string;
   ADDRESS_LINE?: string;

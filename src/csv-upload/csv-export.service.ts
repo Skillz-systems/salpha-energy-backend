@@ -1,6 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, SalesStatus } from '@prisma/client';
+import {
+  BatchAlocation,
+  Contract,
+  Customer,
+  CustomerType,
+  Device,
+  InventoryBatch,
+  Payment,
+  Prisma,
+  Product,
+  SaleItem,
+  Sales,
+  SalesStatus,
+} from '@prisma/client';
 
 interface ExportFilters {
   startDate?: Date;
@@ -41,7 +54,6 @@ export class CsvExportService {
           },
         ];
       }
-  
 
       if (filters.status) {
         whereClause.status = filters.status;
@@ -54,13 +66,30 @@ export class CsvExportService {
           contract: true,
           saleItems: {
             include: {
-              product: true,
+              product: {
+                include: {
+                  inventories: {
+                    include: {
+                      inventory: {
+                        include: {
+                          batches: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
               devices: true,
             },
           },
           payment: {
             orderBy: {
               createdAt: 'desc',
+            },
+          },
+          batchAllocations: {
+            include: {
+              inventoryBatch: true,
             },
           },
         },
@@ -80,25 +109,51 @@ export class CsvExportService {
     }
   }
 
-  private convertSalesDataToCsv(salesData: any[]): string {
+  private convertSalesDataToCsv(
+    salesData: (Sales & {
+      customer: Customer;
+      contract?: Contract | null;
+      saleItems: (SaleItem & {
+        product: Product & {
+          inventories: Array<{
+            inventory: {
+              batches: InventoryBatch[];
+            };
+          }>;
+        };
+        devices: Device[];
+      })[];
+      payment: Payment[];
+      batchAllocations: (BatchAlocation & {
+        inventoryBatch: InventoryBatch;
+      })[];
+    })[],
+  ): string {
     // Define CSV headers - matching upload format
     const headers = [
-      'CUSTOMER_NAME',
-      'contractNumber',
-      'ADDRESS_LINE',
-      'MOBILE_NUMBER',
-      'LOAN_AMOUNT',
-      'contract DATE',
-      'PRODUCT',
-      'PRODUCT SERIAL NUMBER',
-      'numberOfUnits',
-      'client.profile.gps.latitude',
-      'client.profile.gps.longitude',
-      'client.profile.gender',
-      'transactionId',
-      'amount',
-      'reference',
-      'date',
+      'External ID (Serial No)',
+      'Customer ID',
+      'Customer Name',
+      'Gender of Primary Account Holder',
+      'Customer Category',
+      'Customer Type',
+      'Location (Address)',
+      'Location (State)',
+      'Location (LGA)',
+      'Phone Number',
+      'Alternate phone number',
+      'Latitude',
+      'Longitude',
+      'Payment Date',
+      'Model',
+      'PV Capacity (W)',
+      'Type of Payment',
+      'Retail Cost of System (NGN)',
+      'Cost to End User (N)',
+      'Payment Plan',
+      'Downpayment Amount (NGN)',
+      'Installment Amount (NGN)',
+      'Quantity',
     ];
 
     // Start with headers
@@ -107,79 +162,55 @@ export class CsvExportService {
     // Process each sale
     for (const sale of salesData) {
       const customer = sale.customer;
-      const contract = sale.contract;
       const saleItems = sale.saleItems || [];
-      const payments = sale.payment || [];
 
-      // For each sale item, create a row (or multiple rows if multiple items)
-      if (saleItems.length > 0) {
-        for (const item of saleItems) {
-          const product = item.product;
-          const devices = item.devices || [];
-          const serialNumber =
-            devices.length > 0 ? devices[0].serialNumber : '';
+      for (const item of saleItems) {
+        const product = item.product;
+        const devices = item.devices || [];
+        const serialNumber = devices.length > 0 ? devices[0].serialNumber : '';
 
-          // Get the most recent payment for transaction details
-          const recentPayment = payments.length > 0 ? payments[0] : null;
+        let inventoryBatch: InventoryBatch | null = null;
 
-          const row = [
-            this.escapeCSVValue(
-              `${customer?.firstname || ''} ${customer?.lastname || ''}`.trim(),
-            ),
-            this.escapeCSVValue(contract?.id || ''),
-            this.escapeCSVValue(customer?.location || ''),
-            this.escapeCSVValue(customer?.phone || ''),
-            this.escapeCSVValue(sale.totalPrice?.toString() || '0'),
-            this.escapeCSVValue(
-              contract?.signedAt ? this.formatDate(contract.signedAt) : '',
-            ),
-            this.escapeCSVValue(product?.name || ''),
-            this.escapeCSVValue(serialNumber),
-            this.escapeCSVValue(item.quantity?.toString() || '1'),
-            this.escapeCSVValue(customer?.latitude || ''),
-            this.escapeCSVValue(customer?.longitude || ''),
-            this.escapeCSVValue(this.extractGender(customer) || ''),
-            this.escapeCSVValue(recentPayment?.id || ''),
-            this.escapeCSVValue(recentPayment?.amount?.toString() || ''),
-            this.escapeCSVValue(recentPayment?.transactionRef || ''),
-            this.escapeCSVValue(
-              recentPayment?.paymentDate
-                ? this.formatDate(recentPayment.paymentDate)
-                : '',
-            ),
-          ];
+        const batchAllocation = sale.batchAllocations?.find(
+          (ba) => ba.inventoryBatch,
+        );
+        inventoryBatch = batchAllocation?.inventoryBatch || null;
 
-          csvRows.push(row.join(','));
+        if (!inventoryBatch && product.inventories?.length > 0) {
+          const inventory = product.inventories[0]?.inventory;
+          if (inventory?.batches?.length > 0) {
+            inventoryBatch = inventory.batches[0];
+          }
         }
-      } else {
-        // Handle sales without items
-        const recentPayment = payments.length > 0 ? payments[0] : null;
 
         const row = [
-          this.escapeCSVValue(
-            `${customer?.firstname || ''} ${customer?.lastname || ''}`.trim(),
-          ),
-          this.escapeCSVValue(contract?.id || ''),
-          this.escapeCSVValue(customer?.location || ''),
+          this.escapeCSVValue(serialNumber),
+          this.escapeCSVValue(customer?.id || ''),
+          this.escapeCSVValue(customer?.fullname || ''),
+          this.escapeCSVValue(customer?.gender || ''),
+          this.escapeCSVValue(customer?.customerCategory || ''),
+          this.escapeCSVValue(this.mapCustomerTypeToDisplay(customer?.type)),
+          this.escapeCSVValue(customer.location),
+          this.escapeCSVValue(customer.state),
+          this.escapeCSVValue(customer.lga),
           this.escapeCSVValue(customer?.phone || ''),
-          this.escapeCSVValue(sale.totalPrice?.toString() || '0'),
-          this.escapeCSVValue(
-            contract?.signedAt ? this.formatDate(contract.signedAt) : '',
-          ),
-          this.escapeCSVValue(''),
-          this.escapeCSVValue(''),
-          this.escapeCSVValue('1'),
+          this.escapeCSVValue(customer.alternatePhone || ''),
           this.escapeCSVValue(customer?.latitude || ''),
           this.escapeCSVValue(customer?.longitude || ''),
-          this.escapeCSVValue(this.extractGender(customer) || ''),
-          this.escapeCSVValue(recentPayment?.transactionRef || ''),
-          this.escapeCSVValue(recentPayment?.amount?.toString() || ''),
-          this.escapeCSVValue(recentPayment?.transactionRef || ''),
+          this.escapeCSVValue(this.formatDateToDDMMYYYY(sale?.transactionDate)),
+          this.escapeCSVValue(product?.name || ''),
+          this.escapeCSVValue(product?.pvCapacity || ''),
+          this.escapeCSVValue(this.mapPaymentModeToDisplay(item.paymentMode)),
+          this.escapeCSVValue(inventoryBatch?.costOfItem?.toString() || '0'),
+          this.escapeCSVValue(inventoryBatch?.price?.toString() || '0'),
           this.escapeCSVValue(
-            recentPayment?.paymentDate
-              ? this.formatDate(recentPayment.paymentDate)
-              : '',
+            item.paymentMode === 'INSTALLMENT'
+              ? 'Installment'
+              : 'N/A(Outright)',
           ),
+          this.escapeCSVValue(item.installmentStartingPrice?.toString() || '0'),
+          this.escapeCSVValue(item.monthlyPayment?.toString() || '0'),
+          this.escapeCSVValue(item.quantity?.toString() || '1'),
         ];
 
         csvRows.push(row.join(','));
@@ -187,6 +218,36 @@ export class CsvExportService {
     }
 
     return csvRows.join('\n');
+  }
+
+  private mapCustomerTypeToDisplay(type: string): string {
+    switch (type) {
+      case CustomerType.Commercial_Retailer:
+        return 'Commercial - Retailer';
+      default:
+        return type;
+    }
+  }
+
+  private formatDateToDDMMYYYY(date: Date | null | undefined): string {
+    if (!date) return '';
+
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+
+    return `${day}/${month}/${year}`;
+  }
+
+  private mapPaymentModeToDisplay(paymentMode: string): string {
+    switch (paymentMode) {
+      case 'ONE_OFF':
+        return 'Outright';
+      case 'INSTALLMENT':
+        return 'Installment';
+      default:
+        return 'Outright';
+    }
   }
 
   private escapeCSVValue(value: string): string {

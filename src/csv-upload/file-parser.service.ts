@@ -177,23 +177,28 @@ export class FileParserService {
 
   private detectDataTypeFromHeaders(headers: string[]): CsvDataType {
     const salesPatterns = [
+      /customer.*name/i,
+      /external.*id/i,
+      /serial/i,
+      /model/i,
+      /location/i,
+      /phone/i,
+      /payment.*plan/i,
+      /retail.*cost/i,
+      /end.*user/i,
+      /downpayment/i,
+      /installment/i,
+      /pv.*capacity/i,
+      /type.*payment/i,
       /customer/i,
       /client/i,
-      /name/i,
       /product/i,
-      /item/i,
       /contract/i,
       /loan/i,
       /address/i,
-      /phone/i,
       /mobile/i,
-      /serial/i,
-      /units/i,
-      /quantity/i,
-      /latitude/i,
-      /longitude/i,
     ];
-
+  
     const transactionPatterns = [
       /transaction/i,
       /payment/i,
@@ -240,57 +245,5 @@ export class FileParserService {
     }
 
     return headers.length > 0 ? matches / headers.length : 0;
-  }
-
-  // Helper method to normalize header names for better matching
-  normalizeHeader(header: string): string {
-    return header
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '_')
-      .replace(/_+/g, '_')
-      .replace(/^_|_$/g, '');
-  }
-
-  // Method to find best matching header for a given field
-  findBestHeaderMatch(
-    targetField: string,
-    availableHeaders: string[],
-  ): string | null {
-    const target = targetField.toLowerCase();
-
-    // Exact match first
-    const exactMatch = availableHeaders.find((h) => h.toLowerCase() === target);
-    if (exactMatch) return exactMatch;
-
-    // Partial match
-    const partialMatch = availableHeaders.find(
-      (h) =>
-        h.toLowerCase().includes(target) || target.includes(h.toLowerCase()),
-    );
-    if (partialMatch) return partialMatch;
-
-    // Pattern-based matching for common variations
-    const patterns: Record<string, RegExp[]> = {
-      customer_name: [/customer/i, /client/i, /name/i],
-      phone: [/phone/i, /mobile/i, /cell/i, /contact/i],
-      address: [/address/i, /location/i, /street/i],
-      amount: [/amount/i, /price/i, /cost/i, /value/i, /total/i],
-      product: [/product/i, /item/i, /service/i],
-      date: [/date/i, /time/i, /when/i],
-      reference: [/ref/i, /reference/i, /receipt/i, /id/i],
-      transaction: [/transaction/i, /trans/i, /payment/i],
-    };
-
-    if (patterns[target]) {
-      for (const header of availableHeaders) {
-        for (const pattern of patterns[target]) {
-          if (pattern.test(header)) {
-            return header;
-          }
-        }
-      }
-    }
-
-    return null;
   }
 }

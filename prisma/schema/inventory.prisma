@@ -29,8 +29,9 @@ model Inventory {
 model InventoryBatch {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
-  costOfItem  Float?
-  price       Float
+  costOfItem  Float?  // Retail Cost of System (NGN)
+  price       Float   // Cost to End User (N) - what customer actually pays
+
   batchNumber Int
 
   numberOfStock     Int // Original quantity in this batch.

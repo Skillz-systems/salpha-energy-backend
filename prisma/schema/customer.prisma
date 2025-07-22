@@ -1,9 +1,16 @@
 model Customer {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
-  firstname   String
-  lastname    String
-  phone       String
+  firstname String?
+  lastname  String?
+  fullname  String?
+  phone     String
+
+  customerCategory String?
+  alternatePhone   String?
+  state            String?
+  lga              String?
+
   email       String      @unique
   gender      String?
   addressType AddressType
@@ -33,4 +40,5 @@ model Customer {
 enum CustomerType {
   lead
   purchase
+  Commercial_Retailer
 }

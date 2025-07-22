@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DefaultsGeneratorService } from './defaults-generator.service';
 import { SalesCsvRowDto, TransactionsCsvRowDto } from './dto/csv-upload.dto';
-import { SalesStatus } from '@prisma/client';
+import { CustomerType, PaymentMode, SalesStatus } from '@prisma/client';
 
 @Injectable()
 export class DataMappingService {
@@ -29,13 +29,15 @@ export class DataMappingService {
       extractedData.productName,
       generatedDefaults.categories.product.id,
       generatedDefaults.defaultUser.id,
+      extractedData.pvCapacity
     );
 
     const { inventory, inventoryBatch } = await this.findOrCreateInventory(
       extractedData.productName,
       extractedData.quantity,
       generatedDefaults.categories.inventory.id,
-      extractedData.unitPrice,
+      extractedData.retailCost,
+      extractedData.endUserCost,
       generatedDefaults.defaultUser.id,
     );
 
@@ -52,27 +54,37 @@ export class DataMappingService {
     );
 
     // Transform contract data with generated defaults
-    const contractData = this.transformContractData();
+    const contractData = this.transformContractData(extractedData.paymentDate);
 
     // Create sale item data
     const saleItemData = {
       productId: product.id,
       quantity: extractedData.quantity,
       totalPrice: extractedData.totalPrice,
-      paymentMode: this.determinePaymentMode(extractedData.totalPrice),
+      monthlyPayment: extractedData.installmentAmount,
+      installmentStartingPrice: extractedData.downpaymentAmount,
+      // paymentMode: this.determinePaymentMode(extractedData.totalPrice),
+      paymentMode: this.determinePaymentMode(extractedData.paymentPlan),
     };
 
     // Create sale data
     const saleData = {
       category: 'PRODUCT' as const,
       status: SalesStatus.COMPLETED,
-      totalPrice: extractedData.totalPrice,
-      totalPaid: extractedData.totalPrice,
+      totalPrice: inventoryBatch.price,
+      totalPaid:
+        saleItemData.paymentMode == PaymentMode.ONE_OFF
+          ? inventoryBatch.price
+          : extractedData.downpaymentAmount,
+      installmentStartingPrice: extractedData.downpaymentAmount,
+      transactionDate: extractedData.paymentDate,
+      totalMonthlyPayment: extractedData.installmentAmount,
       creatorId: generatedDefaults.defaultUser.id,
     };
 
     return {
       customerData,
+      paymentDate: extractedData.paymentDate,
       contractData,
       saleData,
       saleItemData,
@@ -90,6 +102,7 @@ export class DataMappingService {
     // Try multiple field variations for each piece of data
     const customerName = this.extractValue(row, [
       'CUSTOMER_NAME',
+      'Customer Name',
       'customer_name',
       'name',
       'client_name',
@@ -98,6 +111,7 @@ export class DataMappingService {
 
     const productName = this.extractValue(row, [
       'PRODUCT',
+      'Model',
       'product',
       'item',
       'product_name',
@@ -105,6 +119,7 @@ export class DataMappingService {
     ]);
 
     const serialNumber = this.extractValue(row, [
+      'External ID (Serial No)',
       'PRODUCT SERIAL NUMBER',
       'product_serial_number',
       'serial',
@@ -113,6 +128,7 @@ export class DataMappingService {
     ]);
 
     const phoneNumber = this.extractValue(row, [
+      'Phone Number',
       'MOBILE_NUMBER',
       'mobile_number',
       'phone',
@@ -121,86 +137,107 @@ export class DataMappingService {
     ]);
 
     const address = this.extractValue(row, [
+      'Location (Address)',
       'ADDRESS_LINE',
       'address_line',
       'address',
       'location',
     ]);
 
-    const loanAmount = this.parseNumber(
-      this.extractValue(row, [
-        'LOAN_AMOUNT',
-        'loan_amount',
-        'amount',
-        'total',
-        'price',
-      ]),
+    const state = this.extractValue(row, ['Location (State)']);
+
+    const lga = this.extractValue(row, ['Location (LGA)']);
+
+    const alternatePhone = this.extractValue(row, ['Alternate phone number']);
+
+    const customerCategory = this.extractValue(row, ['Customer Category']);
+
+    const customerType = this.extractValue(row, ['Customer Type']);
+
+    const retailCost = this.parseNumber(
+      this.extractValue(row, ['Retail Cost of System (NGN)', 'LOAN_AMOUNT']),
     );
 
-    const contractNumber = this.extractValue(row, [
-      'contractNumber',
-      'contract_number',
-      'contract_id',
-      'CONTRACT_NUMBER',
-    ]);
-
-    const contractDate = this.parseDate(
-      this.extractValue(row, [
-        'contract DATE',
-        'contract_date',
-        'date',
-        'CONTRACT_DATE',
-      ]),
+    const endUserCost = this.parseNumber(
+      this.extractValue(row, ['Cost to End User (N)']),
     );
 
-    const numberOfUnits =
+    const paymentDate = this.parseDate(
+      this.extractValue(row, ['Payment Date', 'contract DATE']),
+    );
+
+    const typeOfPayment = this.extractValue(row, ['Type of Payment']);
+
+    const paymentPlan = this.extractValue(row, ['Payment Plan']);
+
+    const downpaymentAmount = this.parseNumber(
+      this.extractValue(row, ['Downpayment Amount (NGN)']),
+    );
+
+    const installmentAmount = this.parseNumber(
+      this.extractValue(row, ['Installment Amount (NGN)']),
+    );
+
+    const quantity =
       this.parseNumber(
         this.extractValue(row, [
-          'numberOfUnits',
-          'number_of_units',
-          'units',
-          'quantity',
-          'qty',
+          'Quantity',
+          'numberOfUnits', // Keep old format
         ]),
       ) || 1;
 
+    const pvCapacity = this.extractValue(row, ['PV Capacity (W)']);
+
+    const customerId = this.extractValue(row, ['Customer ID']);
+
+    const gender = this.extractValue(row, [
+      'Gender of Primary Account Holder',
+      'client.profile.gender', // Keep old format
+    ]);
+
     const latitude = this.extractValue(row, [
-      'client.profile.gps.latitude',
-      'latitude',
-      'lat',
+      'Latitude',
+      'client.profile.gps.latitude', // Keep old format
     ]);
 
     const longitude = this.extractValue(row, [
-      'client.profile.gps.longitude',
-      'longitude',
-      'lng',
-      'long',
+      'Longitude',
+      'client.profile.gps.longitude', // Keep old format
     ]);
 
-    const gender = this.extractValue(row, [
-      'client.profile.gender',
-      'gender',
-      'sex',
-    ]);
+    const totalPrice = endUserCost || 0;
+    const unitPrice = quantity > 0 ? totalPrice / quantity : totalPrice;
 
-    const totalPrice = loanAmount || 0;
-    const unitPrice =
-      numberOfUnits > 0 ? totalPrice / numberOfUnits : totalPrice;
+    // Build full address
+    const fullAddress = [address, lga, state].filter(Boolean).join(', ');
 
     return {
       customerName: customerName || 'Unknown Customer',
       productName: productName || 'Unknown Product',
       serialNumber,
       phoneNumber,
+      alternatePhone,
       address,
+      fullAddress,
+      state,
+      lga,
       totalPrice,
       unitPrice,
-      contractNumber,
-      contractDate,
-      quantity: numberOfUnits,
+      retailCost: retailCost || 0,
+      endUserCost: endUserCost || 0,
+      paymentDate,
+      quantity,
       latitude,
       longitude,
       gender,
+      customerId,
+      customerCategory,
+      customerType,
+      typeOfPayment,
+      paymentPlan,
+      downpaymentAmount: downpaymentAmount || 0,
+      installmentAmount: installmentAmount || 0,
+      pvCapacity,
     };
   }
 
@@ -215,6 +252,7 @@ export class DataMappingService {
     return {
       firstname: names.firstname,
       lastname: names.lastname,
+      fullname: extractedData.customerName,
       phone: cleanPhone,
       gender: extractedData.gender,
       email: this.generateEmail(names.firstname, names.lastname, cleanPhone),
@@ -223,20 +261,39 @@ export class DataMappingService {
       longitude:
         extractedData.longitude || contextualDefaults.customer.longitude,
       latitude: extractedData.latitude || contextualDefaults.customer.latitude,
-      type: 'purchase' as const,
+      type: this.mapCustomerType(extractedData.customerType),
       status: 'active' as const,
       creatorId: generatedDefaults.defaultUser.id,
+      alternatePhone: extractedData.alternatePhone || null,
+      state: extractedData.state || null,
+      lga: extractedData.lga || null,
+      customerCategory: extractedData.customerCategory || null,
     };
   }
 
-  private transformContractData() {
-    return this.defaultsGenerator.generateContractDefaults();
+  private mapCustomerType(customerType: string): CustomerType {
+    if (!customerType) return 'purchase';
+
+    const type = customerType.toLowerCase();
+    if (type.includes('lead') || type.includes('prospect')) {
+      return CustomerType.lead;
+    }
+    if (type.includes('commercial') || type.includes('retailer')) {
+      return CustomerType.Commercial_Retailer;
+    }
+
+    return CustomerType.purchase; // Default to purchase if no match
+  }
+
+  private transformContractData(paymentDate?: Date) {
+    return this.defaultsGenerator.generateContractDefaults(paymentDate);
   }
 
   async findOrCreateProduct(
     productName: string,
     categoryId: string,
     creatorId: string,
+    pvCapacity?: string,
   ) {
     if (
       !productName ||
@@ -261,6 +318,7 @@ export class DataMappingService {
       const productDefaults = this.defaultsGenerator.generateProductDefaults(
         productName.trim(),
         categoryId,
+        pvCapacity,
       );
 
       product = await this.prisma.product.create({
@@ -272,6 +330,12 @@ export class DataMappingService {
 
       wasCreated = true;
       this.logger.debug(`Created new product: ${productName}`);
+    } else if (pvCapacity && !product.pvCapacity) {
+      // Update existing product with PV capacity if missing
+      product = await this.prisma.product.update({
+        where: { id: product.id },
+        data: { pvCapacity },
+      });
     }
 
     return { ...product, wasCreated };
@@ -281,7 +345,8 @@ export class DataMappingService {
     productName: string,
     quantity: number = 1,
     categoryId: string,
-    price: number,
+    retailCost: number,
+    costToEndUser: number,
     creatorId: string,
   ): Promise<any> {
     // Create or find inventory
@@ -306,9 +371,11 @@ export class DataMappingService {
       });
     }
 
+    console.log({ retailCost, costToEndUser });
     // Create inventory batch
     const batchDefaults = this.defaultsGenerator.generateInventoryBatchDefaults(
-      price,
+      retailCost,
+      costToEndUser,
       quantity,
     );
     const batchNumber = await this.getNextBatchNumber(inventory.id);
@@ -659,8 +726,18 @@ export class DataMappingService {
   }
 
   // Business logic methods
-  private determinePaymentMode(amount: number): 'ONE_OFF' | 'INSTALLMENT' {
-    return amount > 100000 ? 'INSTALLMENT' : 'ONE_OFF';
+  // private determinePaymentMode(amount: number): 'ONE_OFF' | 'INSTALLMENT' {
+  //   return amount > 100000 ? 'INSTALLMENT' : 'ONE_OFF';
+  // }
+  private determinePaymentMode(mode: string): PaymentMode {
+    if (
+      mode.toLowerCase().includes('outright') ||
+      mode.toLowerCase().includes('one-off')
+    ) {
+      return PaymentMode.ONE_OFF;
+    }
+
+    return PaymentMode.INSTALLMENT;
   }
 
   private extractValue(row: any, possibleKeys: string[]): string | null {

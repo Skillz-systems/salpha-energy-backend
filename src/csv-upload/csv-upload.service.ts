@@ -723,8 +723,14 @@ export class CsvUploadService {
       // Create contract if needed
       let contract = null;
       if (this.shouldCreateContract(salesRow)) {
+        const paymentDate = transformedData.paymentDate || new Date();
+
         contract = await this.prisma.contract.create({
-          data: transformedData.contractData,
+          data: {
+            ...transformedData.contractData,
+            createdAt: paymentDate,
+            updatedAt: paymentDate,
+          },
         });
         createdContract = true;
         this.logger.debug(
