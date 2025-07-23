@@ -4,7 +4,7 @@ import { DataMappingService } from './data-mapping.service';
 import { DefaultsGeneratorService } from './defaults-generator.service';
 import { FileParserService } from './file-parser.service';
 import { v4 as uuidv4 } from 'uuid';
-import { OrphanedTransactionStatus } from '@prisma/client';
+import { OrphanedTransactionStatus, PaymentStatus } from '@prisma/client';
 import {
   ProcessCsvDto,
   ValidationResultDto,
@@ -746,6 +746,18 @@ export class CsvUploadService {
           contractId: contract?.id,
         },
       });
+
+      await this.prisma.payment.create({
+        data: {
+          transactionRef:
+            this.dataMappingService.generateTransactionReference(),
+          amount: transformedData.saleData.totalPaid,
+          paymentStatus: PaymentStatus.COMPLETED,
+          paymentDate: transformedData.paymentDate,
+          saleId: sale.id,
+        },
+      });
+      
       createdSale = true;
 
       // Create sale item
@@ -1037,6 +1049,17 @@ export class CsvUploadService {
           ...transformedData.saleData,
           customerId: customer.id,
           contractId: contract?.id,
+        },
+      });
+
+      await this.prisma.payment.create({
+        data: {
+          transactionRef:
+            this.dataMappingService.generateTransactionReference(),
+          amount: transformedData.saleData.totalPaid,
+          paymentStatus: PaymentStatus.COMPLETED,
+          paymentDate: transformedData.paymentDate,
+          saleId: sale.id,
         },
       });
 

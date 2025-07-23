@@ -11,6 +11,7 @@ import { plainToInstance } from 'class-transformer';
 import { UserEntity } from '../users/entity/user.entity';
 import { ListCustomersQueryDto } from './dto/list-customers.dto';
 import { getLastNDaysDate } from '../utils/helpers.util';
+import { UpdateCustomerDto } from './dto/update-customer.dto';
 
 @Injectable()
 export class CustomersService {
@@ -41,6 +42,92 @@ export class CustomersService {
     });
 
     return { message: MESSAGES.CREATED };
+  }
+
+  async updateCustomer(
+    id: string,
+    updateCustomerDto: UpdateCustomerDto,
+  ) {
+    const {
+      longitude,
+      latitude,
+      email,
+      firstname,
+      lastname,
+      phone,
+      alternatePhone,
+      gender,
+      addressType,
+      installationAddress,
+      lga,
+      state,
+      location,
+      idType,
+      idNumber,
+      type,
+      // ...rest
+    } = updateCustomerDto;
+
+    const existingCustomer = await this.prisma.customer.findUnique({
+      where: { id },
+    });
+
+    if (!existingCustomer) {
+      throw new NotFoundException(MESSAGES.USER_NOT_FOUND);
+    }
+
+    if (email && email !== existingCustomer.email) {
+      const customerWithEmail = await this.prisma.customer.findFirst({
+        where: {
+          email,
+          id: { not: id },
+        },
+      });
+
+      if (customerWithEmail) {
+        throw new BadRequestException(MESSAGES.EMAIL_EXISTS);
+      }
+    }
+
+    console.log({ updateCustomerDto });
+
+    // Prepare update data
+    const updateData: any = {
+      ...(firstname !== undefined && { firstname }),
+      ...(lastname !== undefined && { lastname }),
+      ...(phone !== undefined && { phone }),
+      ...(email !== undefined && { email }),
+      ...(addressType !== undefined && { addressType }),
+      ...(location !== undefined && { location }),
+      ...(alternatePhone !== undefined && { alternatePhone }),
+      ...(gender !== undefined && { gender }),
+      ...(installationAddress !== undefined && { installationAddress }),
+      ...(lga !== undefined && { lga }),
+      ...(state !== undefined && { state }),
+      ...(longitude !== undefined && { longitude }),
+      ...(latitude !== undefined && { latitude }),
+      ...(idType !== undefined && { idType }),
+      ...(idNumber !== undefined && { idNumber }),
+      ...(type !== undefined && { type }),
+      // ...rest,
+    };
+
+    const updatedCustomer = await this.prisma.customer.update({
+      where: { id },
+      data: updateData,
+      include: {
+        creatorDetails: {
+          select: {
+            id: true,
+            firstname: true,
+            lastname: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return { message: MESSAGES.UPDATED, customer: updatedCustomer };
   }
 
   async customerFilter(

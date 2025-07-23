@@ -29,7 +29,7 @@ export class DataMappingService {
       extractedData.productName,
       generatedDefaults.categories.product.id,
       generatedDefaults.defaultUser.id,
-      extractedData.pvCapacity
+      extractedData.pvCapacity,
     );
 
     const { inventory, inventoryBatch } = await this.findOrCreateInventory(
@@ -67,15 +67,20 @@ export class DataMappingService {
       paymentMode: this.determinePaymentMode(extractedData.paymentPlan),
     };
 
+    const totalPaid =
+      saleItemData.paymentMode == PaymentMode.ONE_OFF
+        ? inventoryBatch.price
+        : extractedData.downpaymentAmount
+        
     // Create sale data
     const saleData = {
       category: 'PRODUCT' as const,
-      status: SalesStatus.COMPLETED,
+      status:
+        totalPaid >= inventoryBatch.price
+          ? SalesStatus.COMPLETED
+          : SalesStatus.IN_INSTALLMENT,
       totalPrice: inventoryBatch.price,
-      totalPaid:
-        saleItemData.paymentMode == PaymentMode.ONE_OFF
-          ? inventoryBatch.price
-          : extractedData.downpaymentAmount,
+      totalPaid,
       installmentStartingPrice: extractedData.downpaymentAmount,
       transactionDate: extractedData.paymentDate,
       totalMonthlyPayment: extractedData.installmentAmount,
@@ -211,6 +216,10 @@ export class DataMappingService {
     // Build full address
     const fullAddress = [address, lga, state].filter(Boolean).join(', ');
 
+    const businessPaymentDate = paymentDate
+      ? this.generateBusinessHourDateTime(paymentDate)
+      : new Date();
+
     return {
       customerName: customerName || 'Unknown Customer',
       productName: productName || 'Unknown Product',
@@ -225,7 +234,7 @@ export class DataMappingService {
       unitPrice,
       retailCost: retailCost || 0,
       endUserCost: endUserCost || 0,
-      paymentDate,
+      paymentDate: businessPaymentDate,
       quantity,
       latitude,
       longitude,
@@ -696,6 +705,7 @@ export class DataMappingService {
     }
 
     const dateString = this.extractValue(row, [
+      'Payment Date',
       'date',
       'transaction_date',
       'payment_date',
@@ -713,7 +723,7 @@ export class DataMappingService {
     };
   }
 
-  private generateTransactionReference(transactionId?: string): string {
+  generateTransactionReference(transactionId?: string): string {
     if (transactionId && transactionId.trim() !== '') {
       return `sale-${transactionId.trim()}`;
     }

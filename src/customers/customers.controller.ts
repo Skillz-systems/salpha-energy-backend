@@ -9,6 +9,10 @@ import {
   Query,
   Param,
   Delete,
+  Patch,
+  UseInterceptors,
+  UploadedFiles,
+  ParseFilePipeBuilder,
 } from '@nestjs/common';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
@@ -21,6 +25,7 @@ import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
+  ApiConsumes,
   ApiExtraModels,
   ApiHeader,
   ApiOkResponse,
@@ -31,6 +36,8 @@ import {
 import { GetSessionUser } from '../auth/decorators/getUser';
 import { UserEntity } from '../users/entity/user.entity';
 import { ListCustomersQueryDto } from './dto/list-customers.dto';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { UpdateCustomerDto } from './dto/update-customer.dto';
 
 @SkipThrottle()
 @ApiTags('Customers')
@@ -98,6 +105,91 @@ export class CustomersController {
   async listCustomers(@Query() query: ListCustomersQueryDto) {
     return await this.customersService.getCustomers(query);
   }
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.manage}:${SubjectEnum.Customers}`],
+  })
+  @ApiParam({
+    name: 'id',
+    description: "Customer's id to update",
+  })
+  @ApiBody({
+    type: UpdateCustomerDto,
+    description: 'Json structure for update request payload',
+  })
+  @ApiOperation({
+    summary: 'Update customer',
+    description:
+      'Update customer details with optional new passport photo and ID image',
+  })
+  @ApiBearerAuth('access_token')
+  @ApiOkResponse({
+    type: UserEntity,
+    description: 'Updated customer details',
+  })
+  @ApiBadRequestResponse({})
+  @ApiHeader({
+    name: 'Authorization',
+    description: 'JWT token used for authentication',
+    required: true,
+    schema: {
+      type: 'string',
+      example: 'Bearer <token>',
+    },
+  })
+  @ApiConsumes('multipart/form-data')
+  @HttpCode(HttpStatus.OK)
+  @Patch(':id')
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'passportPhoto', maxCount: 1 },
+      { name: 'idImage', maxCount: 1 },
+      { name: 'contractFormImage', maxCount: 1 },
+    ]),
+  )
+  async updateCustomer(
+    @Param('id') id: string,
+    @Body() updateCustomerDto: UpdateCustomerDto,
+    @UploadedFiles()
+    files: {
+      passportPhoto?: Express.Multer.File[];
+      idImage?: Express.Multer.File[];
+      contractFormImage?: Express.Multer.File[];
+    },
+  ) {
+    // Validate files if provided
+    if (files?.passportPhoto?.[0]) {
+      const passportPhotoValidator = new ParseFilePipeBuilder()
+        .addFileTypeValidator({ fileType: /(jpeg|jpg|png|svg)$/i })
+        .build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY });
+
+      await passportPhotoValidator.transform(files.passportPhoto[0]);
+    }
+
+    if (files?.idImage?.[0]) {
+      const idImageValidator = new ParseFilePipeBuilder()
+        .addFileTypeValidator({ fileType: /(jpeg|jpg|png|svg)$/i })
+        .build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY });
+
+      await idImageValidator.transform(files.idImage[0]);
+    }
+
+    if (files?.contractFormImage?.[0]) {
+      const contractFormImage = new ParseFilePipeBuilder()
+        .addFileTypeValidator({ fileType: /(jpeg|jpg|png|svg)$/i })
+        .build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY });
+
+      await contractFormImage.transform(files.contractFormImage[0]);
+    }
+
+    return await this.customersService.updateCustomer(
+      id,
+      updateCustomerDto,
+    );
+  }
+
+
 
   // @UseGuards(JwtAuthGuard)
   // @RolesAndPermissions({
