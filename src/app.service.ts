@@ -5,7 +5,7 @@ export class AppService {
    private readonly logger = new Logger(AppService.name);
   getHello(): string {
 
-    return 'Welcom to Salpha API --';
+    return 'Welcom to Salpha API -->';
   }
 
   //   @Cron(CronExpression.EVERY_30_SECONDS)
