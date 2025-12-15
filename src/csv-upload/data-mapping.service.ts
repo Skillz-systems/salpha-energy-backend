@@ -70,8 +70,8 @@ export class DataMappingService {
     const totalPaid =
       saleItemData.paymentMode == PaymentMode.ONE_OFF
         ? inventoryBatch.price
-        : extractedData.downpaymentAmount
-        
+        : extractedData.downpaymentAmount;
+
     // Create sale data
     const saleData = {
       category: 'PRODUCT' as const,
@@ -632,15 +632,15 @@ export class DataMappingService {
     }
 
     // Check if it's a weekend and adjust to nearest weekday if needed
-    const dayOfWeek = baseDate.getDay(); // 0 = Sunday, 6 = Saturday
+    // const dayOfWeek = baseDate.getDay(); // 0 = Sunday, 6 = Saturday
 
-    if (dayOfWeek === 0) {
-      // Sunday -> move to Monday
-      baseDate.setDate(baseDate.getDate() + 1);
-    } else if (dayOfWeek === 6) {
-      // Saturday -> move to Friday
-      baseDate.setDate(baseDate.getDate() - 1);
-    }
+    // if (dayOfWeek === 0) {
+    //   // Sunday -> move to Monday
+    //   baseDate.setDate(baseDate.getDate() + 1);
+    // } else if (dayOfWeek === 6) {
+    //   // Saturday -> move to Friday
+    //   baseDate.setDate(baseDate.getDate() - 1);
+    // }
 
     // Define business hours with lunch break consideration
     const businessPeriods = [
@@ -835,6 +835,7 @@ export class DataMappingService {
 
     return isNaN(parsed) ? null : parsed;
   }
+
   private parseDate(dateString: string | null): Date | null {
     if (!dateString) return null;
 

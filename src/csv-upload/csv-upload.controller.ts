@@ -412,9 +412,6 @@ export class CsvUploadController {
     if (year && isNaN(yearNum)) {
       throw new BadRequestException('Year must be a valid number');
     }
-    return await this.dateCorrection.deleteRecordsByMonth(
-      monthNum,
-      yearNum,
-    );
+    return await this.dateCorrection.deleteRecordsByMonth(monthNum, yearNum);
   }
 }

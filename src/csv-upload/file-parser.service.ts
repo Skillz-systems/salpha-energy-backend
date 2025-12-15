@@ -39,7 +39,6 @@ export class FileParserService {
       stream
         .pipe(csvParser())
         .on('data', (data) => {
-          // Clean up the data - remove empty fields and trim strings
           const cleanedData: any = {};
           for (const [key, value] of Object.entries(data)) {
             if (value !== null && value !== undefined && value !== '') {
@@ -81,12 +80,11 @@ export class FileParserService {
       const workbook = XLSX.read(buffer, {
         cellStyles: true,
         cellFormula: true,
-        cellDates: false,
+        cellDates: false, // Don't auto-convert to Date objects
         cellNF: true,
         sheetStubs: false,
-        raw: false,
+        raw: false, // Get formatted strings
       });
-
       const sheets: SheetData[] = [];
 
       for (const sheetName of workbook.SheetNames) {
@@ -103,7 +101,6 @@ export class FileParserService {
           continue;
         }
 
-        // Clean and filter data
         const cleanedData = jsonData
           .map((row: any) => {
             const cleanedRow: any = {};
