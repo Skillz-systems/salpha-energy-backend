@@ -44,10 +44,7 @@ export class CustomersService {
     return { message: MESSAGES.CREATED };
   }
 
-  async updateCustomer(
-    id: string,
-    updateCustomerDto: UpdateCustomerDto,
-  ) {
+  async updateCustomer(id: string, updateCustomerDto: UpdateCustomerDto) {
     const {
       longitude,
       latitude,
@@ -328,5 +325,65 @@ export class CustomersService {
     ];
 
     return tabs;
+  }
+
+  async getCustomersWithNoLga() {
+    const v = await this.prisma.customer.findMany({
+      where: {
+        lga: null,
+      },
+      select: {
+        id: true,
+        firstname: true,
+        lastname: true,
+        fullname: true,
+        phone: true,
+        state: true,
+        lga: true,
+        gender: true,
+        location: true,
+        longitude: true,
+        latitude: true,
+      },
+    });
+
+    return v;
+  }
+
+  async countCustomersWithInvalidCoordinates() {
+    const result = await this.prisma.customer.findMany({
+      where: {
+        OR: [{ longitude: 'Not found' }, { latitude: 'Not found' }],
+      },
+      select: {
+        firstname: true,
+        lastname: true,
+        fullname: true,
+        phone: true,
+        customerCategory: true,
+        alternatePhone: true,
+        state: true,
+        lga: true,
+        addressType: true,
+        location: true,
+        longitude: true,
+        latitude: true,
+        status: true,
+        type: true,
+        creatorId: true,
+        agentId: true,
+        createdAt: true,
+        updatedAt: true,
+        deletedAt: true,
+      },
+      // data: {
+      //   longitude: null,
+      //   latitude: null,
+      // },
+    });
+
+    console.log({ddd: result.length});
+
+    return result;
   }
 }

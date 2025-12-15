@@ -13,6 +13,7 @@ import {
   UseInterceptors,
   UploadedFiles,
   ParseFilePipeBuilder,
+  Res,
 } from '@nestjs/common';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
@@ -38,6 +39,7 @@ import { UserEntity } from '../users/entity/user.entity';
 import { ListCustomersQueryDto } from './dto/list-customers.dto';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
+import { Response } from 'express';
 
 @SkipThrottle()
 @ApiTags('Customers')
@@ -183,13 +185,8 @@ export class CustomersController {
       await contractFormImage.transform(files.contractFormImage[0]);
     }
 
-    return await this.customersService.updateCustomer(
-      id,
-      updateCustomerDto,
-    );
+    return await this.customersService.updateCustomer(id, updateCustomerDto);
   }
-
-
 
   // @UseGuards(JwtAuthGuard)
   // @RolesAndPermissions({
@@ -313,5 +310,113 @@ export class CustomersController {
   @Get(':id/tabs')
   async getCustomerTabs(@Param('id') customerId: string) {
     return this.customersService.getCustomerTabs(customerId);
+  }
+
+  @Get('no-lga')
+  async getCustomersWithNoLga(@Res() res: Response) {
+    const customers = await this.customersService.getCustomersWithNoLga();
+
+    // 1️⃣ Define the headers (CSV columns)
+    const headers = [
+      'id',
+      'firstname',
+      'lastname',
+      'fullname',
+      'phone',
+      'state',
+      'lga',
+      'gender',
+      'location',
+      'longitude',
+      'latitude',
+    ];
+
+    // 2️⃣ Convert to CSV rows
+    const csvRows: string[] = [];
+    csvRows.push(headers.join(',')); // first row: header
+
+    for (const customer of customers) {
+      const row = headers
+        .map((field) => {
+          let value = customer[field] ?? ''; // handle null/undefined
+          // Escape double quotes by doubling them
+          value = String(value).replace(/"/g, '""');
+          // Wrap fields with commas, quotes, or newlines in double quotes
+          if (/[,"\n]/.test(value)) {
+            value = `"${value}"`;
+          }
+          return value;
+        })
+        .join(',');
+      csvRows.push(row);
+    }
+
+    const csvContent = csvRows.join('\n');
+    const filename = `customers-no-lga-${Date.now()}.csv`;
+
+    // 3️⃣ Set headers for download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', Buffer.byteLength(csvContent));
+
+    // 4️⃣ Send CSV
+    res.send(csvContent);
+  }
+
+  @Get('invalid-coordinates')
+  @ApiOperation({
+    summary: 'Get all customers with invalid coordinates (Not found)',
+  })
+  async findCustomersWithInvalidCoordinates(@Res() res: Response) {
+    const data =
+      await this.customersService.countCustomersWithInvalidCoordinates();
+
+    if (!data || !data.length) {
+      return res
+        .status(404)
+        .send('No customers with invalid coordinates found.');
+    }
+
+    // Extract headers from first object
+    const headers = Object.keys(data[0]);
+
+    // Build CSV content manually
+    const csvRows = [];
+
+    // Header row
+    csvRows.push(headers.join(','));
+
+    // Data rows
+    for (const row of data) {
+      const values = headers.map((header) => {
+        let val = row[header];
+
+        // Handle null or undefined
+        if (val === null || val === undefined) val = '';
+
+        // Escape double quotes and commas
+        val = String(val).replace(/"/g, '""');
+
+        // Wrap in double quotes if needed
+        if (val.includes(',') || val.includes('\n') || val.includes('"')) {
+          val = `"${val}"`;
+        }
+
+        return val;
+      });
+
+      csvRows.push(values.join(','));
+    }
+
+    const csvContent = csvRows.join('\n');
+    const filename = `invalid_customers_${new Date().toISOString()}.csv`;
+
+    // Set response headers for download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', Buffer.byteLength(csvContent, 'utf-8'));
+
+    // Send CSV content
+    res.send(csvContent);
   }
 }

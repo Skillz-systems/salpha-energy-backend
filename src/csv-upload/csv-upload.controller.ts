@@ -11,6 +11,7 @@ import {
   Query,
   Res,
   Get,
+  Delete,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -37,6 +38,7 @@ import { RolesAndPermissionsGuard } from '../auth/guards/roles.guard';
 import { RolesAndPermissions } from '../auth/decorators/roles.decorator';
 import { ActionEnum, SubjectEnum } from '@prisma/client';
 import { CsvExportService } from './csv-export.service';
+import { DateCorrectionService } from './date-correction.service';
 
 @ApiTags('CSV Data Migration')
 @Controller('csv-upload')
@@ -44,6 +46,7 @@ export class CsvUploadController {
   constructor(
     private readonly csvUploadService: CsvUploadService,
     private readonly csvExportService: CsvExportService,
+    private readonly dateCorrection: DateCorrectionService,
   ) {}
 
   @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
@@ -361,5 +364,57 @@ export class CsvUploadController {
     @Body() cancelRequest: SessionStatsRequestDto,
   ): Promise<{ success: boolean; message: string; sessionId: string }> {
     return await this.csvUploadService.cancelSession(cancelRequest.sessionId);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesAndPermissionsGuard)
+  @RolesAndPermissions({
+    permissions: [`${ActionEnum.read}:${SubjectEnum.Sales}`],
+  })
+  @Delete('delete-month-records')
+  @ApiOperation({
+    description:
+      'Permanently delete all records (Sales, Payments, Contracts, Devices, etc.) created in the specified month. This action cannot be undone.',
+  })
+  @ApiQuery({
+    name: 'month',
+    type: Number,
+    required: true,
+    description: 'Month number (1-12)',
+    example: 12,
+  })
+  @ApiQuery({
+    name: 'year',
+    type: Number,
+    required: false,
+    description: 'Year (optional, defaults to current year)',
+    example: 2025,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Date offset analysis results',
+  })
+  async deleteMonthRecords(
+    @Query('month') month: string,
+    @Query('year') year?: string,
+  ) {
+    const monthNum = parseInt(month);
+    const yearNum = year ? parseInt(year) : undefined;
+
+    // Validation
+    if (isNaN(monthNum)) {
+      throw new BadRequestException('Month must be a valid number');
+    }
+
+    if (monthNum < 1 || monthNum > 12) {
+      throw new BadRequestException('Month must be between 1 and 12');
+    }
+
+    if (year && isNaN(yearNum)) {
+      throw new BadRequestException('Year must be a valid number');
+    }
+    return await this.dateCorrection.deleteRecordsByMonth(
+      monthNum,
+      yearNum,
+    );
   }
 }

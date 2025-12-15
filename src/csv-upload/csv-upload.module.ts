@@ -6,6 +6,7 @@ import { CsvUploadService } from './csv-upload.service';
 import { DefaultsGeneratorService } from './defaults-generator.service';
 import { FileParserService } from './file-parser.service';
 import { CsvExportService } from './csv-export.service';
+import { DateCorrectionService } from './date-correction.service';
 
 @Module({
   imports: [PrismaModule],
@@ -16,6 +17,7 @@ import { CsvExportService } from './csv-export.service';
     DefaultsGeneratorService,
     FileParserService,
     CsvExportService,
+    DateCorrectionService
   ],
   exports: [
     CsvUploadService,
@@ -23,6 +25,7 @@ import { CsvExportService } from './csv-export.service';
     DefaultsGeneratorService,
     FileParserService,
     CsvExportService,
+    DateCorrectionService
   ],
 })
 export class CsvUploadModule {}

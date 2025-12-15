@@ -37,9 +37,7 @@ export class FileParserService {
       const stream = Readable.from(buffer.toString());
 
       stream
-        .pipe(
-          csvParser()
-        )
+        .pipe(csvParser())
         .on('data', (data) => {
           // Clean up the data - remove empty fields and trim strings
           const cleanedData: any = {};
@@ -83,9 +81,10 @@ export class FileParserService {
       const workbook = XLSX.read(buffer, {
         cellStyles: true,
         cellFormula: true,
-        cellDates: true,
+        cellDates: false,
         cellNF: true,
-        sheetStubs: false, // Don't include empty cells
+        sheetStubs: false,
+        raw: false,
       });
 
       const sheets: SheetData[] = [];
@@ -93,11 +92,10 @@ export class FileParserService {
       for (const sheetName of workbook.SheetNames) {
         const worksheet = workbook.Sheets[sheetName];
 
-        // Convert sheet to JSON
         const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-          header: 1, // Use array of arrays first to get headers
-          defval: '', // Default value for empty cells
-          blankrows: false, // Skip blank rows
+          defval: '',
+          blankrows: false,
+          raw: false,
         });
 
         if (jsonData.length === 0) {
@@ -105,25 +103,8 @@ export class FileParserService {
           continue;
         }
 
-        // Extract headers from first row
-        const headers = (jsonData[0] as any[])
-          .map((header, index) => header || `Column_${index + 1}`)
-          .map((header) => header.toString().trim())
-          .filter((header) => header !== '');
-
-        if (headers.length === 0) {
-          this.logger.warn(`Sheet ${sheetName} has no valid headers, skipping`);
-          continue;
-        }
-
-        // Convert to objects using headers
-        const objectData = XLSX.utils.sheet_to_json(worksheet, {
-          defval: '',
-          blankrows: false,
-        });
-
         // Clean and filter data
-        const cleanedData = objectData
+        const cleanedData = jsonData
           .map((row: any) => {
             const cleanedRow: any = {};
             let hasData = false;
